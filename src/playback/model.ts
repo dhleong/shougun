@@ -1,3 +1,9 @@
+export interface ILocalMedia {
+    id: string;
+    contentType: string;
+    localPath: string;
+}
+
 export interface IMediaMetadata {
     title?: string;
 }

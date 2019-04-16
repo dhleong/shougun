@@ -1,23 +1,18 @@
 import fastify from "fastify";
-import fs from "fs-extra";
 import internalIp from "internal-ip";
+import mime from "mime";
 import path from "path";
-import rangeParser from "range-parser";
 import url from "url";
 
 import _debug from "debug";
 const debug = _debug("shougun:serve");
 
-import { IPlayable } from "./model";
-
-interface IMediaEntry {
-    id: string;
-    contentType: string;
-    localPath: string;
-}
+import { ILocalMedia, IPlayable } from "./model";
+import { serveMp4 } from "./serve/mp4";
+import { serveTranscoded } from "./serve/transcode";
 
 export interface IServer {
-    serve(media: IMediaEntry): Promise<string>;
+    serve(media: ILocalMedia): Promise<string>;
 }
 
 // tslint:disable max-classes-per-file
@@ -28,7 +23,7 @@ export class Server implements IServer {
     private address: string | undefined;
 
     // TODO expire old entries over time
-    private media: {[id: string]: IMediaEntry} = {};
+    private media: {[id: string]: ILocalMedia} = {};
 
     public close() {
         const s = this.server;
@@ -36,10 +31,11 @@ export class Server implements IServer {
         s.close();
     }
 
-    public async serve(mediaEntry: IMediaEntry) {
+    public async serve(mediaEntry: ILocalMedia) {
         this.media[mediaEntry.id] = mediaEntry;
         const address = await this.ensureServing();
-        return `http://${address}/playable/id/${mediaEntry.id}`;
+        const encodedId = encodeURIComponent(mediaEntry.id);
+        return `http://${address}/playable/id/${encodedId}`;
     }
 
     private async ensureServing(): Promise<string> {
@@ -51,34 +47,14 @@ export class Server implements IServer {
         });
         server.get("/playable/id/:id", async (req, reply) => {
             const id = req.params.id;
-            const { localPath } = this.media[id];
+            const { contentType, localPath } = this.media[id];
             if (!id) throw new Error("No such path");
 
-            const stat = await fs.stat(localPath);
-            const length = stat.size;
-
-            // common headers
-            reply.header("Content-Type", "video/mp4");
-
-            const { range } = req.headers;
-            if (range) {
-                // range request
-                const requestedRanges = rangeParser(length, range);
-                if (typeof requestedRanges === "number") {
-                    throw new Error("Invalid range");
-                }
-
-                const r = requestedRanges[0];
-                reply.header("Content-Range", `bytes ${r.start}-${r.end}/${length}`);
-                reply.header("Accept-Ranges", "bytes");
-                reply.header("Content-Length", r.end - r.start + 1);
-                reply.status(206);
-
-                return fs.createReadStream(localPath, r);
+            if (contentType === "video/mp4") {
+                return serveMp4(req, reply, localPath);
             }
 
-            reply.header("Content-Length", length);
-            return fs.createReadStream(localPath);
+            return serveTranscoded(req, reply, localPath);
         });
 
         this.server = server;
@@ -98,6 +74,20 @@ export class Server implements IServer {
 }
 
 export class ServedPlayable implements IPlayable {
+    public static async createFromPath(server: IServer, localPath: string) {
+        const type = mime.getType(localPath);
+        if (!type) throw new Error(`Unknown file type at ${localPath}`);
+
+        // FIXME: proper ID extraction
+        const id = localPath;
+        return new ServedPlayable(
+            server,
+            id,
+            type,
+            localPath,
+        );
+    }
+
     constructor(
         private server: IServer,
         public readonly id: string,
