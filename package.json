@@ -1,0 +1,49 @@
+{
+  "name": "shougun",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "build": "tsc -p .",
+    "check": "npm run lint && npm run build",
+    "lint": "tslint -p .",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run check",
+    "test": "mocha -r ts-node/register test/**/*-test.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dhleong/shougun.git"
+  },
+  "author": "Daniel Leong",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dhleong/shougun/issues"
+  },
+  "homepage": "https://github.com/dhleong/shougun#readme",
+  "dependencies": {
+    "babbling": "~/git/babbling",
+    "debug": "^4.1.1",
+    "fastify": "^2.2.0",
+    "fs-extra": "^7.0.1",
+    "internal-ip": "^4.3.0",
+    "leven": "^3.1.0",
+    "nodecastor": "dhleong/nodecastor#e18189c",
+    "range-parser": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/debug": "^4.1.3",
+    "@types/fs-extra": "^5.0.5",
+    "@types/mocha": "^5.2.6",
+    "@types/node": "^11.13.2",
+    "@types/range-parser": "^1.2.3",
+    "chai": "^4.2.0",
+    "mocha": "^6.1.2",
+    "typescript": "^3.4.2"
+  }
+}
