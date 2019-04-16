@@ -1,6 +1,7 @@
 import fastify from "fastify";
 import fs from "fs-extra";
 import internalIp from "internal-ip";
+import path from "path";
 import rangeParser from "range-parser";
 import url from "url";
 
@@ -106,7 +107,8 @@ export class ServedPlayable implements IPlayable {
 
     public async getMetadata() {
         // TODO
-        return {};
+        const title = path.basename(this.localPath);
+        return { title };
     }
 
     public async getUrl() {
