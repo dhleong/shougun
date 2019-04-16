@@ -7,7 +7,7 @@ import url from "url";
 import _debug from "debug";
 const debug = _debug("shougun:serve");
 
-import { ILocalMedia, IPlayable } from "./model";
+import { ILocalMedia, IPlayable } from "../model";
 import { serveMp4 } from "./serve/mp4";
 import { serveTranscoded } from "./serve/transcode";
 

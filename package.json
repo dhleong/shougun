@@ -44,10 +44,12 @@
     "@types/fs-extra": "^5.0.5",
     "@types/mime": "^2.0.1",
     "@types/mocha": "^5.2.6",
+    "@types/mock-fs": "^3.6.30",
     "@types/node": "^11.13.2",
     "@types/range-parser": "^1.2.3",
     "chai": "^4.2.0",
     "mocha": "^6.1.2",
+    "mock-fs": "^4.8.0",
     "typescript": "^3.4.2"
   }
 }

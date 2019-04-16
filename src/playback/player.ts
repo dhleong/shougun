@@ -1,7 +1,7 @@
 import { ChromecastDevice } from "babbling";
 
+import { IPlayable } from "../model";
 import { DefaultMediaReceiverApp } from "./apps/default";
-import { IPlayable } from "./model";
 
 export class Player {
     constructor(
