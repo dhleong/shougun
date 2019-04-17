@@ -1,6 +1,6 @@
 import { awaitMessageOfType, BaseApp, IDevice } from "babbling";
 
-import { IMediaMetadata } from "../../model";
+import { IMediaMetadata } from "../../../model";
 
 export interface IMedia {
     contentId: string;
