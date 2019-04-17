@@ -44,12 +44,19 @@ export class Server implements IServer {
 
         const server = fastify({
             logger: debug.enabled,
+
+            // NOTE: some IDs may be arbitrarily long file paths;
+            // let's support that
+            maxParamLength: 512,
         });
         server.get("/playable/id/:id", async (req, reply) => {
             const id = req.params.id;
-            const { contentType, localPath } = this.media[id];
-            if (!id) throw new Error("No such path");
+            debug("request playable @", id);
 
+            const media = this.media[id];
+            if (!media) throw new Error("No such media");
+
+            const { contentType, localPath } = media;
             if (contentType === "video/mp4") {
                 return serveMp4(req, reply, localPath);
             }
