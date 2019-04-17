@@ -1,20 +1,25 @@
 import _debug from "debug";
 const debug = _debug("shougun:hierarchical");
 
+import { Context } from "../context";
 import { fileNameToTitle, isVideo } from "../media/util";
 import { IMedia, IMediaMap, IPlayable, ISeries, MediaType } from "../model";
-import { IDiscovery } from "./base";
+import { DiscoveryId, IDiscovery } from "./base";
 
 export interface IHierarchy<TEntity> {
     idOf(entity: TEntity): string;
     nameOf(entity: TEntity): string;
     parentOf(entity: TEntity): Promise<TEntity>;
     childrenOf(entity: TEntity): Promise<TEntity[] | null>;
-    playableFactory(entity: TEntity): () => Promise<IPlayable>;
+
+    createPlayable(
+        context: Context,
+        entity: TEntity,
+    ): Promise<IPlayable>;
 }
 
 export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
-    public abstract id: string;
+    public abstract id: DiscoveryId;
 
     private readonly rootId: string;
 
@@ -23,6 +28,31 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         private root: TEntity,
     ) {
         this.rootId = this.hierarchy.idOf(root);
+    }
+
+    public instanceById(id: DiscoveryId): IDiscovery | undefined {
+        if (id !== this.id) return;
+        return this;
+    }
+
+    public async createPlayable(
+        context: Context,
+        media: IMedia,
+    ) {
+        // NOTE: this should only be called with media that
+        // we created, so it should always have this property.
+        // if not, it is user error
+        const entity = (media as any).entity as TEntity;
+        if (!entity) {
+            throw new Error(
+                `${this.id} provided media created by other Discovery (${media.discovery})`,
+            );
+        }
+
+        return this.hierarchy.createPlayable(
+            context,
+            entity,
+        );
     }
 
     public async *discover(): AsyncIterable<IMedia> {

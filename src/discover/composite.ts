@@ -23,4 +23,11 @@ export class CompositeDiscovery implements IDiscovery {
             this.delegates.map(it => it.discover()),
         );
     }
+
+    public instanceById(id: DiscoveryId): IDiscovery | undefined {
+        for (const delegate of this.delegates) {
+            const found = delegate.instanceById(id);
+            if (found) return found;
+        }
+    }
 }

@@ -2,7 +2,8 @@ import fs from "fs-extra";
 import os from "os";
 import path from "path";
 
-import { IServer, ServedPlayable } from "../playback/serve";
+import { Context } from "../context";
+import { ServedPlayable } from "../playback/serve";
 import { DiscoveryId } from "./base";
 import { HierarchicalDiscovery, IHierarchy } from "./hierarchical";
 
@@ -21,15 +22,16 @@ export function isRelevantFile(
     return true;
 }
 
+export interface ILocalFileOptions {
+    filesBlacklist?: string[];
+}
+
 class LocalFileHierarchy implements IHierarchy<string> {
 
     private filesBlacklist: Set<string>;
 
     constructor(
-        private server: IServer,
-        options: {
-            filesBlacklist?: string[],
-        } = {},
+        options: ILocalFileOptions,
     ) {
         this.filesBlacklist = new Set([
             ...relevantFileBlacklist,
@@ -70,10 +72,10 @@ class LocalFileHierarchy implements IHierarchy<string> {
         }
     }
 
-    public playableFactory(file: string) {
-        return async () => ServedPlayable.createFromPath(
-            this.server,
-            file,
+    public async createPlayable(context: Context, media: string) {
+        return ServedPlayable.createFromPath(
+            context.server,
+            media,
         );
     }
 }
@@ -88,8 +90,11 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
 
     public readonly id: DiscoveryId;
 
-    constructor(server: IServer, rootPath: string) {
-        super(new LocalFileHierarchy(server), resolvePath(rootPath));
+    constructor(
+        rootPath: string,
+        options: ILocalFileOptions = {},
+    ) {
+        super(new LocalFileHierarchy(options), resolvePath(rootPath));
 
         this.id = `local:${rootPath}`;
     }
