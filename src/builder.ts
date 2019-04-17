@@ -4,17 +4,27 @@ import { LocalDiscovery } from "./discover/local";
 import { IPlayer } from "./playback/player";
 import { ChromecastPlayer } from "./playback/player/chromecast";
 import { Shougun } from "./shougun";
+import { ITracker } from "./track/base";
+import { TracklessTracker } from "./track/trackless";
 
 export class ShougunBuilder {
 
     private discoveries: IDiscovery[] = [];
-
     private player: IPlayer | undefined;
+    private tracker: ITracker | undefined;
+
+    /*
+     * Discovery
+     */
 
     public scanFolder(path: string) {
         this.discoveries.push(new LocalDiscovery(path));
         return this;
     }
+
+    /*
+     * Playback
+     */
 
     public playOnNamedChromecast(deviceName: string) {
         if (this.player) {
@@ -26,6 +36,19 @@ export class ShougunBuilder {
         return this;
     }
 
+    /*
+     * Tracking
+     */
+
+    public dontTrack() {
+        this.tracker = new TracklessTracker();
+        return this;
+    }
+
+    /*
+     * Builder
+     */
+
     public async build() {
         if (!this.discoveries.length) {
             throw new Error("No discovery method provided");
@@ -35,6 +58,10 @@ export class ShougunBuilder {
             throw new Error("No playback method provided");
         }
 
+        if (!this.tracker) {
+            throw new Error("No watch history tracker provided");
+        }
+
         const discovery = this.discoveries.length === 1
             ? this.discoveries[0]
             : CompositeDiscovery.create(...this.discoveries);
@@ -42,6 +69,7 @@ export class ShougunBuilder {
         return Shougun.create(
             discovery,
             this.player,
+            this.tracker,
         );
     }
 }

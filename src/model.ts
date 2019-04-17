@@ -40,12 +40,20 @@ export interface ISeries extends IMedia {
     seasons: ISeason[];
 }
 
+export interface IEpisode extends IMedia {
+    seriesId: string;
+}
+
 export interface ISeason {
     id: string;
     number?: number;
     title?: string;
 
-    episodes: IMedia[];
+    episodes: IEpisode[];
+}
+
+export function isEpisode(media: IMedia): media is IEpisode {
+    return media.type === MediaType.Episode;
 }
 
 export function isSeries(media: IMedia): media is ISeries {

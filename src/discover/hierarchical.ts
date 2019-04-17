@@ -77,7 +77,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             const candidate = candidates.pop();
             if (!candidate) throw new Error("Illegal state");
 
-            // TODO guess series/season structures
+            // guess series/season structures
             const children = await this.hierarchy.childrenOf(candidate);
             if (children === null) {
                 // not a directory
@@ -125,6 +125,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             // this is a new season belonging to parentId
             (parentAsSeries as ISeries).seasons.push(this.createSeason(
                 candidateId,
+                parentId,
                 this.createTitle(candidate),
                 videoFiles,
             ));
@@ -136,7 +137,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         if (this.rootId === grandId) {
             debug("grand @", candidate);
             // EG: /Korra/Book 1; Korra/Book 2
-            // TODO if the grandparent is the root, then this
+            // if the grandparent is the root, then this
             // must be a season
             const series: ISeries = discovered[parentId] as ISeries || {
                 discovery: this.id,
@@ -149,6 +150,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
 
             series.seasons.push(this.createSeason(
                 candidateId,
+                series.id,
                 this.createTitle(candidate),
                 videoFiles,
             ));
@@ -167,7 +169,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             type: MediaType.Series,
 
             seasons: [
-                this.createSeason(candidateId, undefined, videoFiles),
+                this.createSeason(candidateId, candidateId, undefined, videoFiles),
             ],
         };
     }
@@ -178,27 +180,35 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
     }
 
     private createSeason(
+        seriesId: string,
         id: string,
         title: string | undefined,
         videoFiles: TEntity[],
     ) {
         return {
             episodes: videoFiles.map(f =>
-                this.createMedia(MediaType.Episode, f),
+                this.createMedia(MediaType.Episode, f, {
+                    seriesId,
+                }),
             ),
             id,
+            seriesId,
             title,
         };
     }
 
-    private createMedia(type: MediaType, entity: TEntity) {
-        return {
+    private createMedia<T extends {}>(
+        type: MediaType,
+        entity: TEntity,
+        extra?: T,
+    ) {
+        return Object.assign({
             discovery: this.id,
             id: this.hierarchy.idOf(entity),
             title: this.createTitle(entity),
             type,
 
             entity,
-        };
+        }, extra);
     }
 }

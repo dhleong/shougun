@@ -2,14 +2,16 @@ import leven from "leven";
 
 import { Context } from "./context";
 import { IDiscovery } from "./discover/base";
-import { IMedia, IMediaMap } from "./model";
+import { IMedia, IMediaMap, isSeries } from "./model";
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
+import { ITracker } from "./track/base";
 
 export class Shougun {
     public static async create(
         discovery: IDiscovery,
         player: IPlayer,
+        tracker: ITracker,
     ) {
         const map: IMediaMap = {};
         for await (const media of discovery.discover()) {
@@ -19,6 +21,7 @@ export class Shougun {
         const context = new Context(
             discovery,
             player,
+            tracker,
             new Server(),
         );
 
@@ -72,9 +75,13 @@ export class Shougun {
 
     public async play(
         media: IMedia,
-        options: IPlaybackOptions,
+        options: IPlaybackOptions = {},
     ) {
-        // TODO pick the right episode in a Series
+        if (isSeries(media) || options.currentTime === undefined) {
+            const track = await this.context.tracker.pickResumeForMedia(media);
+            media = track.media;
+            options.currentTime = track.resumeTimeMillis;
+        }
 
         const playable = await this.context.discovery.createPlayable(
             this.context,
