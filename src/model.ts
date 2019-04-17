@@ -1,3 +1,5 @@
+import { DiscoveryId } from "./discover/base";
+
 export interface ILocalMedia {
     id: string;
     contentType: string;
@@ -18,15 +20,29 @@ export interface IPlayable {
 export enum MediaType {
     Episode,
     Movie,
-    Season,
-    Show,
+    Series,
 }
 
 export interface IMedia {
     id: string;
+    title: string;
     type: MediaType;
 
-    // TODO maybe we should provide things like an IServer instance, so
-    // the Discovery methods don't need a reference up-front
-    createPlayable(): Promise<IPlayable>;
+    /** ID of the discovery that provides this media */
+    discovery: DiscoveryId;
+}
+
+export interface IMediaMap {
+    [id: string]: IMedia;
+}
+
+export interface ISeries extends IMedia {
+    seasons: ISeason[];
+}
+
+export interface ISeason {
+    id: string;
+    number?: number;
+
+    episodes: IMedia[];
 }

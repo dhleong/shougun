@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 
 import { IServer, ServedPlayable } from "../playback/serve";
+import { DiscoveryId } from "./base";
 import { HierarchicalDiscovery, IHierarchy } from "./hierarchical";
 
 class LocalFileHierarchy implements IHierarchy<string> {
@@ -14,6 +15,10 @@ class LocalFileHierarchy implements IHierarchy<string> {
         // TODO: we probably want more context here...
         // EG: series vs season vs etc
         return file;
+    }
+
+    public nameOf(file: string) {
+        return path.basename(file);
     }
 
     public async parentOf(file: string) {
@@ -51,7 +56,12 @@ function resolvePath(original: string) {
 }
 
 export class LocalDiscovery extends HierarchicalDiscovery<string> {
+
+    public readonly id: DiscoveryId;
+
     constructor(server: IServer, rootPath: string) {
         super(new LocalFileHierarchy(server), resolvePath(rootPath));
+
+        this.id = `local:${rootPath}`;
     }
 }
