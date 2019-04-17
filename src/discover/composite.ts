@@ -1,5 +1,6 @@
 import { mergeAsyncIterables } from "babbling/dist/async";
 
+import { Context } from "../context";
 import { IMedia } from "../model";
 import { DiscoveryId, IDiscovery } from "./base";
 
@@ -17,6 +18,20 @@ export class CompositeDiscovery implements IDiscovery {
         public readonly id: DiscoveryId,
         private readonly delegates: IDiscovery[],
     ) {}
+
+    public async createPlayable(
+        context: Context,
+        media: IMedia,
+    ) {
+        const instance = this.instanceById(media.discovery);
+        if (!instance) {
+            throw new Error(
+                `${media.id} provided by unknown: ${media.discovery}`,
+            );
+        }
+
+        return instance.createPlayable(context, media);
+    }
 
     public async *discover(): AsyncIterable<IMedia> {
         yield *mergeAsyncIterables(

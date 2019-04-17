@@ -74,18 +74,9 @@ export class Shougun {
         media: IMedia,
         options: IPlaybackOptions,
     ) {
-        const discovery = this.context.discovery.instanceById(
-            media.discovery,
-        );
-        if (!discovery) {
-            throw new Error(
-                `${media.id} discovered by unknown: ${media.discovery}`,
-            );
-        }
-
         // TODO pick the right episode in a Series
 
-        const playable = await discovery.createPlayable(
+        const playable = await this.context.discovery.createPlayable(
             this.context,
             media,
         );
