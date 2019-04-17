@@ -43,6 +43,11 @@ export interface ISeries extends IMedia {
 export interface ISeason {
     id: string;
     number?: number;
+    title?: string;
 
     episodes: IMedia[];
+}
+
+export function isSeries(media: IMedia): media is ISeries {
+    return media.type === MediaType.Series;
 }

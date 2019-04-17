@@ -6,10 +6,36 @@ import { IServer, ServedPlayable } from "../playback/serve";
 import { DiscoveryId } from "./base";
 import { HierarchicalDiscovery, IHierarchy } from "./hierarchical";
 
+// file/folder names that are never relevant
+const relevantFileBlacklist = [
+    "iMovie Library.imovielibrary",
+    "iMovie Theater.theater",
+];
+
+export function isRelevantFile(
+    fileName: string,
+) {
+    // ignore "hidden" directories
+    if (fileName.startsWith(".")) return false;
+
+    return true;
+}
+
 class LocalFileHierarchy implements IHierarchy<string> {
+
+    private filesBlacklist: Set<string>;
+
     constructor(
         private server: IServer,
-    ) {}
+        options: {
+            filesBlacklist?: string[],
+        } = {},
+    ) {
+        this.filesBlacklist = new Set([
+            ...relevantFileBlacklist,
+            ...(options.filesBlacklist || []),
+        ]);
+    }
 
     public idOf(file: string) {
         // TODO: we probably want more context here...
@@ -28,7 +54,10 @@ class LocalFileHierarchy implements IHierarchy<string> {
     public async childrenOf(file: string) {
         try {
             const contents = await fs.readdir(file);
-            return contents.map(fileName =>
+            return contents.filter(fileName =>
+                !this.filesBlacklist.has(fileName)
+                    && isRelevantFile(fileName),
+            ).map(fileName =>
                 path.join(file, fileName),
             );
         } catch (e) {

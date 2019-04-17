@@ -92,7 +92,12 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         const parentAsSeries = discovered[parentId];
         if (parentAsSeries) {
             // EG: /Nodame/SPECIAL
-            // TODO this is a new season belonging to parentId
+            // this is a new season belonging to parentId
+            (parentAsSeries as ISeries).seasons.push(this.createSeason(
+                candidateId,
+                this.createTitle(candidate),
+                videoFiles,
+            ));
             return;
         }
 
@@ -114,6 +119,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
 
             series.seasons.push(this.createSeason(
                 candidateId,
+                this.createTitle(candidate),
                 videoFiles,
             ));
 
@@ -131,7 +137,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             type: MediaType.Series,
 
             seasons: [
-                this.createSeason(candidateId, videoFiles),
+                this.createSeason(candidateId, undefined, videoFiles),
             ],
         };
     }
@@ -143,6 +149,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
 
     private createSeason(
         id: string,
+        title: string | undefined,
         videoFiles: TEntity[],
     ) {
         return {
@@ -150,6 +157,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
                 this.createMedia(MediaType.Episode, f),
             ),
             id,
+            title,
         };
     }
 
