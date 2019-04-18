@@ -4,8 +4,7 @@ import mockFs from "mock-fs";
 
 import { IDiscovery } from "../../src/discover/base";
 import { LocalDiscovery } from "../../src/discover/local";
-import { IMedia, MediaType } from "../../src/model";
-import { IServer } from "../../src/playback/serve";
+import { MediaType } from "../../src/model";
 import { toArray } from "./util";
 
 chai.use(chaiSubset);
@@ -24,13 +23,6 @@ function dir(...fileNames: IEntry[]) {
         }
         return m;
     }, {} as {[n: string]: any});
-}
-
-async function toSimpleArray(items: AsyncIterable<IMedia>) {
-    return (await toArray(items)).map(m => ({
-        title: m.title,
-        type: m.type,
-    }));
 }
 
 describe("LocalDiscovery", () => {
@@ -64,22 +56,23 @@ describe("LocalDiscovery", () => {
     let disco: IDiscovery;
 
     beforeEach(() => {
-        const server = {} as IServer;
-        disco = new LocalDiscovery(server, "Movies");
+        disco = new LocalDiscovery("Movies");
     });
 
     it("discovers series distinct from movies", async () => {
-        const a = await toSimpleArray(disco.discover());
+        const a = await toArray(disco.discover());
         a.should.have.length.at.least(2);
-        a.should.deep.include({
+        a.should.containSubset([{
+            id: "firefly",
             title: "Firefly",
             type: MediaType.Series,
-        });
+        }]);
 
-        a.should.deep.include({
-            title: "rando.mp4",
+        a.should.containSubset([{
+            id: "rando",
+            title: "Rando",
             type: MediaType.Movie,
-        });
+        }]);
     });
 
     it("discovers series with 'specials'", async () => {
@@ -90,8 +83,8 @@ describe("LocalDiscovery", () => {
             type: MediaType.Series,
 
             seasons: [
-                { title: undefined },
-                { title: "SPECIAL" },
+                { title: undefined, id: "nodame:nodame" },
+                { title: "SPECIAL", id: "nodame:special" },
             ],
         }]);
     });

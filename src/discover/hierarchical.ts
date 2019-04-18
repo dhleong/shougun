@@ -2,12 +2,13 @@ import _debug from "debug";
 const debug = _debug("shougun:hierarchical");
 
 import { Context } from "../context";
-import { fileNameToTitle, isVideo } from "../media/util";
+import { fileNameToId, fileNameToTitle, isVideo, nestId } from "../media/util";
 import { IMedia, IMediaMap, IPlayable, ISeries, MediaType } from "../model";
 import { DiscoveryId, IDiscovery } from "./base";
 
 export interface IHierarchy<TEntity> {
-    idOf(entity: TEntity): string;
+    equals(first: TEntity, second: TEntity): boolean;
+
     nameOf(entity: TEntity): string;
     parentOf(entity: TEntity): Promise<TEntity>;
     childrenOf(entity: TEntity): Promise<TEntity[] | null>;
@@ -21,14 +22,10 @@ export interface IHierarchy<TEntity> {
 export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
     public abstract id: DiscoveryId;
 
-    private readonly rootId: string;
-
     constructor(
         private hierarchy: IHierarchy<TEntity>,
         private root: TEntity,
-    ) {
-        this.rootId = this.hierarchy.idOf(root);
-    }
+    ) { }
 
     public instanceById(id: DiscoveryId): IDiscovery | undefined {
         if (id !== this.id) return;
@@ -108,23 +105,22 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         candidate: TEntity,
         videoFiles: TEntity[],
     ) {
-        const candidateId = this.hierarchy.idOf(candidate);
-        if (this.rootId === candidateId) {
+        if (this.hierarchy.equals(this.root, candidate)) {
             // videos in the root directory must be Movies
             for (const video of videoFiles) {
-                yield this.createMedia(MediaType.Movie, video);
+                yield this.createMedia(null, MediaType.Movie, video);
             }
             return;
         }
 
         const parent = await this.hierarchy.parentOf(candidate);
-        const parentId = this.hierarchy.idOf(parent);
+        const parentId = this.idOf(parent);
         const parentAsSeries = discovered[parentId];
         if (parentAsSeries) {
             // EG: /Nodame/SPECIAL
             // this is a new season belonging to parentId
             (parentAsSeries as ISeries).seasons.push(this.createSeason(
-                candidateId,
+                candidate,
                 parentId,
                 this.createTitle(candidate),
                 videoFiles,
@@ -133,8 +129,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         }
 
         const grandParent = await this.hierarchy.parentOf(parent);
-        const grandId = this.hierarchy.idOf(grandParent);
-        if (this.rootId === grandId) {
+        if (this.hierarchy.equals(this.root, grandParent)) {
             debug("grand @", candidate);
             // EG: /Korra/Book 1; Korra/Book 2
             // if the grandparent is the root, then this
@@ -149,7 +144,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             };
 
             series.seasons.push(this.createSeason(
-                candidateId,
+                candidate,
                 series.id,
                 this.createTitle(candidate),
                 videoFiles,
@@ -162,14 +157,15 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         debug("single-season @", candidate);
 
         // single-season show
+        const seriesId = this.idOf(candidate);
         yield {
             discovery: this.id,
-            id: candidateId,
+            id: seriesId,
             title: this.createTitle(candidate),
             type: MediaType.Series,
 
             seasons: [
-                this.createSeason(candidateId, candidateId, undefined, videoFiles),
+                this.createSeason(candidate, seriesId, undefined, videoFiles),
             ],
         };
     }
@@ -180,14 +176,15 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
     }
 
     private createSeason(
+        entry: TEntity,
         seriesId: string,
-        id: string,
         title: string | undefined,
         videoFiles: TEntity[],
     ) {
+        const id = nestId(seriesId, this.idOf(entry));
         return {
             episodes: videoFiles.map(f =>
-                this.createMedia(MediaType.Episode, f, {
+                this.createMedia(id, MediaType.Episode, f, {
                     seriesId,
                 }),
             ),
@@ -198,17 +195,24 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
     }
 
     private createMedia<T extends {}>(
+        parentId: string | null,
         type: MediaType,
         entity: TEntity,
         extra?: T,
     ) {
         return Object.assign({
             discovery: this.id,
-            id: this.hierarchy.idOf(entity),
+            id: parentId
+                ? nestId(parentId, this.idOf(entity))
+                : this.idOf(entity),
             title: this.createTitle(entity),
             type,
 
             entity,
         }, extra);
+    }
+
+    private idOf(entry: TEntity) {
+        return fileNameToId(this.hierarchy.nameOf(entry));
     }
 }

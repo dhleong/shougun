@@ -39,10 +39,8 @@ class LocalFileHierarchy implements IHierarchy<string> {
         ]);
     }
 
-    public idOf(file: string) {
-        // TODO: we probably want more context here...
-        // EG: series vs season vs etc
-        return file;
+    public equals(first: string, second: string) {
+        return first === second;
     }
 
     public nameOf(file: string) {
