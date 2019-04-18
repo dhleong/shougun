@@ -13,6 +13,7 @@ export interface IMediaMetadata {
 export interface IPlayable {
     id: string;
     contentType: string;
+    durationSeconds: number;
     getMetadata(): Promise<IMediaMetadata>;
     getUrl(): Promise<string>;
 }

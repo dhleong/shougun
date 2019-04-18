@@ -14,7 +14,11 @@ export class TracklessTracker implements ITracker {
         return { media: episode };
     }
 
-    public async saveTrack(media: IMedia, resumeTimeSeconds: number): Promise<void> {
+    public async saveTrack(
+        media: IMedia,
+        resumeTimeSeconds: number,
+        videoDurationSeconds: number,
+    ): Promise<void> {
         // nop
     }
 

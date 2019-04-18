@@ -34,6 +34,7 @@ export interface ITracker {
     saveTrack(
         media: IMedia,
         resumeTimeSeconds: number,
+        videoDurationSeconds: number,
     ): Promise<void>;
 
 }

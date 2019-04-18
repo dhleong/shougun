@@ -7,6 +7,7 @@ import url from "url";
 import _debug from "debug";
 const debug = _debug("shougun:serve");
 
+import { extractDuration } from "../media/duration";
 import { ILocalMedia, IPlayable } from "../model";
 import { serveMp4 } from "./serve/mp4";
 import { serveTranscoded } from "./serve/transcode";
@@ -85,13 +86,17 @@ export class ServedPlayable implements IPlayable {
         const type = mime.getType(localPath);
         if (!type) throw new Error(`Unknown file type at ${localPath}`);
 
-        // FIXME: proper ID extraction
+        // FIXME: proper ID extraction?
         const id = localPath;
+
+        const durationSeconds = await extractDuration(localPath);
+
         return new ServedPlayable(
             server,
             id,
             type,
             localPath,
+            durationSeconds,
         );
     }
 
@@ -100,6 +105,7 @@ export class ServedPlayable implements IPlayable {
         public readonly id: string,
         public readonly contentType: string,
         public readonly localPath: string,
+        public readonly durationSeconds: number,
     ) {}
 
     public async getMetadata() {

@@ -42,7 +42,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         const entity = (media as any).entity as TEntity;
         if (!entity) {
             throw new Error(
-                `${this.id} provided media created by other Discovery (${media.discovery})`,
+                `${this.id} was given media created by other Discovery (${media.discovery})`,
             );
         }
 

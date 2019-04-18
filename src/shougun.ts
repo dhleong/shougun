@@ -1,3 +1,6 @@
+import _debug from "debug";
+const debug = _debug("shougun:core");
+
 import leven from "leven";
 
 import { Context } from "./context";
@@ -32,8 +35,8 @@ export class Shougun {
     }
 
     constructor(
-        private context: Context,
-        private mediaById: IMediaMap,
+        public readonly context: Context,
+        private readonly mediaById: IMediaMap,
     ) {}
 
     /**
@@ -81,18 +84,22 @@ export class Shougun {
             const track = await this.context.tracker.pickResumeForMedia(media);
             media = track.media;
             options.currentTime = track.resumeTimeSeconds;
+            debug(`resuming ${media.title} with ${media.id} @${options.currentTime}`);
         }
 
+        debug(`create playable for ${media.id}...`);
         const playable = await this.context.discovery.createPlayable(
             this.context,
             media,
         );
 
+        debug(`playing ${media.id} as ${playable.id}...`);
         return this.context.player.play(playable, Object.assign({
             onPlayerPaused: async (currentTimeSeconds: number) => {
                 return this.context.tracker.saveTrack(
                     media,
                     currentTimeSeconds,
+                    playable.durationSeconds,
                 );
             },
         }, options));
