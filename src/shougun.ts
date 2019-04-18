@@ -80,7 +80,7 @@ export class Shougun {
         if (isSeries(media) || options.currentTime === undefined) {
             const track = await this.context.tracker.pickResumeForMedia(media);
             media = track.media;
-            options.currentTime = track.resumeTimeMillis;
+            options.currentTime = track.resumeTimeSeconds;
         }
 
         const playable = await this.context.discovery.createPlayable(
@@ -88,6 +88,13 @@ export class Shougun {
             media,
         );
 
-        return this.context.player.play(playable, options);
+        return this.context.player.play(playable, Object.assign({
+            onPlayerPaused: async (currentTimeSeconds: number) => {
+                return this.context.tracker.saveTrack(
+                    media,
+                    currentTimeSeconds,
+                );
+            },
+        }, options));
     }
 }

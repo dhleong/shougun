@@ -2,7 +2,7 @@ import { IMedia } from "../model";
 
 export interface ITrack {
     media: IMedia;
-    resumeTimeMillis?: number;
+    resumeTimeSeconds?: number;
 }
 
 export interface ITracker {
@@ -33,7 +33,7 @@ export interface ITracker {
      */
     saveTrack(
         media: IMedia,
-        resumeTimeMillis: number,
+        resumeTimeSeconds: number,
     ): Promise<void>;
 
 }

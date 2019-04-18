@@ -35,6 +35,8 @@ export class ChromecastPlayer implements IPlayer {
             currentTime,
             metadata,
             url,
+
+            onPlayerPaused: opts.onPlayerPaused,
         });
     }
 }
