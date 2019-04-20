@@ -160,6 +160,17 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             return;
         }
 
+        if (videoFiles.length === 1) {
+            debug("movie @", candidate);
+            yield {
+                discovery: this.id,
+                id: this.idOf(candidate),
+                title: this.createTitle(candidate),
+                type: MediaType.Movie,
+            };
+            return;
+        }
+
         debug("single-season @", candidate);
 
         // single-season show

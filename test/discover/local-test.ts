@@ -46,6 +46,10 @@ describe("LocalDiscovery", () => {
                 "one.mp4",
                 "two.mp4",
             ),
+
+            "Serenity": dir(
+                "movie.mp4",
+            ),
         } });
     });
 
@@ -86,6 +90,15 @@ describe("LocalDiscovery", () => {
                 { title: undefined, id: "nodame:nodame" },
                 { title: "SPECIAL", id: "nodame:special" },
             ],
+        }]);
+    });
+
+    it("discovers movies in their own folder", async () => {
+        const a = await toArray(disco.discover());
+        a.should.have.length.at.least(2);
+        a.should.containSubset([{
+            title: "Serenity",
+            type: MediaType.Movie,
         }]);
     });
 });
