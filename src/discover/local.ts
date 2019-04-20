@@ -63,10 +63,11 @@ class LocalFileHierarchy implements IHierarchy<string> {
             );
         } catch (e) {
             if (e.code === "ENOTDIR") {
-                // FIXME: only if this is a ENOTDIR
+                // file is not a directory
                 return null;
             }
 
+            // unexpected error
             throw e;
         }
     }
