@@ -1,8 +1,8 @@
 import fs from "fs-extra";
-import os from "os";
 import path from "path";
 
 import { Context } from "../context";
+import { resolvePath } from "../media/util";
 import { ServedPlayable } from "../playback/serve";
 import { DiscoveryId } from "./base";
 import { HierarchicalDiscovery, IHierarchy } from "./hierarchical";
@@ -76,12 +76,6 @@ class LocalFileHierarchy implements IHierarchy<string> {
             media,
         );
     }
-}
-
-function resolvePath(original: string) {
-    return path.resolve(
-        original.replace("~", os.homedir()),
-    );
 }
 
 export class LocalDiscovery extends HierarchicalDiscovery<string> {

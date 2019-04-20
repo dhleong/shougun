@@ -1,10 +1,16 @@
+import fs from "fs-extra";
+import path from "path";
+
 import { IDiscovery } from "./discover/base";
 import { CompositeDiscovery } from "./discover/composite";
 import { LocalDiscovery } from "./discover/local";
+import { resolvePath } from "./media/util";
 import { IPlayer } from "./playback/player";
 import { ChromecastPlayer } from "./playback/player/chromecast";
 import { Shougun } from "./shougun";
 import { ITracker } from "./track/base";
+import { IStorage, PersistentTracker } from "./track/persistent";
+import { Sqlite3Storage } from "./track/storage/sqlite3";
 import { TracklessTracker } from "./track/trackless";
 
 export class ShougunBuilder {
@@ -13,12 +19,16 @@ export class ShougunBuilder {
     private player: IPlayer | undefined;
     private tracker: ITracker | undefined;
 
+    private verifyWritePaths: string[] = [];
+
     /*
      * Discovery
      */
 
-    public scanFolder(path: string) {
-        this.discoveries.push(new LocalDiscovery(path));
+    public scanFolder(folderPath: string) {
+        this.discoveries.push(
+            new LocalDiscovery(resolvePath(folderPath)),
+        );
         return this;
     }
 
@@ -45,6 +55,20 @@ export class ShougunBuilder {
         return this;
     }
 
+    public trackInSqlite(databasePath: string) {
+        const resolved = resolvePath(databasePath);
+        this.verifyWritePaths.push(path.dirname(resolved));
+
+        return this.trackWithStorage(
+            Sqlite3Storage.forFile(resolved),
+        );
+    }
+
+    public trackWithStorage(storage: IStorage) {
+        this.tracker = new PersistentTracker(storage);
+        return this;
+    }
+
     /*
      * Builder
      */
@@ -61,6 +85,11 @@ export class ShougunBuilder {
         if (!this.tracker) {
             throw new Error("No watch history tracker provided");
         }
+
+        // ensure all the writePath dirs exist
+        await Promise.all(this.verifyWritePaths.map(async p =>
+            fs.ensureDir(p),
+        ));
 
         const discovery = this.discoveries.length === 1
             ? this.discoveries[0]

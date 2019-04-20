@@ -1,6 +1,7 @@
 import mime from "mime";
+import os from "os";
+import path from "path";
 import slug from "speakingurl";
-// import { toLaxTitleCase } from "titlecase";
 
 let toLaxTitleCase: (s: string) => string;
 
@@ -45,4 +46,10 @@ export function isVideo(fileName: string) {
     const type = mime.getType(fileName);
     if (!type) return false;
     return type.startsWith("video");
+}
+
+export function resolvePath(original: string) {
+    return path.resolve(
+        original.replace("~", os.homedir()),
+    );
 }
