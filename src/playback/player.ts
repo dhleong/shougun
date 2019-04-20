@@ -1,4 +1,5 @@
 
+import { Context } from "../context";
 import { IPlayable } from "../model";
 
 export interface IPlaybackOptions {
@@ -16,6 +17,7 @@ export interface IPlaybackOptions {
 
 export interface IPlayer {
     play(
+        context: Context,
         playable: IPlayable,
         options?: IPlaybackOptions,
     ): Promise<void>;

@@ -15,6 +15,7 @@ export interface IHierarchy<TEntity> {
 
     createPlayable(
         context: Context,
+        media: IMedia,
         entity: TEntity,
     ): Promise<IPlayable>;
 }
@@ -48,6 +49,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
 
         return this.hierarchy.createPlayable(
             context,
+            media,
             entity,
         );
     }

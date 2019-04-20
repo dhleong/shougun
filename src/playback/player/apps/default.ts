@@ -24,15 +24,28 @@ export interface ILoadParams {
     onPlayerPaused?: (currentTimeSeconds: number) => Promise<void>;
 }
 
+export enum MetadataType {
+    Generic,
+    Movie,
+    TvShow,
+}
+
 function formatMetadata(
     metadata?: IMediaMetadata,
 ) {
     if (!metadata) return;
 
-    // TODO;
-    return Object.assign({
+    const formatted: any = {
         streamType: "BUFFERED",
-    }, metadata || {});
+        title: metadata.title,
+    };
+
+    if (metadata.seriesTitle) {
+        formatted.metadataType = MetadataType.TvShow;
+        formatted.seriesTitle = metadata.seriesTitle;
+    }
+
+    return formatted;
 }
 
 function formatLoadRequest(

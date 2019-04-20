@@ -3,6 +3,7 @@ import path from "path";
 
 import { Context } from "../context";
 import { resolvePath } from "../media/util";
+import { IMedia } from "../model";
 import { ServedPlayable } from "../playback/serve";
 import { DiscoveryId } from "./base";
 import { HierarchicalDiscovery, IHierarchy } from "./hierarchical";
@@ -70,10 +71,15 @@ class LocalFileHierarchy implements IHierarchy<string> {
         }
     }
 
-    public async createPlayable(context: Context, media: string) {
+    public async createPlayable(
+        context: Context,
+        media: IMedia,
+        localFilePath: string,
+    ) {
         return ServedPlayable.createFromPath(
             context.server,
             media,
+            localFilePath,
         );
     }
 }

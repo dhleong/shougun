@@ -1,3 +1,4 @@
+import { Context } from "./context";
 import { DiscoveryId } from "./discover/base";
 
 export interface ILocalMedia {
@@ -8,13 +9,14 @@ export interface ILocalMedia {
 
 export interface IMediaMetadata {
     title?: string;
+    seriesTitle?: string;
 }
 
 export interface IPlayable {
     id: string;
     contentType: string;
     durationSeconds: number;
-    getMetadata(): Promise<IMediaMetadata>;
+    getMetadata(context: Context): Promise<IMediaMetadata>;
     getUrl(): Promise<string>;
 }
 

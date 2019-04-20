@@ -7,8 +7,9 @@ import url from "url";
 import _debug from "debug";
 const debug = _debug("shougun:serve");
 
+import { Context } from "../context";
 import { extractDuration } from "../media/duration";
-import { ILocalMedia, IPlayable } from "../model";
+import { ILocalMedia, IMedia, IMediaMetadata, IPlayable, isEpisode } from "../model";
 import { serveMp4 } from "./serve/mp4";
 import { serveTranscoded } from "./serve/transcode";
 
@@ -82,7 +83,11 @@ export class Server implements IServer {
 }
 
 export class ServedPlayable implements IPlayable {
-    public static async createFromPath(server: IServer, localPath: string) {
+    public static async createFromPath(
+        server: IServer,
+        media: IMedia,
+        localPath: string,
+    ) {
         const type = mime.getType(localPath);
         if (!type) throw new Error(`Unknown file type at ${localPath}`);
 
@@ -93,6 +98,7 @@ export class ServedPlayable implements IPlayable {
 
         return new ServedPlayable(
             server,
+            media,
             id,
             type,
             localPath,
@@ -101,17 +107,32 @@ export class ServedPlayable implements IPlayable {
     }
 
     constructor(
-        private server: IServer,
+        private readonly server: IServer,
+        private readonly media: IMedia,
         public readonly id: string,
         public readonly contentType: string,
         public readonly localPath: string,
         public readonly durationSeconds: number,
     ) {}
 
-    public async getMetadata() {
-        // TODO
-        const title = path.basename(this.localPath);
-        return { title };
+    public async getMetadata(context: Context) {
+        const metadata: IMediaMetadata = {};
+        const mediaTitle = this.media.title;
+        if (mediaTitle) {
+            metadata.title = mediaTitle;
+        } else {
+            metadata.title = path.basename(this.localPath);
+        }
+
+        if (isEpisode(this.media)) {
+            // load series title
+            const series = await context.getSeries(this.media.seriesId);
+            if (series) {
+                metadata.seriesTitle = series.title;
+            }
+        }
+
+        return metadata;
     }
 
     public async getUrl() {

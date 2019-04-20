@@ -26,6 +26,7 @@ export class Shougun {
             player,
             tracker,
             new Server(),
+            map,
         );
 
         return new Shougun(
@@ -94,7 +95,7 @@ export class Shougun {
         );
 
         debug(`playing ${media.id} as ${playable.id}...`);
-        return this.context.player.play(playable, Object.assign({
+        return this.context.player.play(this.context, playable, Object.assign({
             onPlayerPaused: async (currentTimeSeconds: number) => {
                 return this.context.tracker.saveTrack(
                     media,
