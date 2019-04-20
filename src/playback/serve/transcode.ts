@@ -6,12 +6,12 @@ import ffmpeg from "fluent-ffmpeg";
 import stream = require("stream");
 
 const transcodeWithOptions = (
-    pipe: stream.Writable,
+    pipe: stream.PassThrough,
     localPath: string,
     startTimeSeconds: number | undefined,
     opts: { autoEnd?: boolean },
     ...ffmpegOptions: string[]  // tslint:disable-line
-) => new Promise<stream.Writable>((resolve, reject) => {
+) => new Promise<stream.PassThrough>((resolve, reject) => {
     const command = ffmpeg(localPath)
         .outputFormat("mp4")
 
@@ -54,7 +54,7 @@ const ffmpegOptionSets = [
 export async function transcode(
     localPath: string,
     startTimeSeconds?: number,
-): Promise<stream.Writable> {
+) {
     const pipe = new stream.PassThrough();
 
     for (let i = 0; i < ffmpegOptionSets.length; ++i) {
@@ -82,7 +82,7 @@ export async function serveTranscoded(
     reply: fastify.FastifyReply<any>,
     localPath: string,
     startTimeSeconds?: number,
-) {
+): Promise<NodeJS.ReadableStream> {
     reply.status(200);
     return transcode(localPath, startTimeSeconds);
 }

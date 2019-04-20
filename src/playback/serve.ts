@@ -34,13 +34,14 @@ export class Server implements IServer {
     private server: fastify.FastifyInstance | undefined;
     private address: string | undefined;
 
-    // TODO expire old entries over time
     private media: {[id: string]: ILocalMedia} = {};
+    private activeStreams: {[id: string]: number} = {};
 
     public close() {
         const s = this.server;
         if (!s) return;
         s.close();
+        this.server = undefined;
     }
 
     public async serve(
@@ -79,14 +80,32 @@ export class Server implements IServer {
             const media = this.media[id];
             if (!media) throw new Error("No such media");
 
+            const onStreamEnded = () => {
+                this.onStreamEnded(media);
+            };
+
             const { contentType, localPath } = media;
+            let stream: NodeJS.ReadableStream;
             if (contentType === "video/mp4") {
-                return serveMp4(req, reply, localPath);
+                stream = await serveMp4(
+                    req, reply, localPath,
+                );
+            } else {
+                const startTime = req.query.startTime || 0;
+
+                stream = await serveTranscoded(
+                    req, reply, localPath, startTime,
+                );
             }
 
-            const startTime = req.query.startTime || 0;
+            debug("got stream", stream);
+            stream.once("close", onStreamEnded);
 
-            return serveTranscoded(req, reply, localPath, startTime);
+            // if we get here, the stream was created without error
+            this.onStreamStarted(media);
+
+            // serve!
+            return stream;
         });
 
         this.server = server;
@@ -102,6 +121,43 @@ export class Server implements IServer {
         debug("serving on", actual);
         this.address = actual;
         return actual;
+    }
+
+    private onStreamStarted(media: ILocalMedia) {
+        debug(`stream (${media.id}) started...`);
+        if (!this.activeStreams[media.id]) {
+            this.activeStreams[media.id] = 1;
+        } else {
+            ++this.activeStreams[media.id];
+        }
+    }
+
+    private onStreamEnded(media: ILocalMedia) {
+        if (!this.activeStreams[media.id]) {
+            throw new Error(`Never started ${media.id} but got End...`);
+        }
+
+        debug(`stream (${media.id}) ended...`);
+        const count = --this.activeStreams[media.id];
+        if (count === 0) {
+            setTimeout(() => this.checkStreamsForShutdown(), 2000);
+        }
+    }
+
+    private checkStreamsForShutdown() {
+        for (const id of Object.keys(this.activeStreams)) {
+            if (this.activeStreams[id] > 0) {
+                // still active streams
+                debug(`found active stream (${id}); stay alive`);
+                return;
+            } else {
+                // delete the media reference; nobody is watching
+                delete this.media[id];
+            }
+        }
+
+        debug("no remaining active streams; shut down server");
+        this.close();
     }
 }
 
