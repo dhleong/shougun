@@ -24,6 +24,7 @@ const transcodeWithOptions = (
             resolve(pipe);
         })
         .on("error", e => {
+            debug("error transcoding", e);
             reject(e);
         })
         .on("end", () => {
@@ -34,6 +35,12 @@ const transcodeWithOptions = (
     if (startTimeSeconds) {
         command.setStartTime(startTimeSeconds);
     }
+
+    pipe.once("close", () => {
+        // the user stopped viewing the stream; stop transcoding
+        debug("pipe closed; shut down transcode");
+        command.kill("SIGKILL");
+    });
 
     // don't end it automatically (IE on error); we'll do it
     // ourselves (see above)
