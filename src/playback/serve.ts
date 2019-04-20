@@ -2,6 +2,7 @@ import fastify from "fastify";
 import internalIp from "internal-ip";
 import mime from "mime";
 import path from "path";
+import querystring from "querystring";
 import url from "url";
 
 import _debug from "debug";
@@ -10,11 +11,20 @@ const debug = _debug("shougun:serve");
 import { Context } from "../context";
 import { extractDuration } from "../media/duration";
 import { ILocalMedia, IMedia, IMediaMetadata, IPlayable, isEpisode } from "../model";
+import { IPlaybackOptions } from "./player";
 import { serveMp4 } from "./serve/mp4";
 import { serveTranscoded } from "./serve/transcode";
 
 export interface IServer {
-    serve(media: ILocalMedia): Promise<string>;
+    /**
+     * If a start time is provided via `opts` AND we serve
+     * the file via transcoding, we will try to start transcoding
+     * at that time
+     */
+    serve(
+        media: ILocalMedia,
+        opts?: IPlaybackOptions,
+    ): Promise<string>;
 }
 
 // tslint:disable max-classes-per-file
@@ -33,11 +43,22 @@ export class Server implements IServer {
         s.close();
     }
 
-    public async serve(mediaEntry: ILocalMedia) {
+    public async serve(
+        mediaEntry: ILocalMedia,
+        opts?: IPlaybackOptions,
+    ) {
         this.media[mediaEntry.id] = mediaEntry;
         const address = await this.ensureServing();
         const encodedId = encodeURIComponent(mediaEntry.id);
-        return `http://${address}/playable/id/${encodedId}`;
+
+        const base = `http://${address}/playable/id/${encodedId}`;
+        if (!opts || !opts.currentTime || opts.currentTime <= 0) {
+            return base;
+        }
+
+        return base + "?" + querystring.stringify({
+            startTime: opts.currentTime,
+        });
     }
 
     private async ensureServing(): Promise<string> {
@@ -63,7 +84,9 @@ export class Server implements IServer {
                 return serveMp4(req, reply, localPath);
             }
 
-            return serveTranscoded(req, reply, localPath);
+            const startTime = req.query.startTime || 0;
+
+            return serveTranscoded(req, reply, localPath, startTime);
         });
 
         this.server = server;
@@ -135,7 +158,7 @@ export class ServedPlayable implements IPlayable {
         return metadata;
     }
 
-    public async getUrl() {
-        return this.server.serve(this);
+    public async getUrl(opts?: IPlaybackOptions) {
+        return this.server.serve(this, opts);
     }
 }

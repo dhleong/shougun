@@ -1,5 +1,6 @@
 import { Context } from "./context";
 import { DiscoveryId } from "./discover/base";
+import { IPlaybackOptions } from "./playback/player";
 
 export interface ILocalMedia {
     id: string;
@@ -17,7 +18,16 @@ export interface IPlayable {
     contentType: string;
     durationSeconds: number;
     getMetadata(context: Context): Promise<IMediaMetadata>;
-    getUrl(): Promise<string>;
+
+    /**
+     * Get an URL that can be used to stream the media represented
+     * by this playable. `opts` can be used as a hint for EG the
+     * time to start streaming, if appropriate. For example, if
+     * the URL points to a transcoded stream that doesn't support
+     * seeking, it may *start transcoding* at that time instead.
+     * However, if seek *is* supported, `opts` will be disregarded.
+     */
+    getUrl(opts?: IPlaybackOptions): Promise<string>;
 }
 
 export enum MediaType {

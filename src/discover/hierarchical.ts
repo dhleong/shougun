@@ -42,9 +42,13 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         // if not, it is user error
         const entity = (media as any).entity as TEntity;
         if (!entity) {
-            throw new Error(
-                `${this.id} was given media created by other Discovery (${media.discovery})`,
-            );
+            if (media.discovery !== this.id) {
+                throw new Error(
+                    `${this.id} was given media created by other Discovery (${media.discovery})`,
+                );
+            }
+
+            throw new Error(`Media (${media.type}: ${media.id}) did not have an entity attached`);
         }
 
         return this.hierarchy.createPlayable(

@@ -19,17 +19,25 @@ export class ChromecastPlayer implements IPlayer {
         playable: IPlayable,
         opts: IPlaybackOptions = {},
     ) {
-        // TODO pick app?
-        const [ app, metadata, url ] = await Promise.all([
-            this.device.openApp(DefaultMediaReceiverApp),
-            playable.getMetadata(context),
-            playable.getUrl(),
-        ]);
+        let urlOpts: IPlaybackOptions | undefined;
 
         let currentTime = opts.currentTime;
         if (!currentTime) {
             currentTime = 0;
+        } else if (playable.contentType !== "video/mp4") {
+            // this content cannot be streamed to Chromecast,
+            // so we *cannot* provide currentTime, and instead
+            // should pass it to getUrl()
+            urlOpts = { currentTime };
+            currentTime = 0;
         }
+
+        // TODO pick app?
+        const [ app, metadata, url ] = await Promise.all([
+            this.device.openApp(DefaultMediaReceiverApp),
+            playable.getMetadata(context),
+            playable.getUrl(urlOpts),
+        ]);
 
         return app.load({
             contentType: playable.contentType,

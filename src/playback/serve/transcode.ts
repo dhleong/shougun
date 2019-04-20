@@ -8,6 +8,7 @@ import stream = require("stream");
 const transcodeWithOptions = (
     pipe: stream.Writable,
     localPath: string,
+    startTimeSeconds: number | undefined,
     opts: { autoEnd?: boolean },
     ...ffmpegOptions: string[]  // tslint:disable-line
 ) => new Promise<stream.Writable>((resolve, reject) => {
@@ -30,6 +31,10 @@ const transcodeWithOptions = (
             pipe.end();
         });
 
+    if (startTimeSeconds) {
+        command.setStartTime(startTimeSeconds);
+    }
+
     // don't end it automatically (IE on error); we'll do it
     // ourselves (see above)
     const end = opts.autoEnd === true;
@@ -48,6 +53,7 @@ const ffmpegOptionSets = [
 
 export async function transcode(
     localPath: string,
+    startTimeSeconds?: number,
 ): Promise<stream.Writable> {
     const pipe = new stream.PassThrough();
 
@@ -55,9 +61,11 @@ export async function transcode(
         const optionSet = ffmpegOptionSets[i];
         try {
             const autoEnd = i >= ffmpegOptionSets.length - 1;
-            return await transcodeWithOptions(pipe, localPath, {
-                autoEnd,
-            }, ...optionSet);
+            return await transcodeWithOptions(
+                pipe, localPath, startTimeSeconds, {
+                    autoEnd,
+                }, ...optionSet,
+            );
         } catch (e) {
             debug(`error with options ${i} (${optionSet})...`, e);
             if (i < ffmpegOptionSets.length - 1) {
@@ -73,7 +81,8 @@ export async function serveTranscoded(
     req: fastify.FastifyRequest<any>,
     reply: fastify.FastifyReply<any>,
     localPath: string,
+    startTimeSeconds?: number,
 ) {
     reply.status(200);
-    return transcode(localPath);
+    return transcode(localPath, startTimeSeconds);
 }
