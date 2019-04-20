@@ -47,6 +47,25 @@ describe("PersistentTracker", () => {
             track.media.id.should.equal("episode-0");
             track.should.not.have.property("resumeTimeSeconds");
         });
+
+        it("resumes in-progress video", async () => {
+            storage.save({
+                id: "episode-0",
+                seriesId: "series",
+                title: "title",
+
+                lastViewedTimestamp: 0,
+                resumeTimeSeconds: 100,
+                videoDurationSeconds: 400,
+            });
+
+            const series = seriesWithId("series");
+
+            const tracker = new PersistentTracker(storage);
+            const track = await tracker.pickResumeForMedia(series);
+            track.media.id.should.equal("episode-0");
+            track.should.have.property("resumeTimeSeconds").that.equals(100);
+        });
     });
 });
 

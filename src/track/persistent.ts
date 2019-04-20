@@ -63,7 +63,10 @@ export class PersistentTracker implements ITracker {
 
         case WatchState.InProgress:
             // resume in-progress episode
-            return this.trackOf(media, lastWatched);
+            const track = await this.trackForEpisode(media, lastWatched);
+            return Object.assign({
+                resumeTimeSeconds: lastWatched.resumeTimeSeconds,
+            }, track);
 
         case WatchState.Watched:
             // watch "next" episode of the series!
