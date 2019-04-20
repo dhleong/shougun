@@ -39,10 +39,7 @@ export class PersistentTracker implements ITracker {
             if (!info) return { media };
 
             if (watchStateOf(info) === WatchState.InProgress) {
-                return {
-                    media,
-                    resumeTimeSeconds: info.resumeTimeSeconds,
-                };
+                return this.trackOf(media, info);
             }
 
             // start from the beginning
@@ -59,10 +56,7 @@ export class PersistentTracker implements ITracker {
 
         // resume in-progress episode
         if (watchStateOf(lastWatched) === WatchState.InProgress) {
-            return {
-                media,
-                resumeTimeSeconds: lastWatched.resumeTimeSeconds,
-            };
+            return this.trackOf(media, lastWatched);
         }
 
         // watch "next" episode of the series!
@@ -118,5 +112,15 @@ export class PersistentTracker implements ITracker {
         }
 
         return { media: episodes[nextIndex] };
+    }
+
+    private trackOf(
+        media: IMedia,
+        info: IViewedInformation,
+    ) {
+        return {
+            media,
+            resumeTimeSeconds: info.resumeTimeSeconds,
+        };
     }
 }
