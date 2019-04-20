@@ -1,6 +1,5 @@
 import * as chai from "chai";
 
-import sqlite from "better-sqlite3";
 import { Sqlite3Storage } from "../../../src/track/storage/sqlite3";
 
 chai.should();
@@ -10,9 +9,11 @@ describe("Sqlite3Storage", () => {
     let storage: Sqlite3Storage;
 
     beforeEach(() => {
-        storage = new Sqlite3Storage(
-            new sqlite("", { memory: true }),
-        );
+        storage = Sqlite3Storage.inMemory();
+    });
+
+    afterEach(() => {
+        storage.close();
     });
 
     it("can save and load by id", async () => {

@@ -23,6 +23,12 @@ export class Sqlite3Storage implements IStorage {
         );
     }
 
+    public static inMemory() {
+        return new Sqlite3Storage(
+            new sqlite("", { memory: true}),
+        );
+    }
+
     private hasPrepared = false;
     private statementsCache: {[key: string]: sqlite.Statement} = {};
 

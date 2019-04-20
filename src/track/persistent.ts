@@ -15,6 +15,7 @@ export interface IViewedInformation {
 }
 
 export interface IStorage {
+    close(): void;
     loadById(id: string): Promise<IViewedInformation | null>;
     loadLastViewedForSeries(seriesId: string): Promise<IViewedInformation | null>;
     save(info: IViewedInformation): Promise<void>;
@@ -54,13 +55,20 @@ export class PersistentTracker implements ITracker {
             return this.trackForFirstEpisodeOf(media);
         }
 
-        // resume in-progress episode
-        if (watchStateOf(lastWatched) === WatchState.InProgress) {
-            return this.trackOf(media, lastWatched);
-        }
+        const state = watchStateOf(lastWatched);
+        switch (state) {
+        case WatchState.Unwatched:
+            // unwatched? also start at beginning
+            return this.trackForEpisode(media, lastWatched);
 
-        // watch "next" episode of the series!
-        return this.trackForNextEpisodeAfter(media, lastWatched);
+        case WatchState.InProgress:
+            // resume in-progress episode
+            return this.trackOf(media, lastWatched);
+
+        case WatchState.Watched:
+            // watch "next" episode of the series!
+            return this.trackForNextEpisodeAfter(media, lastWatched);
+        }
     }
 
     public async saveTrack(
@@ -88,11 +96,37 @@ export class PersistentTracker implements ITracker {
         return { media: series.seasons[0].episodes[0] };
     }
 
+    private async trackForEpisode(
+        series: ISeries,
+        lastWatched: IViewedInformation,
+    ): Promise<ITrack> {
+        // NOTE: there's a more optimized path possible here,
+        // but keeping a single implementation is simpler in
+        // case we decide to refactor so Series containing all
+        // of its episodes isn't guaranteed...
+        return this.trackForEpisodeRelativeTo(
+            series,
+            lastWatched,
+            0, // exact match
+        );
+    }
+
     private async trackForNextEpisodeAfter(
         series: ISeries,
         lastWatched: IViewedInformation,
     ): Promise<ITrack> {
+        return this.trackForEpisodeRelativeTo(
+            series,
+            lastWatched,
+            1, // the next episode
+        );
+    }
 
+    private async trackForEpisodeRelativeTo(
+        series: ISeries,
+        lastWatched: IViewedInformation,
+        delta: number,
+    ): Promise<ITrack> {
         // this is not ideal, but it will never be more than
         // a few hundred, so this is simple and fine for now...
         const episodes = series.seasons.reduce((result, s) => {
@@ -105,13 +139,13 @@ export class PersistentTracker implements ITracker {
             throw new Error(`Couldn't find last-watched episode ${lastWatched.title}`);
         }
 
-        const nextIndex = idx + 1;
-        if (nextIndex >= episodes.length) {
+        const interestedIndex = idx + delta;
+        if (interestedIndex >= episodes.length) {
             // wrap around
             return this.trackForFirstEpisodeOf(series);
         }
 
-        return { media: episodes[nextIndex] };
+        return { media: episodes[interestedIndex] };
     }
 
     private trackOf(
