@@ -4,6 +4,8 @@ import path from "path";
 import { IDiscovery } from "./discover/base";
 import { CompositeDiscovery } from "./discover/composite";
 import { LocalDiscovery } from "./discover/local";
+import { IMatcher } from "./match";
+import { DefaultMatcher } from "./match/default";
 import { resolvePath } from "./media/util";
 import { IPlayer } from "./playback/player";
 import { ChromecastPlayer } from "./playback/player/chromecast";
@@ -16,6 +18,7 @@ import { TracklessTracker } from "./track/trackless";
 export class ShougunBuilder {
 
     private discoveries: IDiscovery[] = [];
+    private matcher: IMatcher | undefined;
     private player: IPlayer | undefined;
     private tracker: ITracker | undefined;
 
@@ -29,6 +32,11 @@ export class ShougunBuilder {
         this.discoveries.push(
             new LocalDiscovery(resolvePath(folderPath)),
         );
+        return this;
+    }
+
+    public matchWith(matcher: IMatcher) {
+        this.matcher = matcher;
         return this;
     }
 
@@ -95,8 +103,11 @@ export class ShougunBuilder {
             ? this.discoveries[0]
             : CompositeDiscovery.create(...this.discoveries);
 
+        const matcher = this.matcher || new DefaultMatcher();
+
         return Shougun.create(
             discovery,
+            matcher,
             this.player,
             this.tracker,
         );

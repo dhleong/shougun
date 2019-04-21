@@ -1,10 +1,9 @@
 import _debug from "debug";
 const debug = _debug("shougun:core");
 
-import leven from "leven";
-
 import { Context } from "./context";
 import { IDiscovery } from "./discover/base";
+import { IMatcher } from "./match";
 import { IMedia, IMediaMap, isSeries } from "./model";
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
@@ -13,6 +12,7 @@ import { ITracker } from "./track/base";
 export class Shougun {
     public static async create(
         discovery: IDiscovery,
+        matcher: IMatcher,
         player: IPlayer,
         tracker: ITracker,
     ) {
@@ -23,6 +23,7 @@ export class Shougun {
 
         const context = new Context(
             discovery,
+            matcher,
             player,
             tracker,
             new Server(),
@@ -31,50 +32,21 @@ export class Shougun {
 
         return new Shougun(
             context,
-            map,
         );
     }
 
     constructor(
         public readonly context: Context,
-        private readonly mediaById: IMediaMap,
     ) {}
 
     /**
      * Find a Series or Movie by title
      */
     public async findMedia(query: string) {
-        const target = query.toLowerCase();
-        const parts = target
-            .split(/[ ]+/)
-            .filter(part => part.length > 3);
-
-        let best: IMedia | undefined;
-        let bestScore = -1;
-
-        for (const m of Object.values(this.mediaById)) {
-            const candidate = m.title.toLowerCase();
-            if (!parts.some(p => candidate.includes(p))) {
-                continue;
-            }
-
-            const distance = leven(
-                candidate,
-                target,
-            );
-            if (distance === 0) {
-                // probably a safe bet?
-                return m;
-            }
-
-            const score = 1 / distance;
-            if (score > bestScore) {
-                bestScore = score;
-                best = m;
-            }
-        }
-
-        return best;
+        const titles = await this.context.allTitles();
+        return this.context.matcher.findBest(query, titles, (media: IMedia) =>
+            media.title,
+        );
     }
 
     public async play(
