@@ -11,5 +11,8 @@ describe("fileNameToTitle", () => {
 
         fileNameToTitle("nodame_cantabile_ep11(D-CX_704x396_DivX6).avi")
             .should.equal("Nodame Cantabile Ep11");
+
+        fileNameToTitle("Movie [1080p]")
+            .should.equal("Movie");
     });
 });

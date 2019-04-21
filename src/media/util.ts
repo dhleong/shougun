@@ -33,7 +33,7 @@ export function fileNameToTitle(name: string) {
         .replace(/\(([a-z]{0,3}|[ -]+){0,4}\)/gi, "")
 
         // brackets are rarely parts of titles
-        .replace(/\[[^]]*\]/g, "")
+        .replace(/\[([^]])*\]/g, "")
 
         // clean up
         .replace(/[ ]+/g, " ")
