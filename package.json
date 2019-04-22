@@ -26,10 +26,10 @@
   },
   "homepage": "https://github.com/dhleong/shougun#readme",
   "dependencies": {
-    "babbling": "^1.9.1",
+    "babbling": "^1.9.2",
     "better-sqlite3": "^5.4.0",
     "debug": "^4.1.1",
-    "fastify": "^2.2.0",
+    "fastify": "^2.3.0",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "^7.0.1",
     "internal-ip": "^4.3.0",
@@ -52,13 +52,13 @@
     "@types/mocha": "^5.2.6",
     "@types/mock-fs": "^3.6.30",
     "@types/natural": "^0.6.0",
-    "@types/node": "^11.13.2",
+    "@types/node": "^11.13.6",
     "@types/range-parser": "^1.2.3",
     "@types/speakingurl": "^13.0.2",
     "chai": "^4.2.0",
     "chai-subset": "^1.6.0",
-    "mocha": "^6.1.2",
+    "mocha": "^6.1.4",
     "mock-fs": "^4.8.0",
-    "typescript": "^3.4.2"
+    "typescript": "^3.4.4"
   }
 }
