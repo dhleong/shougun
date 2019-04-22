@@ -6,6 +6,7 @@ import { CompositeDiscovery } from "./discover/composite";
 import { LocalDiscovery } from "./discover/local";
 import { IMatcher } from "./match";
 import { DefaultMatcher } from "./match/default";
+import { PhoneticMatcher } from "./match/phonetic";
 import { resolvePath } from "./media/util";
 import { IPlayer } from "./playback/player";
 import { ChromecastPlayer } from "./playback/player/chromecast";
@@ -33,6 +34,14 @@ export class ShougunBuilder {
             new LocalDiscovery(resolvePath(folderPath)),
         );
         return this;
+    }
+
+    /*
+     * Matching
+     */
+
+    public matchByPhonetics() {
+        return this.matchWith(new PhoneticMatcher());
     }
 
     public matchWith(matcher: IMatcher) {

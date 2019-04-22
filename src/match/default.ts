@@ -1,6 +1,7 @@
 import leven from "leven";
 
 import { IMatcher } from "../match";
+import { Scorer } from "./scorer";
 
 /**
  * The default matcher works well when the input
@@ -19,14 +20,12 @@ export class DefaultMatcher implements IMatcher {
             .split(/[ ]+/)
             .filter(part => part.length > 3);
 
-        let best: T | undefined;
-        let bestScore = -1;
-
-        for (const item of items) {
+        const scorer = new Scorer<T>(item => {
             const key = keyFn(item);
             const candidate = key.toLowerCase();
             if (!parts.some(p => candidate.includes(p))) {
-                continue;
+                // definitely not a match
+                return;
             }
 
             const distance = leven(
@@ -38,13 +37,9 @@ export class DefaultMatcher implements IMatcher {
                 return item;
             }
 
-            const score = 1 / distance;
-            if (score > bestScore) {
-                bestScore = score;
-                best = item;
-            }
-        }
+            return 1 / distance;
+        });
 
-        return best;
+        return scorer.findBest(items);
     }
 }
