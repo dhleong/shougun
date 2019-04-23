@@ -14,5 +14,8 @@ describe("fileNameToTitle", () => {
 
         fileNameToTitle("Movie [1080p]")
             .should.equal("Movie");
+
+        fileNameToTitle("Show 091 (H264,OGG)-.mkv")
+            .should.equal("Show 091");
     });
 });

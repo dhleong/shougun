@@ -26,14 +26,18 @@ export function fileNameToTitle(name: string) {
     const fixed = name.replace(/[_.]/g, " ")
 
         // strip format/codec info
-        .replace(/(720|1080)p|[0-9]{3,4}x[0-9]{3,4}|x264|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?/gi, "")
+        .replace(/(720|1080)p|[0-9]{3,4}x[0-9]{3,4}|(x|h)264|ogg|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?/gi, "")
         .replace(/(web|hdtv|tv|br|bd)rip/gi, "")
 
         // this strips parenthesis with irrelevent stuff inside
-        .replace(/\(([a-z]{0,3}|[ -]+){0,4}\)/gi, "")
+        .replace(/\(([a-z]{0,3}|[, -]+){0,4}\)/gi, "")
 
         // brackets are rarely parts of titles
         .replace(/\[([^]])*\]/g, "")
+
+        // trailing and leading garbage
+        .replace(/[^a-zA-Z0-9()]+$/, "")
+        .replace(/^[^a-zA-Z0-9]+/, "")
 
         // clean up
         .replace(/[ ]+/g, " ")
