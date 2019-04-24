@@ -1,6 +1,7 @@
 import * as chai from "chai";
 
-import { fileNameToTitle } from "../../src/media/util";
+import { fileNameToTitle, sortEpisodes, sortKey, titleToId } from "../../src/media/util";
+import { IEpisode, MediaType } from "../../src/model";
 
 chai.should();
 
@@ -19,3 +20,57 @@ describe("fileNameToTitle", () => {
             .should.equal("Show 091");
     });
 });
+
+describe("sortKey", () => {
+    it("splits up titles", () => {
+        sortKey("Firefly 01").should.deep.equal([
+            1,
+        ]);
+        sortKey("Firefly 10").should.deep.equal([
+            10,
+        ]);
+
+        sortKey("Firefly s01e02").should.deep.equal([
+            1,
+            2,
+        ]);
+    });
+});
+
+describe("sortEpisodes", () => {
+    it("uses natural ordering", () => {
+        sortEpisodes([
+            namedEpisode("Firefly 1"),
+            namedEpisode("Firefly 10"),
+            namedEpisode("Firefly 2"),
+        ]).map(it => it.title).should.deep.equal([
+            "Firefly 1",
+            "Firefly 2",
+            "Firefly 10",
+        ]);
+    });
+
+    it("handles title-first naming", () => {
+        sortEpisodes([
+            namedEpisode("The Train Job 2"),
+            namedEpisode("Our Mrs. Reynolds 6"),
+            namedEpisode("Shindig 4"),
+            namedEpisode("Serenity 1"),
+        ]).map(it => it.title).should.deep.equal([
+            "Serenity 1",
+            "The Train Job 2",
+            "Shindig 4",
+            "Our Mrs. Reynolds 6",
+        ]);
+    });
+});
+
+function namedEpisode(title: string): IEpisode {
+    return {
+        discovery: "test",
+        id: titleToId(title),
+        seriesId: "series",
+        title,
+        type: MediaType.Episode,
+    };
+}

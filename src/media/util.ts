@@ -2,6 +2,7 @@ import mime from "mime";
 import os from "os";
 import path from "path";
 import slug from "speakingurl";
+import { IEpisode } from "../model";
 
 let toLaxTitleCase: (s: string) => string;
 
@@ -13,8 +14,10 @@ export function nestId(parentId: string, childId: string) {
     return `${parentId}:${childId}`;
 }
 
+export const titleToId = slug;
+
 export function fileNameToId(name: string) {
-    return slug(fileNameToTitle(name));
+    return titleToId(fileNameToTitle(name));
 }
 
 export function fileNameToTitle(name: string) {
@@ -56,4 +59,43 @@ export function resolvePath(original: string) {
     return path.resolve(
         original.replace("~", os.homedir()),
     );
+}
+
+export function sortKey(title: string) {
+    const regex = /(\d+)/g;
+    const key = [];
+
+    while (true) {
+        const matches = regex.exec(title);
+        if (!matches) break;
+
+        key.push(parseInt(matches[1], 10));
+    }
+
+    return key;
+}
+
+export function compareSortKeys(
+    a: number[],
+    b: number[],
+) {
+    const end = Math.min(a.length, b.length);
+    for (let i = 0; i < end; ++i) {
+        const fromA = a[i];
+        const fromB = b[i];
+        const delta = fromA - fromB;
+        if (delta !== 0) {
+            return delta;
+        }
+    }
+
+    return 0;
+}
+
+export function sortEpisodes(episodes: IEpisode[]) {
+    return episodes.sort((a, b) => {
+        const aKey = sortKey(a.title);
+        const bKey = sortKey(b.title);
+        return compareSortKeys(aKey, bKey);
+    });
 }

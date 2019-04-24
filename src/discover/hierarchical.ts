@@ -2,7 +2,7 @@ import _debug from "debug";
 const debug = _debug("shougun:hierarchical");
 
 import { Context } from "../context";
-import { fileNameToId, fileNameToTitle, isVideo, nestId } from "../media/util";
+import { fileNameToId, fileNameToTitle, isVideo, nestId, sortEpisodes } from "../media/util";
 import { IMedia, IMediaMap, IPlayable, ISeries, MediaType } from "../model";
 import { DiscoveryId, IDiscovery } from "./base";
 
@@ -199,12 +199,15 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         videoFiles: TEntity[],
     ) {
         const id = nestId(seriesId, this.idOf(entry));
-        return {
-            episodes: videoFiles.map(f =>
+        const episodes = sortEpisodes(
+           videoFiles.map(f =>
                 this.createMedia(id, MediaType.Episode, f, {
                     seriesId,
                 }),
             ),
+        );
+        return {
+            episodes,
             id,
             seriesId,
             title,
