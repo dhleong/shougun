@@ -4,7 +4,7 @@ import mockFs from "mock-fs";
 
 import { IDiscovery } from "../../src/discover/base";
 import { LocalDiscovery } from "../../src/discover/local";
-import { MediaType } from "../../src/model";
+import { ISeries, MediaType } from "../../src/model";
 import { toArray } from "./util";
 
 chai.use(chaiSubset);
@@ -37,6 +37,22 @@ describe("LocalDiscovery", () => {
                 "two.mkv",
                 "three.avi",
             ),
+
+            "Multi-Season": {
+                "extras": dir(
+                    "extra.mp4",
+                ),
+
+                "Season 1": dir(
+                    "s1e1.mp4",
+                    "s1e2.mp4",
+                ),
+
+                "Season 10": dir(
+                    "s10e1.mp4",
+                    "s10e2.mp4",
+                ),
+            },
 
             "Nodame": dir(
                 [ "SPECIAL", dir(
@@ -100,5 +116,32 @@ describe("LocalDiscovery", () => {
             title: "Serenity",
             type: MediaType.Movie,
         }]);
+    });
+
+    it("orders seasons correctly", async () => {
+        const a = await toArray(disco.discover());
+        a.should.have.length.at.least(2);
+        a.should.containSubset([{
+            title: "Multi-Season",
+
+            seasons: [
+                {
+                    title: "Season 1",
+                },
+                {
+                    title: "Season 10",
+                },
+            ],
+        }]);
+
+        const series = a.find(it => it.title === "Multi-Season") as ISeries;
+        if (!series) throw new Error();
+
+        const seasons = series.seasons.map(s => s.title);
+        seasons.should.have.ordered.members([
+            "Extras",
+            "Season 1",
+            "Season 10",
+        ]);
     });
 });

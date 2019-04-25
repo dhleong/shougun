@@ -2,7 +2,7 @@ import mime from "mime";
 import os from "os";
 import path from "path";
 import slug from "speakingurl";
-import { IEpisode } from "../model";
+import { IEpisode, ISeason } from "../model";
 
 let toLaxTitleCase: (s: string) => string;
 
@@ -97,6 +97,14 @@ export function sortEpisodes(episodes: IEpisode[]) {
     return episodes.sort((a, b) => {
         const aKey = sortKey(a.title);
         const bKey = sortKey(b.title);
+        return compareSortKeys(aKey, bKey);
+    });
+}
+
+export function sortSeasons(seasons: ISeason[]) {
+    return seasons.sort((a, b) => {
+        const aKey = sortKey(a.title || "");
+        const bKey = sortKey(b.title || "");
         return compareSortKeys(aKey, bKey);
     });
 }

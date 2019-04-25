@@ -2,7 +2,7 @@ import _debug from "debug";
 const debug = _debug("shougun:hierarchical");
 
 import { Context } from "../context";
-import { fileNameToId, fileNameToTitle, isVideo, nestId, sortEpisodes } from "../media/util";
+import { fileNameToId, fileNameToTitle, isVideo, nestId, sortEpisodes, sortSeasons } from "../media/util";
 import { IMedia, IMediaMap, IPlayable, ISeries, MediaType } from "../model";
 import { DiscoveryId, IDiscovery } from "./base";
 
@@ -131,6 +131,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
                 this.createTitle(candidate),
                 videoFiles,
             ));
+            sortSeasons((parentAsSeries as ISeries).seasons);
             return;
         }
 
@@ -156,6 +157,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
                 videoFiles,
             ));
 
+            sortSeasons(series.seasons);
             yield series;
             return;
         }
