@@ -29,8 +29,9 @@ export function fileNameToTitle(name: string) {
     const fixed = name.replace(/[_.]/g, " ")
 
         // strip format/codec info
-        .replace(/(720|1080)p|[0-9]{3,4}x[0-9]{3,4}|(x|h)264|ogg|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?/gi, "")
-        .replace(/(web|hdtv|tv|br|bd)rip/gi, "")
+        // tslint:disable-next-line max-line-length
+        .replace(/(720|1080)p|[0-9]{3,4}x[0-9]{3,4}|(x|h)[ ]?264|ogg|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?/gi, "")
+        .replace(/(web|hdtv|tv|br|bd)(rip|[-]?dl)/gi, "")
 
         // this strips parenthesis with irrelevent stuff inside
         .replace(/\(([a-z]{0,3}|[, -]+){0,4}\)/gi, "")
