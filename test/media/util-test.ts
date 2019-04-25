@@ -21,6 +21,9 @@ describe("fileNameToTitle", () => {
 
         fileNameToTitle("Show 091-TV.mkv")
             .should.equal("Show 091");
+
+        fileNameToTitle("日本語-01.mp4")
+            .should.equal("日本語-01");
     });
 });
 

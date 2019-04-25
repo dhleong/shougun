@@ -39,10 +39,9 @@ export function fileNameToTitle(name: string) {
         // brackets are rarely parts of titles
         .replace(/\[.*?\]/g, "")
 
-        // trailing and leading garbage
-        .replace(/-[A-Z0-9]+$/, "")
+        // trailing garbage
+        .replace(/-[A-Z][A-Z0-9]*$/, "")
         .replace(/[^a-zA-Z0-9()]+$/, "")
-        .replace(/^[^a-zA-Z0-9]+/, "")
 
         // clean up
         .replace(/[ ]+/g, " ")
