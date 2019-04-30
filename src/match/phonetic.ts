@@ -1,7 +1,8 @@
 import _debug from "debug";
 const debug = _debug("shougun:phonetic");
 
-import { JaroWinklerDistance, Metaphone } from "natural";
+import jaroWinkler from "talisman/metrics/distance/jaro-winkler";
+import metaphone from "talisman/phonetics/double-metaphone";
 
 import { IMatcher } from "../match";
 import { Scorer } from "./scorer";
@@ -11,8 +12,19 @@ function process(text: string) {
     // results for long titles, and is suited for operation
     // on more than just people's names, unlike most other
     // phoneme algorithms
-    return Metaphone.process(text).replace(/ /g, "");
+    // We use the double metaphone algorithm, picking the
+    // primary encoding and replacing X with S to be a bit
+    // more forgiving of weird mic issues.
+    return text.split(" ")
+        .map(word => metaphone(word)[0])
+        .join("")
+        .replace(/X/g, "S");
 }
+
+const winklerParams = {
+    // extra points for leading string matches
+    scalingFactor: 0.2,
+};
 
 /**
  * The PhoneticMatcher is useful for cases where input is provided by
@@ -37,7 +49,9 @@ export class PhoneticMatcher implements IMatcher {
             // of Levenshtein because in some tests on local data
             // it experimentally provided better, more consistent
             // results.
-            const score = JaroWinklerDistance(target, processed);
+            const score = jaroWinkler.custom(
+                winklerParams, target, processed,
+            );
 
             debug(target, "VS", processed, "\t", score);
             return score;
