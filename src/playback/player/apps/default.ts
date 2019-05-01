@@ -1,7 +1,7 @@
 import _debug from "debug";
 const debug = _debug("shougun:cast:default");
 
-import { awaitMessageOfType, BaseApp, IDevice, PlaybackTracker } from "babbling";
+import { awaitMessageOfType, BaseApp, ICastSession, IDevice, PlaybackTracker } from "babbling";
 
 import { IMediaMetadata } from "../../../model";
 
@@ -64,6 +64,28 @@ function formatLoadRequest(
     };
 }
 
+async function awaitPlaybackStart(s: ICastSession) {
+    let ms: any;
+    do {
+        ms = await awaitMessageOfType(s, "MEDIA_STATUS");
+        debug("received", ms);
+    } while (
+        !ms.status.length
+        || !(
+            ms.status[0].playerState === "BUFFERING"
+                || ms.status[0].playerState === "PLAYING"
+        )
+    );
+    debug("found!", ms);
+    return ms;
+}
+
+async function awaitLoadFailure(s: ICastSession) {
+    debug("check for load");
+    await awaitMessageOfType(s, "LOAD_FAILED");
+    throw new Error("Load failed");
+}
+
 export class DefaultMediaReceiverApp extends BaseApp {
 
     protected tracker: PlaybackTracker | undefined;
@@ -89,28 +111,10 @@ export class DefaultMediaReceiverApp extends BaseApp {
 
         s.send(formatLoadRequest(params));
 
+        // wait for either the playback to start or the load to fail
         const result = await Promise.race([
-            (async () => {
-                let ms: any;
-                do {
-                    ms = await awaitMessageOfType(s, "MEDIA_STATUS");
-                    debug("received", ms);
-                } while (
-                    !ms.status.length
-                    || !(
-                        ms.status[0].playerState === "BUFFERING"
-                        || ms.status[0].playerState === "PLAYING"
-                    )
-                );
-                debug("found!", ms);
-                return ms;
-            })(),
-
-            (async () => {
-                debug("check for load");
-                await awaitMessageOfType(s, "LOAD_FAILED");
-                throw new Error("Load failed");
-            })(),
+            awaitPlaybackStart(s),
+            awaitLoadFailure(s),
         ]);
 
         if (!result) throw new Error("No result?");
