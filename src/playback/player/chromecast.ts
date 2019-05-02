@@ -1,9 +1,11 @@
 import { ChromecastDevice } from "babbling";
 
 import { Context } from "../../context";
+import { getMetadata } from "../../media/metadata";
 import { IPlayable } from "../../model";
+import { withQuery } from "../../util/url";
 import { IPlaybackOptions, IPlayer } from "../player";
-import { DefaultMediaReceiverApp } from "./apps/default";
+import { DefaultMediaReceiverApp, ICastInfo } from "./apps/default";
 
 export class ChromecastPlayer implements IPlayer {
     public static forNamedDevice(deviceName: string) {
@@ -33,17 +35,44 @@ export class ChromecastPlayer implements IPlayer {
         }
 
         // TODO pick app?
-        const [ app, metadata, url ] = await Promise.all([
+        const [ app, metadata, url, mediaAround ] = await Promise.all([
             this.device.openApp(DefaultMediaReceiverApp),
-            playable.getMetadata(context),
-            playable.getUrl(urlOpts),
+            getMetadata(context, playable.media),
+            playable.getUrl(context, urlOpts),
+            playable.loadQueueAround(context),
         ]);
 
-        return app.load({
+        const media: ICastInfo = {
             contentType: playable.contentType,
             currentTime,
             metadata,
             url,
+        };
+
+        const indexOfMediaInQueue = mediaAround.findIndex(m => m.id === playable.media.id);
+        const queueAround: ICastInfo[] = mediaAround.map((m, index) => {
+
+            // NOTE: copy seriesTitle from the base metadata;
+            // if there *is* any, that one should have it
+            const myMetadata = {
+                seriesTitle: metadata.seriesTitle,
+                title: m.title,
+            };
+
+            const myUrl = indexOfMediaInQueue === index
+                ? url
+                : withQuery(url, { queueIndex: index });
+
+            return {
+                contentType: playable.contentType, // guess?
+                metadata: myMetadata,
+                url: myUrl,
+            };
+        });
+
+        return app.load({
+            media,
+            queueAround,
 
             onPlayerPaused: opts.onPlayerPaused,
         });
