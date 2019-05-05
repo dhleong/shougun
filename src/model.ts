@@ -14,10 +14,16 @@ export interface IMediaMetadata {
 }
 
 export interface IPlayable {
-    id: string;
-    contentType: string;
-    durationSeconds: number;
-    getMetadata(context: Context): Promise<IMediaMetadata>;
+    readonly id: string;
+    readonly contentType: string;
+    readonly durationSeconds: number;
+
+    /**
+     * The backing IMedia this represents
+     */
+    readonly media: IMedia;
+
+    loadQueueAround(context: Context): Promise<IMedia[]>;
 
     /**
      * Get an URL that can be used to stream the media represented
@@ -27,7 +33,7 @@ export interface IPlayable {
      * seeking, it may *start transcoding* at that time instead.
      * However, if seek *is* supported, `opts` will be disregarded.
      */
-    getUrl(opts?: IPlaybackOptions): Promise<string>;
+    getUrl(context: Context, opts?: IPlaybackOptions): Promise<string>;
 }
 
 export enum MediaType {

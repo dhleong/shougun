@@ -21,10 +21,11 @@ const transcodeWithOptions = (
             debug("start:", cmd);
         })
         .once("progress", data => {
+            debug("progress @", localPath);
             resolve(pipe);
         })
         .on("error", e => {
-            debug("error transcoding", e);
+            debug("error transcoding", localPath, e);
             reject(e);
         })
         .on("end", () => {
@@ -46,6 +47,15 @@ const transcodeWithOptions = (
     // ourselves (see above)
     const end = opts.autoEnd === true;
     command.output(pipe, { end }).run();
+
+    // HACKS: if we don't get an error *or* otherwise resolve in 1s,
+    // just resolve so we can *try* to read from the pipe.
+    // TODO: Perhaps if `pipe` read from the command output but stored
+    // it in a buffer until downstream was ready to consume, it'd work
+    // without this hack?
+    setTimeout(() => {
+        resolve(pipe);
+    }, 1000);
 });
 
 // priority list of option sets to be used with ffmpeg

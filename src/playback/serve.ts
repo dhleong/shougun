@@ -1,8 +1,6 @@
 import fastify from "fastify";
 import internalIp from "internal-ip";
 import mime from "mime";
-import path from "path";
-import querystring from "querystring";
 import url from "url";
 
 import _debug from "debug";
@@ -10,7 +8,9 @@ const debug = _debug("shougun:serve");
 
 import { Context } from "../context";
 import { extractDuration } from "../media/duration";
-import { ILocalMedia, IMedia, IMediaMetadata, IPlayable, isEpisode } from "../model";
+import { BasePlayable } from "../media/playable-base";
+import { ILocalMedia, IMedia } from "../model";
+import { withQuery } from "../util/url";
 import { IPlaybackOptions } from "./player";
 import { serveMp4 } from "./serve/mp4";
 import { serveTranscoded } from "./serve/transcode";
@@ -22,6 +22,7 @@ export interface IServer {
      * at that time
      */
     serve(
+        context: Context,
         media: ILocalMedia,
         opts?: IPlaybackOptions,
     ): Promise<string>;
@@ -36,6 +37,7 @@ export class Server implements IServer {
 
     private media: {[id: string]: ILocalMedia} = {};
     private activeStreams: {[id: string]: number} = {};
+    private activeRequests = 0;
 
     public close() {
         const s = this.server;
@@ -45,11 +47,12 @@ export class Server implements IServer {
     }
 
     public async serve(
+        context: Context,
         mediaEntry: ILocalMedia,
         opts?: IPlaybackOptions,
     ) {
         this.media[mediaEntry.id] = mediaEntry;
-        const address = await this.ensureServing();
+        const address = await this.ensureServing(context);
         const encodedId = encodeURIComponent(mediaEntry.id);
 
         const base = `http://${address}/playable/id/${encodedId}`;
@@ -57,12 +60,12 @@ export class Server implements IServer {
             return base;
         }
 
-        return base + "?" + querystring.stringify({
+        return withQuery(base, {
             startTime: opts.currentTime,
         });
     }
 
-    private async ensureServing(): Promise<string> {
+    private async ensureServing(context: Context): Promise<string> {
         const existing = this.address;
         if (existing) return existing;
 
@@ -74,38 +77,15 @@ export class Server implements IServer {
             maxParamLength: 512,
         });
         server.get("/playable/id/:id", async (req, reply) => {
-            const id = req.params.id;
-            debug("request playable @", id);
-
-            const media = this.media[id];
-            if (!media) throw new Error("No such media");
-
-            const onStreamEnded = () => {
-                this.onStreamEnded(media);
-            };
-
-            const { contentType, localPath } = media;
-            let stream: NodeJS.ReadableStream;
-            if (contentType === "video/mp4") {
-                stream = await serveMp4(
-                    req, reply, localPath,
-                );
-            } else {
-                const startTime = req.query.startTime || 0;
-
-                stream = await serveTranscoded(
-                    req, reply, localPath, startTime,
-                );
+            try {
+                debug(">> active request!");
+                ++this.activeRequests;
+                return await this.handlePlayableRequest(context, req, reply);
+            } finally {
+                debug("<< end request");
+                --this.activeRequests;
+                this.checkStreamsForShutdown();
             }
-
-            debug("got stream", stream);
-            stream.once("close", onStreamEnded);
-
-            // if we get here, the stream was created without error
-            this.onStreamStarted(media);
-
-            // serve!
-            return stream;
         });
 
         this.server = server;
@@ -121,6 +101,72 @@ export class Server implements IServer {
         debug("serving on", actual);
         this.address = actual;
         return actual;
+    }
+
+    private async handlePlayableRequest(
+        context: Context,
+        req: fastify.FastifyRequest<any>,
+        reply: fastify.FastifyReply<any>,
+    ) {
+        const id = req.params.id;
+        debug("request playable @", id);
+
+        const media = this.media[id];
+        if (!media) throw new Error("No such media");
+        let toPlay = media;
+
+        const { queueIndex } = req.query;
+        if (queueIndex !== undefined) {
+            debug("pull actual playable from queue @", queueIndex);
+
+            // following queue?
+            // HAX: there's probably a better way to do this...
+            const playable = media as ServedPlayable;
+            const queue = await playable.loadQueueAround(context);
+            toPlay = await context.discovery.createPlayable(
+                context,
+                queue[queueIndex],
+            ) as ServedPlayable;
+
+            // MORE HAX: this startTime is from the original media, probably
+            delete req.query.startTime;
+
+            debug("  -> ", toPlay.id, " @ ", toPlay.localPath);
+
+            // NOTE: we still use `media` for onStreamStarted and
+            // onStreamEnded, since those protect its existence in
+            // the `this.media` map; we need to keep `media` there
+            // since all the queued items are based on it. If `media`
+            // were removed in favor of `toPlay`, we wouldn't be able
+            // to play any of the other items in the queue anymore!
+        }
+
+        const onStreamEnded = () => {
+            this.onStreamEnded(media);
+        };
+
+        const { contentType, localPath } = toPlay;
+        let stream: NodeJS.ReadableStream;
+        if (contentType === "video/mp4") {
+            stream = await serveMp4(
+                req, reply, localPath,
+            );
+        } else {
+            const startTime = req.query.startTime || 0;
+
+            stream = await serveTranscoded(
+                req, reply, localPath, startTime,
+            );
+        }
+
+        debug("got stream", stream);
+        stream.once("close", onStreamEnded);
+
+        // if we get here, the stream was created without error
+        this.onStreamStarted(media);
+
+        // serve!
+        return stream;
     }
 
     private onStreamStarted(media: ILocalMedia) {
@@ -145,6 +191,11 @@ export class Server implements IServer {
     }
 
     private checkStreamsForShutdown() {
+        if (this.activeRequests) {
+            debug(`found active requests; stay alive`);
+            return;
+        }
+
         for (const id of Object.keys(this.activeStreams)) {
             if (this.activeStreams[id] > 0) {
                 // still active streams
@@ -161,7 +212,7 @@ export class Server implements IServer {
     }
 }
 
-export class ServedPlayable implements IPlayable {
+export class ServedPlayable extends BasePlayable {
     public static async createFromPath(
         server: IServer,
         media: IMedia,
@@ -187,34 +238,16 @@ export class ServedPlayable implements IPlayable {
 
     constructor(
         private readonly server: IServer,
-        private readonly media: IMedia,
+        public readonly media: IMedia,
         public readonly id: string,
         public readonly contentType: string,
         public readonly localPath: string,
         public readonly durationSeconds: number,
-    ) {}
-
-    public async getMetadata(context: Context) {
-        const metadata: IMediaMetadata = {};
-        const mediaTitle = this.media.title;
-        if (mediaTitle) {
-            metadata.title = mediaTitle;
-        } else {
-            metadata.title = path.basename(this.localPath);
-        }
-
-        if (isEpisode(this.media)) {
-            // load series title
-            const series = await context.getSeries(this.media.seriesId);
-            if (series) {
-                metadata.seriesTitle = series.title;
-            }
-        }
-
-        return metadata;
+    ) {
+        super();
     }
 
-    public async getUrl(opts?: IPlaybackOptions) {
-        return this.server.serve(this, opts);
+    public async getUrl(context: Context, opts?: IPlaybackOptions) {
+        return this.server.serve(context, this, opts);
     }
 }

@@ -5,18 +5,24 @@ import { awaitMessageOfType, BaseApp, ICastSession, IDevice, PlaybackTracker } f
 
 import { IMediaMetadata } from "../../../model";
 
-export interface IMedia {
-    contentId: string;
-    contentType: string;
-    metadata: IMediaMetadata;
-    streamType: "BUFFERED";
-}
-
-export interface ILoadParams {
+export interface ICastInfo {
     contentType: any;
     currentTime?: number;
     url: string;
     metadata?: IMediaMetadata;
+}
+
+export interface ILoadParams {
+    /**
+     * The thing to play
+     */
+    media: ICastInfo;
+
+    /**
+     * A list of ICastInfo objects around (and including)
+     * `media`
+     */
+    queueAround?: ICastInfo[];
 
     /**
      * Callback that can be used for tracking "last watched"
@@ -48,20 +54,37 @@ function formatMetadata(
     return formatted;
 }
 
+function formatCastInfo(info: ICastInfo) {
+    return {
+        contentId: info.url,
+        contentType: info.contentType,
+        metadata: formatMetadata(info.metadata),
+    };
+}
+
 function formatLoadRequest(
     params: ILoadParams,
 ) {
-    const media = {
-        contentId: params.url,
-        contentType: params.contentType,
-        metadata: formatMetadata(params.metadata),
-    };
-    return {
+    const media = formatCastInfo(params.media);
+
+    const request = {
         autoplay: true,
-        currentTime: params.currentTime,
+        currentTime: params.media.currentTime,
         media,
+        queueData: {} as any,
         type: "LOAD",
     };
+
+    if (params.queueAround) {
+        request.queueData.items = params.queueAround.map(item => ({
+            media: formatCastInfo(item),
+        }));
+        request.queueData.startIndex = params.queueAround.findIndex(
+            item => item.url === params.media.url,
+        );
+    }
+
+    return request;
 }
 
 async function awaitPlaybackStart(s: ICastSession) {
@@ -109,7 +132,9 @@ export class DefaultMediaReceiverApp extends BaseApp {
 
         const s = await this.ensureCastSession();
 
-        s.send(formatLoadRequest(params));
+        const loadRequest = formatLoadRequest(params);
+        s.send(loadRequest);
+        debug("sending", JSON.stringify(loadRequest, null, "  "));
 
         // wait for either the playback to start or the load to fail
         const result = await Promise.race([
