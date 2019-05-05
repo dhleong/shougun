@@ -85,15 +85,64 @@ describe("BasePlayable", () => {
         });
 
         it("works for a middle episode", async () => {
-            // TODO
+            playable = new TestPlayable("1");
+
+            series.seasons[0].episodes = [
+                fakeEpisode("0"),
+                fakeEpisode("1"),
+                fakeEpisode("2"),
+            ];
+
+            const q = await playable.loadQueueAround(context);
+            q.should.containSubset([
+                { id: "0" },
+                { id: "1" },
+                { id: "2" },
+            ]);
         });
 
         it("works across seasons", async () => {
-            // TODO
+            playable = new TestPlayable("2");
+
+            series.seasons[0].episodes = [
+                fakeEpisode("0"),
+                fakeEpisode("1"),
+                fakeEpisode("2"),
+            ];
+
+            series.seasons[1] = { id: "1", episodes: [] };
+            series.seasons[1].episodes = [
+                fakeEpisode("3"),
+                fakeEpisode("4"),
+                fakeEpisode("5"),
+            ];
+
+            const q = await playable.loadQueueAround(context);
+            q.should.containSubset([
+                { id: "0" },
+                { id: "1" },
+                { id: "2" },
+                { id: "3" },
+                { id: "4" },
+                { id: "5" },
+            ]);
         });
 
         it("works for the last episode", async () => {
-            // TODO
+            playable = new TestPlayable("2");
+
+            series.seasons[0].episodes = [
+                fakeEpisode("0"),
+                fakeEpisode("1"),
+                fakeEpisode("2"),
+            ];
+
+            const q = await playable.loadQueueAround(context);
+            q.should.containSubset([
+                { id: "0" },
+                { id: "1" },
+                { id: "2" },
+            ]);
         });
     });
 });
