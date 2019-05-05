@@ -31,7 +31,7 @@ export abstract class BasePlayable implements IPlayable {
         }
 
         const start = Math.max(0, idx - QUEUE_CONTEXT_EXTENT);
-        const end = Math.min(episodes.length - 1, idx + QUEUE_CONTEXT_EXTENT);
+        const end = Math.min(episodes.length, idx + QUEUE_CONTEXT_EXTENT);
 
         return episodes.slice(start, end);
     }

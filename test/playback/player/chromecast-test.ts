@@ -5,10 +5,10 @@ import { anything, capture, instance, mock, when } from "ts-mockito";
 import { ChromecastDevice } from "babbling";
 
 import { Context } from "../../../src/context";
-import { IMedia, MediaType } from "../../../src/model";
 import { DefaultMediaReceiverApp } from "../../../src/playback/player/apps/default";
 import { ChromecastPlayer } from "../../../src/playback/player/chromecast";
 import { ServedPlayable } from "../../../src/playback/serve";
+import { fakeEpisode } from "../../utils";
 
 chai.use(chaiSubset);
 chai.should();
@@ -72,12 +72,3 @@ describe("ChromecastPlayer", () => {
         });
     });
 });
-
-function fakeEpisode(id: string): IMedia {
-    return {
-        discovery: "fake",
-        id,
-        title: "Fake: " + id,
-        type: MediaType.Episode,
-    };
-}
