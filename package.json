@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "tsc -p .",
-    "check": "npm run lint && npm run build",
+    "check": "npm run lint && npm run build && npm run test",
     "lint": "tslint -p .",
     "prepare": "npm run build",
     "prepublishOnly": "npm run check",
