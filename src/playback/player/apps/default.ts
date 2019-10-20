@@ -76,12 +76,14 @@ function formatLoadRequest(
     };
 
     if (params.queueAround && params.queueAround.length) {
-        request.queueData.items = params.queueAround.map(item => ({
-            media: formatCastInfo(item),
-        }));
-        request.queueData.startIndex = params.queueAround.findIndex(
-            item => item.url === params.media.url,
-        );
+        request.queueData = {
+            items: params.queueAround.map(item => ({
+                media: formatCastInfo(item),
+            })),
+            startIndex: params.queueAround.findIndex(
+                item => item.url === params.media.url,
+            ),
+        };
     }
 
     return request;
