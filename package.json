@@ -37,7 +37,7 @@
     "internal-ip": "^5.0.0",
     "leven": "^3.1.0",
     "mime": "^2.4.4",
-    "nodecastor": "github:dhleong/nodecastor#e18189c",
+    "nodecastor": "^0.1.9",
     "range-parser": "^1.2.1",
     "speakingurl": "^14.0.1",
     "talisman": "^0.21.0",
