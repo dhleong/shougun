@@ -1,5 +1,5 @@
 import fastify from "fastify";
-import internalIp from "internal-ip";
+import internalIp = require("internal-ip");
 import mime from "mime";
 import url from "url";
 

@@ -34,7 +34,7 @@
     "fastify": "^2.10.0",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "^8.1.0",
-    "internal-ip": "^4.3.0",
+    "internal-ip": "^5.0.0",
     "leven": "^3.1.0",
     "mime": "^2.4.4",
     "nodecastor": "github:dhleong/nodecastor#e18189c",
