@@ -63,15 +63,25 @@ const transcodeWithOptions = (
 const ffmpegOptionSets = [
     [],
 
+    // these flags help ensure the output is streamable,
+    // but may prevent seeking
     [
         "-movflags frag_keyframe+empty_moov+faststart",
         "-strict experimental",
-        "-ac 2",
+
+        // for source files with DTS audio, for example, we *must* transcode
+        // to AC3 to keep surround sound on chromecast. if the source is
+        // stereo, this seems to still be acceptable. future work could
+        // consider checking the source file's codec and comparing with
+        // player capabilities before doing something like this...
+        "-acodec ac3",
     ],
 
-    // these flags help ensure the output is streamable,
-    // but may prevent seeking
-    ["-movflags frag_keyframe+empty_moov+faststart"],
+    // fall back to a simpler set of flags
+    [
+        "-movflags frag_keyframe+empty_moov+faststart",
+        "-strict experimental",
+    ],
 ];
 
 export async function transcode(

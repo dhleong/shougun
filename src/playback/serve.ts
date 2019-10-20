@@ -155,7 +155,7 @@ export class Server implements IServer {
             );
         } else if (player.getCapabilities().canPlayMime("video/mp4")) {
             const startTime = req.query.startTime || 0;
-            debug("serve transcoded, starting @", startTime);
+            debug(`serve transcoded from ${contentType} starting @`, startTime);
 
             stream = await serveTranscoded(
                 req, reply, localPath, startTime,
