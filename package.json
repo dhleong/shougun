@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/dhleong/shougun#readme",
   "dependencies": {
-    "babbling": "^1.9.2",
+    "babbling": "^1.16.0",
     "better-sqlite3": "^5.4.0",
     "crc": "^3.8.0",
     "debug": "^4.1.1",
@@ -55,6 +55,7 @@
     "@types/mock-fs": "^3.6.30",
     "@types/node": "^11.13.6",
     "@types/range-parser": "^1.2.3",
+    "@types/request-promise-native": "^1.0.17",
     "@types/speakingurl": "^13.0.2",
     "chai": "^4.2.0",
     "chai-subset": "^1.6.0",
