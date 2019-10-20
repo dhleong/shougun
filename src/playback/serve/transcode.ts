@@ -63,6 +63,12 @@ const transcodeWithOptions = (
 const ffmpegOptionSets = [
     [],
 
+    [
+        "-movflags frag_keyframe+empty_moov+faststart",
+        "-strict experimental",
+        "-ac 2",
+    ],
+
     // these flags help ensure the output is streamable,
     // but may prevent seeking
     ["-movflags frag_keyframe+empty_moov+faststart"],

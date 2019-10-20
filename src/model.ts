@@ -16,7 +16,6 @@ export interface IMediaMetadata {
 export interface IPlayable {
     readonly id: string;
     readonly contentType: string;
-    readonly originalContentType?: string;
     readonly durationSeconds: number;
 
     /**

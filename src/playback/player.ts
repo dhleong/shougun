@@ -15,7 +15,13 @@ export interface IPlaybackOptions {
     onPlayerPaused?: (currentTimeSeconds: number) => Promise<void>;
 }
 
+export interface IPlayerCapabilities {
+    canPlayMime(mime: string): boolean;
+}
+
 export interface IPlayer {
+    getCapabilities(): IPlayerCapabilities;
+
     play(
         context: Context,
         playable: IPlayable,

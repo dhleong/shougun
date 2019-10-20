@@ -12,7 +12,7 @@ import { BasePlayable } from "../media/playable-base";
 import { ILocalMedia, IMedia } from "../model";
 import { withQuery } from "../util/url";
 import { IPlaybackOptions } from "./player";
-import { serveMp4 } from "./serve/mp4";
+import { serveRanged } from "./serve/ranged";
 import { serveTranscoded } from "./serve/transcode";
 
 export interface IServer {
@@ -110,6 +110,7 @@ export class Server implements IServer {
     ) {
         const id = req.params.id;
         debug("request playable @", id);
+        debug(" - headers:", req.headers);
 
         const media = this.media[id];
         if (!media) throw new Error("No such media");
@@ -145,21 +146,22 @@ export class Server implements IServer {
             this.onStreamEnded(media);
         };
 
+        const { player } = context;
         const { contentType, localPath } = toPlay;
-        const originalContentType = (toPlay as ServedPlayable)
-            .originalContentType || contentType;
         let stream: NodeJS.ReadableStream;
-        if (originalContentType === "video/mp4") {
-            stream = await serveMp4(
-                req, reply, localPath,
+        if (player.getCapabilities().canPlayMime(contentType)) {
+            stream = await serveRanged(
+                req, reply, contentType, localPath,
             );
-        } else {
+        } else if (player.getCapabilities().canPlayMime("video/mp4")) {
             const startTime = req.query.startTime || 0;
             debug("serve transcoded, starting @", startTime);
 
             stream = await serveTranscoded(
                 req, reply, localPath, startTime,
             );
+        } else {
+            throw new Error(`Player ${player} does not support ${contentType}`);
         }
 
         debug("got stream");
@@ -239,22 +241,15 @@ export class ServedPlayable extends BasePlayable {
         );
     }
 
-    // NOTE: when served, the content type is always this, whether
-    // we have to transcode it there or not:
-    public readonly contentType = "video/mp4";
-
-    public readonly originalContentType: string;
-
     constructor(
         private readonly server: IServer,
         public readonly media: IMedia,
         public readonly id: string,
-        contentType: string,
+        public readonly contentType: string,
         public readonly localPath: string,
         public readonly durationSeconds: number,
     ) {
         super();
-        this.originalContentType = contentType;
     }
 
     public async getUrl(context: Context, opts?: IPlaybackOptions) {

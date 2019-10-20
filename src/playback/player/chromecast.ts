@@ -4,8 +4,27 @@ import { Context } from "../../context";
 import { getMetadata } from "../../media/metadata";
 import { IPlayable } from "../../model";
 import { withQuery } from "../../util/url";
-import { IPlaybackOptions, IPlayer } from "../player";
+import { IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
 import { DefaultMediaReceiverApp, ICastInfo } from "./apps/default";
+
+const chromecastCapabilities = {
+    supportedMimes: new Set<string>([
+        "video/mp4", "video/webm",
+        "audio/mp4", "audio/mpeg", "audio/webm",
+    ]),
+
+    canPlayMime(mime: string) {
+        return this.supportedMimes.has(mime);
+    },
+
+    effectiveMime(mime: string) {
+        if (this.canPlayMime(mime)) {
+            return mime;
+        }
+
+        return "video/mp4"; // transcode to mp4
+    },
+};
 
 export class ChromecastPlayer implements IPlayer {
     public static forNamedDevice(deviceName: string) {
@@ -16,6 +35,10 @@ export class ChromecastPlayer implements IPlayer {
         private device: ChromecastDevice,
     ) { }
 
+    public getCapabilities(): IPlayerCapabilities {
+        return chromecastCapabilities;
+    }
+
     public async play(
         context: Context,
         playable: IPlayable,
@@ -23,11 +46,10 @@ export class ChromecastPlayer implements IPlayer {
     ) {
         let urlOpts: IPlaybackOptions | undefined;
 
-        const originalContentType = playable.originalContentType || playable.contentType;
         let currentTime = opts.currentTime;
         if (!currentTime) {
             currentTime = 0;
-        } else if (originalContentType !== "video/mp4") {
+        } else if (!chromecastCapabilities.canPlayMime(playable.contentType)) {
             // this content cannot be streamed to Chromecast,
             // so we *cannot* provide currentTime, and instead
             // should pass it to getUrl()
@@ -44,7 +66,7 @@ export class ChromecastPlayer implements IPlayer {
         ]);
 
         const media: ICastInfo = {
-            contentType: playable.contentType,
+            contentType: chromecastCapabilities.effectiveMime(playable.contentType),
             currentTime,
             metadata,
             url,
@@ -65,7 +87,7 @@ export class ChromecastPlayer implements IPlayer {
                 : withQuery(url, { queueIndex: index });
 
             return {
-                contentType: playable.contentType, // guess?
+                contentType: media.contentType, // guess?
                 metadata: myMetadata,
                 url: myUrl,
             };

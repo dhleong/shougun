@@ -2,9 +2,13 @@ import fastify from "fastify";
 import fs from "fs-extra";
 import rangeParser from "range-parser";
 
-export async function serveMp4(
+/**
+ * NOTE: this may only really work with video/mp4...
+ */
+export async function serveRanged(
     req: fastify.FastifyRequest<any>,
     reply: fastify.FastifyReply<any>,
+    contentType: string,
     localPath: string,
 ) {
 
@@ -12,7 +16,7 @@ export async function serveMp4(
     const length = stat.size;
 
     // common headers
-    reply.header("Content-Type", "video/mp4");
+    reply.header("Content-Type", contentType);
 
     const { range } = req.headers;
     if (range) {
