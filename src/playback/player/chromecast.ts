@@ -23,10 +23,11 @@ export class ChromecastPlayer implements IPlayer {
     ) {
         let urlOpts: IPlaybackOptions | undefined;
 
+        const originalContentType = playable.originalContentType || playable.contentType;
         let currentTime = opts.currentTime;
         if (!currentTime) {
             currentTime = 0;
-        } else if (playable.contentType !== "video/mp4") {
+        } else if (originalContentType !== "video/mp4") {
             // this content cannot be streamed to Chromecast,
             // so we *cannot* provide currentTime, and instead
             // should pass it to getUrl()

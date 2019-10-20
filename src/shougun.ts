@@ -66,7 +66,7 @@ export class Shougun {
             media,
         );
 
-        debug(`playing ${media.id} as ${playable.id}...`);
+        debug(`playing ${media.id} as ${playable.id} with ${JSON.stringify(options)}...`);
         await this.context.player.play(this.context, playable, Object.assign({
             onPlayerPaused: async (currentTimeSeconds: number) => {
                 return this.context.tracker.saveTrack(

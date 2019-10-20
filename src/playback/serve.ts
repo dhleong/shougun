@@ -146,7 +146,8 @@ export class Server implements IServer {
         };
 
         const { contentType, localPath } = toPlay;
-        const originalContentType = (toPlay as ServedPlayable).originalContentType || contentType;
+        const originalContentType = (toPlay as ServedPlayable)
+            .originalContentType || contentType;
         let stream: NodeJS.ReadableStream;
         if (originalContentType === "video/mp4") {
             stream = await serveMp4(
@@ -154,13 +155,14 @@ export class Server implements IServer {
             );
         } else {
             const startTime = req.query.startTime || 0;
+            debug("serve transcoded, starting @", startTime);
 
             stream = await serveTranscoded(
                 req, reply, localPath, startTime,
             );
         }
 
-        debug("got stream", stream);
+        debug("got stream");
         stream.once("close", onStreamEnded);
 
         // if we get here, the stream was created without error
@@ -256,6 +258,8 @@ export class ServedPlayable extends BasePlayable {
     }
 
     public async getUrl(context: Context, opts?: IPlaybackOptions) {
-        return this.server.serve(context, this, opts);
+        const serveUrl = await this.server.serve(context, this, opts);
+        debug("computed URL for", this.localPath, "with", opts, " -> ", serveUrl);
+        return serveUrl;
     }
 }
