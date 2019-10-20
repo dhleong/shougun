@@ -146,8 +146,9 @@ export class Server implements IServer {
         };
 
         const { contentType, localPath } = toPlay;
+        const originalContentType = (toPlay as ServedPlayable).originalContentType || contentType;
         let stream: NodeJS.ReadableStream;
-        if (contentType === "video/mp4") {
+        if (originalContentType === "video/mp4") {
             stream = await serveMp4(
                 req, reply, localPath,
             );
@@ -236,15 +237,22 @@ export class ServedPlayable extends BasePlayable {
         );
     }
 
+    // NOTE: when served, the content type is always this, whether
+    // we have to transcode it there or not:
+    public readonly contentType = "video/mp4";
+
+    public readonly originalContentType: string;
+
     constructor(
         private readonly server: IServer,
         public readonly media: IMedia,
         public readonly id: string,
-        public readonly contentType: string,
+        contentType: string,
         public readonly localPath: string,
         public readonly durationSeconds: number,
     ) {
         super();
+        this.originalContentType = contentType;
     }
 
     public async getUrl(context: Context, opts?: IPlaybackOptions) {
