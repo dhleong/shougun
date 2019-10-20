@@ -1,7 +1,7 @@
 {
   "name": "shougun",
   "version": "0.2.0",
-  "description": "",
+  "description": "Take command of your media",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
