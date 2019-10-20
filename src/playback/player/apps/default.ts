@@ -71,11 +71,11 @@ function formatLoadRequest(
         autoplay: true,
         currentTime: params.media.currentTime,
         media,
-        queueData: {} as any,
+        queueData: undefined as any,
         type: "LOAD",
     };
 
-    if (params.queueAround) {
+    if (params.queueAround && params.queueAround.length) {
         request.queueData.items = params.queueAround.map(item => ({
             media: formatCastInfo(item),
         }));
