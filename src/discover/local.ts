@@ -104,7 +104,9 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
     }
 
     public async *changes(): AsyncIterable<IDiscoveredChange> {
-        const events = chokidar.watch(this.root);
+        const events = chokidar.watch(this.root, {
+            persistent: false,
+        });
         const iterable = new QueuedIterable<IDiscoveredChange>(() => {
             // cleanup;
             debug("cleanup changes subscription");

@@ -1,4 +1,7 @@
-import { IDiscovery } from "./discover/base";
+import _debug from "debug";
+const debug = _debug("shougun:context");
+
+import { ChangeType, IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
 import { IMedia, IMediaMap, ISeries, isSeries } from "./model";
 import { IPlayer } from "./playback/player";
@@ -13,7 +16,9 @@ export class Context {
         public readonly tracker: ITracker,
         public readonly server: IServer,
         private readonly knownMedia: IMediaMap,
-    ) {}
+    ) {
+        trackMediaChanges(discovery, knownMedia);
+    }
 
     /**
      * Returns an iterable for all known Titles, IE Movies or Series.
@@ -31,4 +36,20 @@ export class Context {
 
         return media;
     }
+}
+
+function trackMediaChanges(discovery: IDiscovery, knownMedia: IMediaMap) {
+    (async () => {
+        for await (const change of discovery.changes()) {
+            debug("received change", change);
+
+            if (change.type === ChangeType.MEDIA_REMOVED) {
+                delete knownMedia[change.media.id];
+            } else {
+                knownMedia[change.media.id] = change.media;
+            }
+        }
+    })().catch(e => {
+        throw new Error("Error encountered tracking media changes:\nCaused by:" + e.stack);
+    });
 }
