@@ -3,8 +3,8 @@ const debug = _debug("shougun:hierarchical");
 
 import { Context } from "../context";
 import { fileNameToId, fileNameToTitle, isVideo, nestId, sortEpisodes, sortSeasons } from "../media/util";
-import { IMedia, IMediaMap, IPlayable, ISeries, MediaType } from "../model";
-import { DiscoveryId, IDiscovery } from "./base";
+import { IMedia, IMediaMap, IPlayable, ISeason, ISeries, MediaType } from "../model";
+import { DiscoveryId, IDiscoveredChange, IDiscovery } from "./base";
 
 export interface IHierarchy<TEntity> {
     equals(first: TEntity, second: TEntity): boolean;
@@ -20,13 +20,20 @@ export interface IHierarchy<TEntity> {
     ): Promise<IPlayable>;
 }
 
+export interface IHierarchicalMedia<TEntity> extends IMedia {
+    entity: TEntity;
+    seasons?: ISeason[];
+}
+
 export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
     public abstract id: DiscoveryId;
 
     constructor(
-        private hierarchy: IHierarchy<TEntity>,
-        private root: TEntity,
+        private readonly hierarchy: IHierarchy<TEntity>,
+        protected readonly root: TEntity,
     ) { }
+
+    public abstract changes(): AsyncIterable<IDiscoveredChange>;
 
     public instanceById(id: DiscoveryId): IDiscovery | undefined {
         if (id !== this.id) return;
@@ -40,7 +47,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         // NOTE: this should only be called with media that
         // we created, so it should always have this property.
         // if not, it is user error
-        const entity = (media as any).entity as TEntity;
+        const entity = (media as IHierarchicalMedia<TEntity>).entity;
         if (!entity) {
             if (media.discovery !== this.id) {
                 throw new Error(
@@ -62,7 +69,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         // this is kind of terrible, but a strictly greedy
         // algorithm doesn't provide great results....
         const discovered: IMediaMap = {};
-        for await (const m of this.discoverImpl(discovered)) {
+        for await (const m of this.discoverFromRoot(discovered, this.root)) {
             discovered[m.id] = m;
         }
 
@@ -71,10 +78,17 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         }
     }
 
-    private async *discoverImpl(
+    protected createRootMedia(
+        videoPath: TEntity,
+    ) {
+        return this.createMedia(null, MediaType.Movie, videoPath);
+    }
+
+    protected async *discoverFromRoot(
         discovered: IMediaMap,
-    ): AsyncIterable<IMedia> {
-        const candidates: TEntity[] = [this.root];
+        root: TEntity,
+    ) {
+        const candidates: TEntity[] = [root];
 
         while (candidates.length) {
             const candidate = candidates.pop();
@@ -110,11 +124,11 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         discovered: IMediaMap,
         candidate: TEntity,
         videoFiles: TEntity[],
-    ) {
+    ): AsyncIterable<IHierarchicalMedia<TEntity>>  {
         if (this.hierarchy.equals(this.root, candidate)) {
             // videos in the root directory must be Movies
             for (const video of videoFiles) {
-                yield this.createMedia(null, MediaType.Movie, video);
+                yield this.createRootMedia(video);
             }
             return;
         }
@@ -141,8 +155,10 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             // EG: /Korra/Book 1; Korra/Book 2
             // if the grandparent is the root, then this
             // must be a season
-            const series: ISeries = discovered[parentId] as ISeries || {
+            const series: IHierarchicalMedia<TEntity> & ISeries =
+            discovered[parentId] as IHierarchicalMedia<TEntity> & ISeries || {
                 discovery: this.id,
+                entity: parent,
                 id: parentId,
                 title: this.createTitle(parent),
                 type: MediaType.Series,
@@ -166,6 +182,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             debug("movie @", candidate);
             yield {
                 discovery: this.id,
+                entity: candidate,
                 id: this.idOf(candidate),
                 title: this.createTitle(candidate),
                 type: MediaType.Movie,
@@ -179,6 +196,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         const seriesId = this.idOf(candidate);
         yield {
             discovery: this.id,
+            entity: candidate,
             id: seriesId,
             title: this.createTitle(candidate),
             type: MediaType.Series,

@@ -2,7 +2,7 @@ import { mergeAsyncIterables } from "babbling/dist/async";
 
 import { Context } from "../context";
 import { IMedia } from "../model";
-import { DiscoveryId, IDiscovery } from "./base";
+import { DiscoveryId, IDiscoveredChange, IDiscovery } from "./base";
 
 export class CompositeDiscovery implements IDiscovery {
     public static create(
@@ -18,6 +18,12 @@ export class CompositeDiscovery implements IDiscovery {
         public readonly id: DiscoveryId,
         private readonly delegates: IDiscovery[],
     ) {}
+
+    public async *changes(): AsyncIterable<IDiscoveredChange> {
+        yield *mergeAsyncIterables(
+            this.delegates.map(it => it.changes()),
+        );
+    }
 
     public async createPlayable(
         context: Context,

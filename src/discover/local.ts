@@ -1,12 +1,17 @@
+import _debug from "debug";
+const debug = _debug("shougun:discovery:local");
+
+import chokidar from "chokidar";
 import fs from "fs-extra";
 import path from "path";
 
 import { Context } from "../context";
 import { resolvePath } from "../media/util";
-import { IMedia } from "../model";
+import { IMedia, IMediaMap } from "../model";
 import { ServedPlayable } from "../playback/serve";
-import { DiscoveryId } from "./base";
-import { HierarchicalDiscovery, IHierarchy } from "./hierarchical";
+import { QueuedIterable } from "../util/queued-iterable";
+import { ChangeType, DiscoveryId, IDiscoveredChange } from "./base";
+import { HierarchicalDiscovery, IHierarchicalMedia, IHierarchy } from "./hierarchical";
 
 // file/folder names that are never relevant
 const relevantFileBlacklist = [
@@ -96,5 +101,112 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
         super(new LocalFileHierarchy(options), resolvePath(rootPath));
 
         this.id = `local:${rootPath}`;
+    }
+
+    public async *changes(): AsyncIterable<IDiscoveredChange> {
+        const events = chokidar.watch(this.root, {
+            persistent: false,
+        });
+        const iterable = new QueuedIterable<IDiscoveredChange>(() => {
+            // cleanup;
+            debug("cleanup changes subscription");
+            events.close();
+        });
+
+        const lastMap: IMediaMap = {};
+        for await (const m of this.discoverFromRoot(lastMap, this.root)) {
+            lastMap[m.id] = m;
+        }
+
+        events.on("addDir", async newDir => {
+            debug("new dir:", newDir);
+            for await (const m of this.discoverFromRoot(lastMap, newDir)) {
+                debug("Discovered", m);
+                lastMap[m.id] = m;
+                iterable.notify({
+                    media: m,
+                    type: ChangeType.MEDIA_ADDED,
+                });
+            }
+        });
+
+        events.on("unlinkDir", async dir => {
+            debug("removed dir:", dir);
+            for (const m of Object.values(lastMap)) {
+                const mediaPath = (m as IHierarchicalMedia<string>).entity;
+                if (mediaPath.startsWith(dir)) {
+                    debug("removed media at", m);
+                    delete lastMap[m.id];
+                    iterable.notify({
+                        media: m,
+                        type: ChangeType.MEDIA_REMOVED,
+                    });
+                }
+            }
+        });
+
+        events.on("add", async newFile => {
+            debug("file added:", newFile);
+            await this.scanForChanges(
+                ChangeType.MEDIA_ADDED,
+                lastMap,
+                iterable,
+                newFile,
+            );
+        });
+        events.on("unlink", async removedFile => {
+            debug("file removed:", removedFile);
+            await this.scanForChanges(
+                ChangeType.MEDIA_REMOVED,
+                lastMap,
+                iterable,
+                removedFile,
+            );
+        });
+
+        yield *iterable;
+    }
+
+    private async scanForChanges(
+        changeType: ChangeType,
+        lastMap: IMediaMap,
+        iterable: QueuedIterable<IDiscoveredChange>,
+        changedFile: string,
+    ) {
+        const relative = changedFile.substr(this.root.length);
+        let offset = 0;
+        if (relative[0] === path.sep) {
+            offset = 1;
+        }
+        const dirEnd = relative.indexOf(path.sep, offset);
+        const rootDir = relative.substr(0, dirEnd);
+        const fullPath = path.join(this.root, rootDir);
+
+        if (rootDir === "") {
+            iterable.notify({
+                media: this.createRootMedia(changedFile),
+                type: changeType,
+            });
+            return;
+        }
+
+        debug("check for changed media in: ", rootDir);
+
+        try {
+            for await (const m of this.discoverFromRoot(lastMap, fullPath)) {
+                debug("media changed", m);
+                lastMap[m.id] = m;
+                iterable.notify({
+                    media: m,
+                    type: ChangeType.MEDIA_CHANGED,
+                });
+            }
+        } catch (e) {
+            if (!e.message.includes("ENOENT")) {
+                // if ENOENT we're probably trying to scan a directory
+                // that was just recursively deleted
+                throw e;
+            }
+        }
     }
 }
