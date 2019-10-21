@@ -2,10 +2,11 @@ import { IDevice } from "babbling";
 
 import { GenericMediaReceiverApp } from "./generic";
 
-export class DefaultMediaReceiverApp extends GenericMediaReceiverApp {
+export class ShougunPlayerApp extends GenericMediaReceiverApp {
     constructor(device: IDevice) {
         super(device, {
-            appId: "CC1AD845",
+            appId: "81066132", // dev ID
         });
     }
+
 }
