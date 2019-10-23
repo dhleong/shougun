@@ -12,6 +12,7 @@ import { IQueryable } from "./model";
 import { IPlayer } from "./playback/player";
 import { ChromecastPlayer } from "./playback/player/chromecast";
 import { BabblingQueryable } from "./queryables/babbling";
+import { ContextQueryable } from "./queryables/context";
 import { Shougun } from "./shougun";
 import { ITracker } from "./track/base";
 import { IStorage, PersistentTracker } from "./track/persistent";
@@ -130,7 +131,10 @@ export class ShougunBuilder {
 
         const matcher = this.matcher || new DefaultMatcher();
 
-        const queryables: IQueryable[] = [];
+        const queryables: IQueryable[] = [
+            // always include the base ContextQueryable
+            new ContextQueryable(),
+        ];
 
         if (this.babblingConfig) {
             queryables.push(this.createBabblingQueryable());

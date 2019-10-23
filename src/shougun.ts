@@ -18,6 +18,10 @@ export class Shougun {
         player: IPlayer,
         tracker: ITracker,
     ) {
+        if (!queryables.length) {
+            throw new Error("No queryables provided");
+        }
+
         const map: IMediaMap = {};
         for await (const media of discovery.discover()) {
             map[media.id] = media;
@@ -47,12 +51,8 @@ export class Shougun {
      */
     public async findMedia(query: string) {
         const titles = await mergeIterables(
-            [
-                this.context.allTitles(),
-            ].concat(
-                this.context.queryables.map(q =>
-                    q.findMedia(query),
-                ),
+            this.context.queryables.map(q =>
+                q.findMedia(this.context, query),
             ),
         );
 

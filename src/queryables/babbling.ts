@@ -3,6 +3,7 @@ const debug = _debug("shougun:queryable:babbling");
 
 import { ChromecastDevice, PlayerBuilder } from "babbling";
 
+import { Context } from "../context";
 import { IMedia, IPlayableMedia, IQueryable, MediaType } from "../model";
 
 export class BabblingQueryable implements IQueryable {
@@ -12,7 +13,10 @@ export class BabblingQueryable implements IQueryable {
         private readonly chromecastDeviceName?: string,
     ) { }
 
-    public async findMedia(query: string): Promise<Iterable<IMedia>> {
+    public async findMedia(
+        context: Context,
+        query: string,
+    ): Promise<Iterable<IMedia>> {
         const player = await this.getPlayer();
         const iterable = player.queryByTitle(query, (app, e) => {
             debug("error querying", app, e);
