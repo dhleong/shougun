@@ -120,6 +120,6 @@ function pickAppTypeFor(playable: IPlayable) {
         return ShougunPlayerApp;
     }
 
-    // use the default app
+    // use the default media receiver app, otherwise
     return DefaultMediaReceiverApp;
 }
