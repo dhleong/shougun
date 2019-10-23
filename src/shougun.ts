@@ -4,13 +4,15 @@ const debug = _debug("shougun:core");
 import { Context } from "./context";
 import { IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
-import { IMedia, IMediaMap, isSeries } from "./model";
+import { IMedia, IMediaMap, IQueryable, isPlayable, isSeries } from "./model";
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
 import { ITracker } from "./track/base";
+import { mergeIterables } from "./util/async";
 
 export class Shougun {
     public static async create(
+        queryables: IQueryable[],
         discovery: IDiscovery,
         matcher: IMatcher,
         player: IPlayer,
@@ -22,6 +24,7 @@ export class Shougun {
         }
 
         const context = new Context(
+            queryables,
             discovery,
             matcher,
             player,
@@ -43,7 +46,16 @@ export class Shougun {
      * Find a Series or Movie by title
      */
     public async findMedia(query: string) {
-        const titles = await this.context.allTitles();
+        const titles = await mergeIterables(
+            [
+                this.context.allTitles(),
+            ].concat(
+                this.context.queryables.map(q =>
+                    q.findMedia(query),
+                ),
+            ),
+        );
+
         return this.context.matcher.findBest(query, titles, (media: IMedia) =>
             media.title,
         );
@@ -53,6 +65,11 @@ export class Shougun {
         media: IMedia,
         options: IPlaybackOptions = {},
     ) {
+        if (isPlayable(media)) {
+            debug(`media is itself playable:`, media);
+            return media.play(options);
+        }
+
         if (isSeries(media) || options.currentTime === undefined) {
             const track = await this.context.tracker.pickResumeForMedia(media);
             media = track.media;

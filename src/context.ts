@@ -3,13 +3,14 @@ const debug = _debug("shougun:context");
 
 import { ChangeType, IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
-import { IMedia, IMediaMap, ISeries, isSeries } from "./model";
+import { IMedia, IMediaMap, IQueryable, ISeries, isSeries } from "./model";
 import { IPlayer } from "./playback/player";
 import { IServer } from "./playback/serve";
 import { ITracker} from "./track/base";
 
 export class Context {
     constructor(
+        public readonly queryables: IQueryable[],
         public readonly discovery: IDiscovery,
         public readonly matcher: IMatcher,
         public readonly player: IPlayer,
