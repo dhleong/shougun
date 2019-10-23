@@ -22,6 +22,10 @@ const shougun = await new ShougunBuilder()
     // call this multiple times to scan multiple local folders
     .scanFolder("~/Movies")
 
+    // adds support for querying configured Babbling apps and considering those
+    // results in findMedia
+    .includeBabblingMedia()
+
     // use a phonetic matcher for queries, suitable for use with voice assistants
     .matchByPhonetics()
 
