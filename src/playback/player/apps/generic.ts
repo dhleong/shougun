@@ -6,6 +6,7 @@ import { awaitMessageOfType, BaseApp, ICastSession, IDevice, PlaybackTracker } f
 import { IMediaMetadata } from "../../../model";
 
 export interface ICustomCastData {
+    durationSeconds?: number;
     queueIndex?: number;
     startTimeAbsolute?: number;
 }
@@ -14,6 +15,13 @@ export interface ICastInfo {
     contentType: any;
     currentTime?: number;
     customData?: ICustomCastData;
+
+    /**
+     * Total duration of the media, in seconds. *Should* be provided
+     * if the media is to be transcoded
+     */
+    duration?: number;
+
     url: string;
     metadata?: IMediaMetadata;
 }
@@ -75,6 +83,7 @@ function formatCastInfo(info: ICastInfo) {
     return {
         contentId: info.url,
         contentType: info.contentType,
+        duration: info.duration,
         metadata: formatMetadata(info.metadata),
     };
 }

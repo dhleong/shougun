@@ -8,5 +8,4 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
             appId: "81066132", // dev ID
         });
     }
-
 }

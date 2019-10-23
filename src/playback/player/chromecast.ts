@@ -73,8 +73,10 @@ export class ChromecastPlayer implements IPlayer {
             contentType: chromecastCapabilities.effectiveMime(playable.contentType),
             currentTime,
             customData: {
+                durationSeconds: playable.durationSeconds,
                 startTimeAbsolute: opts.currentTime,
             },
+            duration: playable.durationSeconds,
             metadata,
             url,
         };
