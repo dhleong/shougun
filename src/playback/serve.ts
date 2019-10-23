@@ -9,6 +9,7 @@ const debug = _debug("shougun:serve");
 import { Context } from "../context";
 import { extractDuration } from "../media/duration";
 import { BasePlayable } from "../media/playable-base";
+import { isVideo } from "../media/util";
 import { ILocalMedia, IMedia } from "../model";
 import { withQuery } from "../util/url";
 import { IPlaybackOptions } from "./player";
@@ -38,6 +39,8 @@ export class Server implements IServer {
     private media: {[id: string]: ILocalMedia} = {};
     private activeStreams: {[id: string]: number} = {};
     private activeRequests = 0;
+
+    private checkStreamsForShutdownRequest: NodeJS.Timeout | undefined;
 
     public close() {
         const s = this.server;
@@ -84,7 +87,7 @@ export class Server implements IServer {
             } finally {
                 debug("<< end request");
                 --this.activeRequests;
-                this.checkStreamsForShutdown();
+                this.deferCheckStreamsForShutdown();
             }
         });
 
@@ -149,7 +152,7 @@ export class Server implements IServer {
         const { player } = context;
         const { contentType, localPath } = toPlay;
         let stream: NodeJS.ReadableStream;
-        if (player.getCapabilities().canPlayMime(contentType)) {
+        if (!isVideo(localPath) || player.getCapabilities().canPlayMime(contentType)) {
             stream = await serveRanged(
                 req, reply, contentType, localPath,
             );
@@ -191,8 +194,15 @@ export class Server implements IServer {
         debug(`stream (${media.id}) ended...`);
         const count = --this.activeStreams[media.id];
         if (count === 0) {
-            setTimeout(() => this.checkStreamsForShutdown(), 2000);
+            this.deferCheckStreamsForShutdown();
         }
+    }
+
+    private deferCheckStreamsForShutdown() {
+        if (this.checkStreamsForShutdownRequest) {
+            clearTimeout(this.checkStreamsForShutdownRequest);
+        }
+        this.checkStreamsForShutdownRequest = setTimeout(() => this.checkStreamsForShutdown(), 2000);
     }
 
     private checkStreamsForShutdown() {
@@ -222,6 +232,7 @@ export class ServedPlayable extends BasePlayable {
         server: IServer,
         media: IMedia,
         localPath: string,
+        localCoverPath?: string,
     ) {
         const type = mime.getType(localPath);
         if (!type) throw new Error(`Unknown file type at ${localPath}`);
@@ -237,6 +248,7 @@ export class ServedPlayable extends BasePlayable {
             id,
             type,
             localPath,
+            localCoverPath,
             durationSeconds,
         );
     }
@@ -247,9 +259,24 @@ export class ServedPlayable extends BasePlayable {
         public readonly id: string,
         public readonly contentType: string,
         public readonly localPath: string,
+        public readonly localCoverPath: string | undefined,
         public readonly durationSeconds: number,
     ) {
         super();
+    }
+
+    public async getCoverUrl(context: Context) {
+        const coverPath = this.localCoverPath;
+        if (!coverPath) return;
+
+        const extension = coverPath.substring(coverPath.lastIndexOf("."));
+        const serveUrl = await this.server.serve(context, {
+            contentType: mime.getType(coverPath) || "image/jpg",
+            id: this.id + "/cover" + extension,
+            localPath: coverPath,
+        });
+        debug("computed URL for cover", coverPath, " -> ", serveUrl);
+        return serveUrl;
     }
 
     public async getUrl(context: Context, opts?: IPlaybackOptions) {

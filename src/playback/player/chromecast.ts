@@ -62,12 +62,17 @@ export class ChromecastPlayer implements IPlayer {
         }
 
         const appType = pickAppTypeFor(playable);
-        const [ app, metadata, url, mediaAround ] = await Promise.all([
+        const [ app, metadata, url, coverUrl, mediaAround ] = await Promise.all([
             this.device.openApp(appType),
             getMetadata(context, playable.media),
             playable.getUrl(context, urlOpts),
+            playable.getCoverUrl
+                ? playable.getCoverUrl(context)
+                : Promise.resolve(undefined),
             playable.loadQueueAround(context),
         ]);
+
+        metadata.coverUrl = coverUrl;
 
         const media: ICastInfo = {
             contentType: chromecastCapabilities.effectiveMime(playable.contentType),
@@ -84,12 +89,11 @@ export class ChromecastPlayer implements IPlayer {
         const indexOfMediaInQueue = mediaAround.findIndex(m => m.id === playable.media.id);
         const queueAround: ICastInfo[] = mediaAround.map((m, index) => {
 
-            // NOTE: copy seriesTitle from the base metadata;
-            // if there *is* any, that one should have it
-            const myMetadata = {
-                seriesTitle: metadata.seriesTitle,
+            // NOTE: copy base metadata; if there *is* a seriesTitle, for
+            // example, that one should have it
+            const myMetadata = Object.assign({}, metadata, {
                 title: m.title,
-            };
+            });
 
             const myUrl = indexOfMediaInQueue === index
                 ? url

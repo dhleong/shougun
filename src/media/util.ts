@@ -50,10 +50,24 @@ export function fileNameToTitle(name: string) {
     return toLaxTitleCase(fixed);
 }
 
-export function isVideo(fileName: string) {
+export function fileType(fileName: string) {
     const type = mime.getType(fileName);
-    if (!type) return false;
-    return type.startsWith("video");
+    if (!type) return "other";
+    if (type.startsWith("image")) {
+        return "image";
+    } else if (type.startsWith("video")) {
+        return "video";
+    } else {
+        return "other";
+    }
+}
+
+export function isImage(fileName: string) {
+    return fileType(fileName) === "image";
+}
+
+export function isVideo(fileName: string) {
+    return fileType(fileName) === "video";
 }
 
 export function resolvePath(original: string) {

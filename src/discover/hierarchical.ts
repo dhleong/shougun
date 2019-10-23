@@ -2,8 +2,9 @@ import _debug from "debug";
 const debug = _debug("shougun:hierarchical");
 
 import { Context } from "../context";
-import { fileNameToId, fileNameToTitle, isVideo, nestId, sortEpisodes, sortSeasons } from "../media/util";
+import { fileNameToId, fileNameToTitle, fileType, nestId, sortEpisodes, sortSeasons } from "../media/util";
 import { IMedia, IMediaMap, IPlayable, ISeason, ISeries, MediaType } from "../model";
+import { groupBy } from "../util/collection";
 import { DiscoveryId, IDiscoveredChange, IDiscovery } from "./base";
 
 export interface IHierarchy<TEntity> {
@@ -17,10 +18,12 @@ export interface IHierarchy<TEntity> {
         context: Context,
         media: IMedia,
         entity: TEntity,
+        coverEntity?: TEntity,
     ): Promise<IPlayable>;
 }
 
 export interface IHierarchicalMedia<TEntity> extends IMedia {
+    coverEntity?: TEntity;
     entity: TEntity;
     seasons?: ISeason[];
 }
@@ -58,10 +61,14 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             throw new Error(`Media (${media.type}: ${media.id}) did not have an entity attached`);
         }
 
+        const coverEntity: TEntity | undefined =
+            (media as IHierarchicalMedia<TEntity>).coverEntity;
+
         return this.hierarchy.createPlayable(
             context,
             media,
             entity,
+            coverEntity,
         );
     }
 
@@ -103,10 +110,13 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
 
             candidates.push(...children);
 
-            const videoFiles = children.filter(it => isVideo(
+            const {
+                image: imageFiles,
+                video: videoFiles,
+            } = groupBy(children, it => fileType(
                 this.hierarchy.nameOf(it),
             ));
-            if (!videoFiles.length) {
+            if (!videoFiles || !videoFiles.length) {
                 // no videos in this directory; ignore
                 continue;
             }
@@ -116,6 +126,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
                 discovered,
                 candidate,
                 videoFiles,
+                imageFiles || [],
             );
         }
     }
@@ -124,6 +135,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         discovered: IMediaMap,
         candidate: TEntity,
         videoFiles: TEntity[],
+        imageFiles: TEntity[],
     ): AsyncIterable<IHierarchicalMedia<TEntity>>  {
         if (this.hierarchy.equals(this.root, candidate)) {
             // videos in the root directory must be Movies
@@ -152,11 +164,15 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         const grandParent = await this.hierarchy.parentOf(parent);
         if (this.hierarchy.equals(this.root, grandParent)) {
             debug("grand @", candidate);
+
             // EG: /Korra/Book 1; Korra/Book 2
             // if the grandparent is the root, then this
             // must be a season
             const series: IHierarchicalMedia<TEntity> & ISeries =
             discovered[parentId] as IHierarchicalMedia<TEntity> & ISeries || {
+                coverEntity: this.pickCoverImage(
+                    await this.hierarchy.childrenOf(parent),
+                ),
                 discovery: this.id,
                 entity: parent,
                 id: parentId,
@@ -181,6 +197,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         if (videoFiles.length === 1) {
             debug("movie @", candidate);
             yield {
+                coverEntity: this.pickCoverImage(imageFiles),
                 discovery: this.id,
                 entity: videoFiles[0],
                 id: this.idOf(candidate),
@@ -195,6 +212,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         // single-season show
         const seriesId = this.idOf(candidate);
         yield {
+            coverEntity: this.pickCoverImage(imageFiles),
             discovery: this.id,
             entity: candidate,
             id: seriesId,
@@ -254,5 +272,12 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
 
     private idOf(entry: TEntity) {
         return fileNameToId(this.hierarchy.nameOf(entry));
+    }
+
+    private pickCoverImage(candidates: TEntity[] | null | undefined) {
+        if (!candidates || !candidates.length) return;
+
+        // TODO pick better?
+        return candidates[0];
     }
 }

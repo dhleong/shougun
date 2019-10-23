@@ -76,6 +76,11 @@ function formatMetadata(
         formatted.seriesTitle = metadata.seriesTitle;
     }
 
+    if (metadata.coverUrl) {
+        formatted.posterUrl = metadata.coverUrl;
+        formatted.images = [ { url: metadata.coverUrl } ];
+    }
+
     return formatted;
 }
 

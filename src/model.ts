@@ -9,6 +9,7 @@ export interface ILocalMedia {
 }
 
 export interface IMediaMetadata {
+    coverUrl?: string;
     title?: string;
     seriesTitle?: string;
 }
@@ -34,6 +35,11 @@ export interface IPlayable {
      * However, if seek *is* supported, `opts` will be disregarded.
      */
     getUrl(context: Context, opts?: IPlaybackOptions): Promise<string>;
+
+    /**
+     * Get an URL from which the cover image can be downloaded, if any
+     */
+    getCoverUrl?(context: Context): Promise<string | undefined>;
 }
 
 export enum MediaType {

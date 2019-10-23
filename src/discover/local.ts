@@ -81,11 +81,13 @@ class LocalFileHierarchy implements IHierarchy<string> {
         context: Context,
         media: IMedia,
         localFilePath: string,
+        coverLocalFilePath?: string,
     ) {
         return ServedPlayable.createFromPath(
             context.server,
             media,
             localFilePath,
+            coverLocalFilePath,
         );
     }
 }
