@@ -40,6 +40,12 @@ export enum MediaType {
     Episode,
     Movie,
     Series,
+
+    /**
+     * If a media's type is ExternalPlayable, it MUST implement
+     * [IPlayableMedia]
+     */
+    ExternalPlayable,
 }
 
 export interface IMedia {
@@ -77,4 +83,23 @@ export function isEpisode(media: IMedia): media is IEpisode {
 
 export function isSeries(media: IMedia): media is ISeries {
     return media.type === MediaType.Series;
+}
+
+/*
+ * Queryable abstraction
+ */
+export interface IQueryable {
+    findMedia(context: Context, query: string): AsyncIterable<IMedia>;
+}
+
+export interface IPlayableMedia extends IMedia {
+    play(opts: IPlaybackOptions): Promise<void>;
+}
+
+export function isPlayable(media: IMedia): media is IPlayableMedia {
+    if (media.type !== MediaType.ExternalPlayable) return false;
+    if (typeof (media as any).play !== "function") {
+        throw new Error(`Media is ExternalPlayable but does not implement IPlayableMedia: ${media}`);
+    }
+    return true;
 }
