@@ -5,7 +5,9 @@ import { getMetadata } from "../../media/metadata";
 import { IPlayable } from "../../model";
 import { withQuery } from "../../util/url";
 import { IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
-import { DefaultMediaReceiverApp, ICastInfo } from "./apps/default";
+import { DefaultMediaReceiverApp } from "./apps/default";
+import { ICastInfo } from "./apps/generic";
+import { ShougunPlayerApp } from "./apps/shougun-player";
 
 const chromecastCapabilities = {
     supportedMimes: new Set<string>([
@@ -53,13 +55,15 @@ export class ChromecastPlayer implements IPlayer {
             // this content cannot be streamed to Chromecast,
             // so we *cannot* provide currentTime, and instead
             // should pass it to getUrl()
+            // FIXME: if we use ShougunPlayerApp, *can we* actually send
+            // currentTime?
             urlOpts = { currentTime };
             currentTime = 0;
         }
 
-        // TODO pick app?
+        const appType = pickAppTypeFor(playable);
         const [ app, metadata, url, mediaAround ] = await Promise.all([
-            this.device.openApp(DefaultMediaReceiverApp),
+            this.device.openApp(appType),
             getMetadata(context, playable.media),
             playable.getUrl(context, urlOpts),
             playable.loadQueueAround(context),
@@ -68,6 +72,11 @@ export class ChromecastPlayer implements IPlayer {
         const media: ICastInfo = {
             contentType: chromecastCapabilities.effectiveMime(playable.contentType),
             currentTime,
+            customData: {
+                durationSeconds: playable.durationSeconds,
+                startTimeAbsolute: opts.currentTime,
+            },
+            duration: playable.durationSeconds,
             metadata,
             url,
         };
@@ -88,6 +97,9 @@ export class ChromecastPlayer implements IPlayer {
 
             return {
                 contentType: media.contentType, // guess?
+                customData: {
+                    queueIndex: index,
+                },
                 metadata: myMetadata,
                 url: myUrl,
             };
@@ -100,4 +112,14 @@ export class ChromecastPlayer implements IPlayer {
             onPlayerPaused: opts.onPlayerPaused,
         });
     }
+}
+
+function pickAppTypeFor(playable: IPlayable) {
+    if (!chromecastCapabilities.canPlayMime(playable.contentType)) {
+        // use Shougun app to support seeking within transcoded videos
+        return ShougunPlayerApp;
+    }
+
+    // use the default media receiver app, otherwise
+    return DefaultMediaReceiverApp;
 }

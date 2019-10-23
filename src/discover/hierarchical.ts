@@ -182,7 +182,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             debug("movie @", candidate);
             yield {
                 discovery: this.id,
-                entity: candidate,
+                entity: videoFiles[0],
                 id: this.idOf(candidate),
                 title: this.createTitle(candidate),
                 type: MediaType.Movie,
