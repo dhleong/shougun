@@ -135,7 +135,8 @@ async function awaitPlaybackStart(s: ICastSession) {
 
 async function awaitLoadFailure(s: ICastSession) {
     debug("check for load");
-    await awaitMessageOfType(s, "LOAD_FAILED");
+    const m = await awaitMessageOfType(s, "LOAD_FAILED");
+    debug("load failed:", m);
     throw new Error("Load failed");
 }
 
