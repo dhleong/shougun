@@ -89,7 +89,7 @@ export function isSeries(media: IMedia): media is ISeries {
  * Queryable abstraction
  */
 export interface IQueryable {
-    findMedia(context: Context, query: string): Promise<Iterable<IMedia>>;
+    findMedia(context: Context, query: string): AsyncIterable<IMedia>;
 }
 
 export interface IPlayableMedia extends IMedia {

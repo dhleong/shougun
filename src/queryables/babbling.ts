@@ -13,18 +13,17 @@ export class BabblingQueryable implements IQueryable {
         private readonly chromecastDeviceName?: string,
     ) { }
 
-    public async findMedia(
+    public async *findMedia(
         context: Context,
         query: string,
-    ): Promise<Iterable<IMedia>> {
+    ): AsyncIterable<IMedia> {
         const player = await this.getPlayer();
         const iterable = player.queryByTitle(query, (app, e) => {
             debug("error querying", app, e);
         });
 
-        const results: IPlayableMedia[] = [];
         for await (const result of iterable) {
-            results.push({
+            yield {
                 discovery: `babbling:${result.appName}`,
                 id: result.url || `${result.appName}:${result.title}`,
                 title: result.title,
@@ -33,10 +32,8 @@ export class BabblingQueryable implements IQueryable {
                 async play(opts) {
                     await player.play(result);
                 },
-            });
+            } as IPlayableMedia;
         }
-
-        return results;
     }
 
     private async getPlayer() {

@@ -1,6 +1,7 @@
 import _debug from "debug";
 const debug = _debug("shougun:core");
 
+import { mergeAsyncIterables, toArray } from "babbling/dist/async";
 import { Context } from "./context";
 import { IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
@@ -8,7 +9,6 @@ import { IMedia, IMediaMap, IQueryable, isPlayable, isSeries } from "./model";
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
 import { ITracker } from "./track/base";
-import { mergeIterables } from "./util/async";
 
 export class Shougun {
     public static async create(
@@ -50,11 +50,11 @@ export class Shougun {
      * Find a Series or Movie by title
      */
     public async findMedia(query: string) {
-        const titles = await mergeIterables(
+        const titles = await toArray(mergeAsyncIterables(
             this.context.queryables.map(q =>
                 q.findMedia(this.context, query),
             ),
-        );
+        ));
 
         return this.context.matcher.findBest(query, titles, (media: IMedia) =>
             media.title,

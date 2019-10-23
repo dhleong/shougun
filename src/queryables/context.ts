@@ -8,13 +8,15 @@ import { IMedia, IQueryable } from "../model";
  */
 export class ContextQueryable implements IQueryable {
 
-    public async findMedia(context: Context, query: string): Promise<Iterable<IMedia>> {
+    public async *findMedia(context: Context, query: string): AsyncIterable<IMedia> {
         const candidates = await context.allTitles();
         const best = context.matcher.findBest(query, candidates, (media: IMedia) => {
             return media.title;
         });
-        if (!best) return [];
-        return [best];
+
+        if (best) {
+            yield best;
+        }
     }
 
 }
