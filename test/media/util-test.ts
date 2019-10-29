@@ -25,6 +25,11 @@ describe("fileNameToTitle", () => {
         fileNameToTitle("日本語-01.mp4")
             .should.equal("日本語-01");
     });
+
+    it("Strips season contents", () => {
+        fileNameToTitle("Series.S01-S02.Complete.x264.etc")
+            .should.equal("Series");
+    });
 });
 
 describe("sortKey", () => {

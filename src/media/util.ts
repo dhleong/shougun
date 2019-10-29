@@ -45,6 +45,9 @@ export function fileNameToTitle(name: string) {
 
         // clean up
         .replace(/[ ]+/g, " ")
+
+        // season ranges and everything after can go at this point
+        .replace(/(S\d+(-S\d+)?( .*))$/, "")
         .trim();
 
     return toLaxTitleCase(fixed);
