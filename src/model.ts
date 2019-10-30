@@ -4,6 +4,12 @@ import { IPlaybackOptions } from "./playback/player";
 
 export interface ILocalMedia {
     id: string;
+
+    /**
+     * The backing IMedia this represents (if any)
+     */
+    media?: IMedia;
+
     contentType: string;
     localPath: string;
 }

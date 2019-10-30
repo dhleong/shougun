@@ -3,7 +3,8 @@ const debug = _debug("shougun:cast:generic");
 
 import { awaitMessageOfType, BaseApp, ICastSession, IDevice, PlaybackTracker } from "babbling";
 
-import { IMediaMetadata } from "../../../model";
+import { IMedia, IMediaMetadata } from "../../../model";
+import { ShougunPlaybackTracker } from "./tracker";
 
 export interface ICustomCastData {
     durationSeconds?: number;
@@ -22,8 +23,11 @@ export interface ICastInfo {
      */
     duration?: number;
 
+    id: string;
     url: string;
     metadata?: IMediaMetadata;
+
+    source: IMedia;
 }
 
 export interface ILoadParams {
@@ -41,7 +45,10 @@ export interface ILoadParams {
     /**
      * Callback that can be used for tracking "last watched"
      */
-    onPlayerPaused?: (currentTimeSeconds: number) => Promise<void>;
+    onPlayerPaused?: (
+        media: IMedia,
+        currentTimeSeconds: number,
+    ) => Promise<void>;
 }
 
 export interface IQueueData {
@@ -86,8 +93,9 @@ function formatMetadata(
 
 function formatCastInfo(info: ICastInfo) {
     return {
-        contentId: info.url,
+        contentId: info.id,
         contentType: info.contentType,
+        contentUrl: info.url,
         duration: info.duration,
         metadata: formatMetadata(info.metadata),
     };
@@ -159,9 +167,9 @@ export class GenericMediaReceiverApp extends BaseApp {
     public async load(params: ILoadParams) {
 
         if (params.onPlayerPaused) {
-            const tracker = new PlaybackTracker(this, {
-                onPlayerPaused: params.onPlayerPaused,
-            });
+            if (this.tracker) this.tracker.stop();
+
+            const tracker = new ShougunPlaybackTracker(this, params);
             this.tracker = tracker;
             tracker.start();
         }

@@ -1,6 +1,6 @@
 
 import { Context } from "../context";
-import { IPlayable } from "../model";
+import { IMedia, IPlayable } from "../model";
 
 export interface IPlaybackOptions {
     /**
@@ -12,7 +12,10 @@ export interface IPlaybackOptions {
      * Callback to be notified of the User's playback time,
      * in seconds.
      */
-    onPlayerPaused?: (currentTimeSeconds: number) => Promise<void>;
+    onPlayerPaused?: (
+        media: IMedia,
+        currentTimeSeconds: number,
+    ) => Promise<void>;
 }
 
 export interface IPlayerCapabilities {

@@ -82,7 +82,9 @@ export class ChromecastPlayer implements IPlayer {
                 startTimeAbsolute: opts.currentTime,
             },
             duration: playable.durationSeconds,
+            id: playable.id,
             metadata,
+            source: playable.media,
             url,
         };
 
@@ -104,7 +106,9 @@ export class ChromecastPlayer implements IPlayer {
                 customData: {
                     queueIndex: index,
                 },
+                id: m.id,
                 metadata: myMetadata,
+                source: m,
                 url: myUrl,
             };
         });
