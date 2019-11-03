@@ -2,9 +2,16 @@ import _debug from "debug";
 const debug = _debug("shougun:queryable:babbling");
 
 import { ChromecastDevice, PlayerBuilder } from "babbling";
+import { IQueryResult } from "babbling/dist/app";
 
 import { Context } from "../context";
-import { IMedia, IPlayableMedia, IQueryable, MediaType } from "../model";
+import {
+    IMedia,
+    IMediaResultsMap,
+    IPlayableMedia,
+    IQueryable,
+    MediaType,
+} from "../model";
 
 export class BabblingQueryable implements IQueryable {
 
@@ -22,18 +29,19 @@ export class BabblingQueryable implements IQueryable {
             debug("error querying", app, e);
         });
 
-        for await (const result of iterable) {
-            yield {
-                discovery: `babbling:${result.appName}`,
-                id: result.url || `${result.appName}:${result.title}`,
-                title: result.title,
-                type: MediaType.ExternalPlayable,
+        yield *transformQueryResultsToPlayableMedia(player, iterable);
+    }
 
-                async play(opts) {
-                    await player.play(result);
-                },
-            } as IPlayableMedia;
-        }
+    public async queryRecommended(
+        context: Context,
+    ): Promise<IMediaResultsMap> {
+        const player = await this.getPlayer();
+        const map = player.getRecommendationsMap();
+        return Object.keys(map).reduce((m, k) => {
+            const results = map[k];
+            m[k] = transformQueryResultsToPlayableMedia(player, results);
+            return m;
+        }, {} as IMediaResultsMap);
     }
 
     private async getPlayer() {
@@ -46,4 +54,23 @@ export class BabblingQueryable implements IQueryable {
         return builder.build();
     }
 
+}
+
+async function *transformQueryResultsToPlayableMedia(
+    player: any,
+    results: AsyncIterable<IQueryResult>,
+) {
+    for await (const result of results) {
+        yield {
+            cover: (result as any).cover,
+            discovery: `babbling:${result.appName}`,
+            id: result.url || `${result.appName}:${result.title}`,
+            title: result.title,
+            type: MediaType.ExternalPlayable,
+
+            async play(opts) {
+                await player.play(result);
+            },
+        } as IPlayableMedia;
+    }
 }

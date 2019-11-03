@@ -1,11 +1,22 @@
 import _debug from "debug";
 const debug = _debug("shougun:core");
 
-import { mergeAsyncIterables, toArray } from "babbling/dist/async";
+import {
+    interleaveAsyncIterables,
+    mergeAsyncIterables,
+    toArray,
+} from "babbling/dist/async";
 import { Context } from "./context";
 import { IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
-import { IMedia, IMediaMap, IQueryable, isPlayable, isSeries } from "./model";
+import {
+    IMedia,
+    IMediaMap,
+    IMediaResultsMap,
+    IQueryable,
+    isPlayable,
+    isSeries,
+} from "./model";
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
 import { ITracker } from "./track/base";
@@ -52,6 +63,32 @@ export class Shougun {
                 q.findMedia(this.context, query),
             ),
         ));
+    }
+
+    /**
+     * Get a map whose keys are a discovery type and whose values
+     * are AsyncIterables of recommended media
+     */
+    public async getRecommendationsMap() {
+        const allMaps = await Promise.all(this.context.queryables.map(q =>
+            q.queryRecommended(this.context),
+        ));
+
+        let resultsBySource: IMediaResultsMap = {};
+        for (const m of allMaps) {
+            resultsBySource = { ...resultsBySource, ...m };
+        }
+
+        return resultsBySource;
+    }
+
+    /**
+     * Query "recommended" titles to watch, interleaving results from
+     * each discovery type
+     */
+    public async *queryRecommended() {
+        const resultsBySource = await this.getRecommendationsMap();
+        yield *interleaveAsyncIterables(Object.values(resultsBySource));
     }
 
     /**

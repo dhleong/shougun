@@ -18,6 +18,7 @@ export interface IStorage {
     close(): void;
     loadById(id: string): Promise<IViewedInformation | null>;
     loadLastViewedForSeries(seriesId: string): Promise<IViewedInformation | null>;
+    queryRecent(): AsyncIterable<IViewedInformation>;
     save(info: IViewedInformation): Promise<void>;
 }
 
@@ -72,6 +73,10 @@ export class PersistentTracker implements ITracker {
             // watch "next" episode of the series!
             return this.trackForNextEpisodeAfter(media, lastWatched);
         }
+    }
+
+    public async *queryRecent() {
+        yield *this.storage.queryRecent();
     }
 
     public async saveTrack(

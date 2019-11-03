@@ -29,8 +29,14 @@ export class Context {
         return Object.values(this.knownMedia);
     }
 
+    public async getMediaById(id: string): Promise<IMedia | undefined> {
+        return this.knownMedia[id];
+    }
+
     public async getSeries(seriesId: string): Promise<ISeries | undefined> {
-        const media = this.knownMedia[seriesId];
+        const media = await this.getMediaById(seriesId);
+        if (!media) return;
+
         if (!isSeries(media)) {
             throw new Error(`${seriesId} is not a series!`);
         }

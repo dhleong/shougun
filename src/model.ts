@@ -97,10 +97,15 @@ export function isSeries(media: IMedia): media is ISeries {
     return media.type === MediaType.Series;
 }
 
+export interface IMediaResultsMap {
+    [source: string]: AsyncIterable<IMedia>;
+}
+
 /*
  * Queryable abstraction
  */
 export interface IQueryable {
+    queryRecommended(context: Context): Promise<IMediaResultsMap>;
     findMedia(context: Context, query: string): AsyncIterable<IMedia>;
 }
 
