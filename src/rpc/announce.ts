@@ -11,14 +11,16 @@ export class RpcAnnouncer {
             throw new Error("Already started");
         }
 
-        const sig = `node/${process.version.substr(1)} shougun:rpc:${config.version}`;
+        const node = process.version.substr(1);
+        const { serverPort, version } = config;
+
         const server = new Server({
             allowWildcards: true,
             location: {
                 path: "/",
-                port: config.serverPort,
+                port: serverPort,
             },
-            ssdpSig: sig,
+            ssdpSig: `node/${node} shougun:rpc:${version}`,
         });
         server.addUSN(`urn:schemas:service:ShougunServer:${config.version}`);
         server.start();
