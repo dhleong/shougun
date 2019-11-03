@@ -43,6 +43,10 @@ function registerRpcHandler(
     }
 }
 
+export interface IRemoteConfig {
+    port?: number;
+}
+
 export class RpcServer {
     private server: net.Server | undefined;
     private readonly announcer = new RpcAnnouncer();
@@ -50,6 +54,7 @@ export class RpcServer {
 
     constructor(
         shougun: Shougun,
+        private readonly config: IRemoteConfig,
     ) {
         this.handler = new RpcHandler(shougun);
     }
@@ -59,7 +64,8 @@ export class RpcServer {
 
         registerRpcHandler(server, this.handler);
 
-        server.listen(() => {
+        debug("start listening on", this.config.port);
+        server.listen(this.config.port, () => {
             const address = server.address();
             debug("listening on", address);
 

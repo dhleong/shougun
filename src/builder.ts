@@ -13,7 +13,7 @@ import { IPlayer } from "./playback/player";
 import { ChromecastPlayer } from "./playback/player/chromecast";
 import { BabblingQueryable } from "./queryables/babbling";
 import { ContextQueryable } from "./queryables/context";
-import { RpcServer } from "./rpc/server";
+import { IRemoteConfig, RpcServer } from "./rpc/server";
 import { Shougun } from "./shougun";
 import { ITracker } from "./track/base";
 import { IStorage, PersistentTracker } from "./track/persistent";
@@ -23,11 +23,6 @@ import { TracklessTracker } from "./track/trackless";
 interface IBabblingConfig {
     configPath?: string;
     deviceName?: string;
-}
-
-// tslint:disable-next-line no-empty-interface
-interface IRemoteConfig {
-    // TODO ?
 }
 
 export class ShougunBuilder {
@@ -117,8 +112,8 @@ export class ShougunBuilder {
     /**
      * Enable shougun CLI remote
      */
-    public enableRemote() {
-        this.remoteConfig = {};
+    public enableRemote(config: IRemoteConfig = {}) {
+        this.remoteConfig = config;
         return this;
     }
 
@@ -168,7 +163,7 @@ export class ShougunBuilder {
         );
 
         if (this.remoteConfig) {
-            const rpc = new RpcServer(shougun);
+            const rpc = new RpcServer(shougun, this.remoteConfig);
             rpc.start();
         }
 
