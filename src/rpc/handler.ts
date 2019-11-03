@@ -2,12 +2,38 @@ import { DefaultMatcher } from "../match/default";
 import { IMedia } from "../model";
 import { Shougun } from "../shougun";
 
+const MAX_RESULTS = 50; // don't try to send more than this over the wire
+
 export class RpcHandler {
     public readonly VERSION = 1;
 
     constructor(
         private readonly shougun: Shougun,
     ) {}
+
+    public async queryRecommended(options: {
+        maxResults: number,
+    }) {
+        const opts = {
+            maxResults: 20,
+
+            ...options,
+        };
+
+        const iterableResults = await this.shougun.queryRecommended();
+        const selectedResults = [];
+
+        let limit = Math.min(opts.maxResults, MAX_RESULTS);
+        for await (const r of iterableResults) {
+            selectedResults.push(r);
+
+            if (--limit <= 0) {
+                break;
+            }
+        }
+
+        return selectedResults;
+    }
 
     public async search(query: string) {
         const media = await this.shougun.search(query);
