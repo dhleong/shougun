@@ -3,6 +3,8 @@ import { IMedia } from "../model";
 import { Shougun } from "../shougun";
 
 export class RpcHandler {
+    public readonly VERSION = 1;
+
     constructor(
         private readonly shougun: Shougun,
     ) {}

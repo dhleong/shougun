@@ -62,16 +62,19 @@ export class RpcServer {
         server.listen(() => {
             const address = server.address();
             debug("listening on", address);
+
+            let port: number = 0;
             if (typeof address === "string") {
-                const port = address.split(/:/);
-                this.announcer.start(
-                    parseInt(port[port.length - 1], 10),
-                );
+                const raw = address.split(/:/);
+                port = parseInt(raw[raw.length - 1], 10);
             } else if (address) {
-                this.announcer.start(
-                    address.port,
-                );
+                port = address.port;
             }
+
+            this.announcer.start({
+                serverPort: port,
+                version: this.handler.VERSION,
+            });
         });
 
         this.server = server;
