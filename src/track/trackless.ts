@@ -22,4 +22,7 @@ export class TracklessTracker implements ITracker {
         // nop
     }
 
+    public async *queryRecent() {
+        // nop
+    }
 }

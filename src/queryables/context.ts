@@ -19,4 +19,20 @@ export class ContextQueryable implements IQueryable {
         }
     }
 
+    public async queryRecommended(context: Context) {
+        return {
+            Shougun: this.inflateRecommended(context),
+        };
+    }
+
+    private async *inflateRecommended(context: Context) {
+        for await (const result of context.tracker.queryRecent()) {
+            const id = result.seriesId || result.id;
+            const media = await context.getMediaById(id);
+            if (media) {
+                yield media;
+            }
+        }
+    }
+
 }

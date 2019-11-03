@@ -80,6 +80,22 @@ export class Sqlite3Storage implements IStorage {
         return unpackInfo(result);
     }
 
+    public async *queryRecent() {
+        const results = this.prepare(`
+            SELECT * FROM ViewedInformation
+            GROUP BY COALESCE(seriesId, id)
+            ORDER BY lastViewedTimestamp DESC
+            LIMIT 20
+        `).all();
+
+        for (const result of results) {
+            const unpacked = unpackInfo(result);
+            if (unpacked) {
+                yield unpacked;
+            }
+        }
+    }
+
     private prepare(statement: string) {
         this.ensureInitialized();
 

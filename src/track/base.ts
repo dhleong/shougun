@@ -5,6 +5,12 @@ export interface ITrack {
     resumeTimeSeconds?: number;
 }
 
+export interface IRecentMedia {
+    id: string;
+    seriesId?: string;
+    title: string;
+}
+
 export interface ITracker {
 
     /**
@@ -36,5 +42,10 @@ export interface ITracker {
         resumeTimeSeconds: number,
         videoDurationSeconds: number,
     ): Promise<void>;
+
+    /**
+     * Load recently watched media
+     */
+    queryRecent(): AsyncIterable<IRecentMedia>;
 
 }
