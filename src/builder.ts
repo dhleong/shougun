@@ -13,6 +13,7 @@ import { IPlayer } from "./playback/player";
 import { ChromecastPlayer } from "./playback/player/chromecast";
 import { BabblingQueryable } from "./queryables/babbling";
 import { ContextQueryable } from "./queryables/context";
+import { IRemoteConfig, RpcServer } from "./rpc/server";
 import { Shougun } from "./shougun";
 import { ITracker } from "./track/base";
 import { IStorage, PersistentTracker } from "./track/persistent";
@@ -31,6 +32,7 @@ export class ShougunBuilder {
     private player: IPlayer | undefined;
     private tracker: ITracker | undefined;
     private babblingConfig: IBabblingConfig | undefined;
+    private remoteConfig: IRemoteConfig | undefined;
 
     private verifyWritePaths: string[] = [];
 
@@ -104,6 +106,18 @@ export class ShougunBuilder {
     }
 
     /*
+     * Remote access
+     */
+
+    /**
+     * Enable shougun CLI remote
+     */
+    public enableRemote(config: IRemoteConfig = {}) {
+        this.remoteConfig = config;
+        return this;
+    }
+
+    /*
      * Builder
      */
 
@@ -140,13 +154,20 @@ export class ShougunBuilder {
             queryables.push(this.createBabblingQueryable());
         }
 
-        return Shougun.create(
+        const shougun = await Shougun.create(
             queryables,
             discovery,
             matcher,
             this.player,
             this.tracker,
         );
+
+        if (this.remoteConfig) {
+            const rpc = new RpcServer(shougun, this.remoteConfig);
+            rpc.start();
+        }
+
+        return shougun;
     }
 
     /*
