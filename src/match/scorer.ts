@@ -3,11 +3,56 @@ export enum ScoreMode {
     Lowest,
 }
 
+type Comparable = number | object | undefined;
+
+function compareHighest(
+    [, scoreA]: [any, Comparable],
+    [, scoreB]: [any, Comparable],
+) {
+    if (!scoreA) return 1;
+    else if (!scoreB) return -1;
+    else if (typeof scoreA !== "number") {
+        return -1;
+    } else if (typeof scoreB !== "number") {
+        return 1;
+    } else {
+        return scoreB - scoreA;
+    }
+}
+
+function compareLowest(
+    [, scoreA]: [any, Comparable],
+    [, scoreB]: [any, Comparable],
+) {
+    if (!scoreA) return -1;
+    else if (!scoreB) return 1;
+    else if (typeof scoreA !== "number") {
+        return 1;
+    } else if (typeof scoreB !== "number") {
+        return -1;
+    } else {
+        return scoreA - scoreB;
+    }
+}
+
 export class Scorer<T> {
     constructor(
         private computeScore: (item: T) => T | number | undefined,
         private mode = ScoreMode.Highest,
     ) {}
+
+    public sort(
+        items: T[],
+    ) {
+        const withScore = items.map(item =>
+            [item, this.computeScore(item)] as [T, Comparable],
+        );
+        const sorted = withScore.sort(this.mode === ScoreMode.Highest
+            ? compareHighest
+            : compareLowest,
+        );
+        return sorted.map(([item]) => item);
+    }
 
     public findBest(
         items: Iterable<T>,

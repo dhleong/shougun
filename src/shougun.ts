@@ -46,15 +46,19 @@ export class Shougun {
         public readonly context: Context,
     ) {}
 
-    /**
-     * Find a Series or Movie by title
-     */
-    public async findMedia(query: string) {
-        const titles = await toArray(mergeAsyncIterables(
+    public async search(query: string) {
+        return toArray(mergeAsyncIterables(
             this.context.queryables.map(q =>
                 q.findMedia(this.context, query),
             ),
         ));
+    }
+
+    /**
+     * Find a Series or Movie by title
+     */
+    public async findMedia(query: string) {
+        const titles = await this.search(query);
 
         return this.context.matcher.findBest(query, titles, (media: IMedia) =>
             media.title,

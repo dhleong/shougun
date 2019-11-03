@@ -4,7 +4,7 @@ const debug = _debug("shougun:phonetic");
 import jaroWinkler from "talisman/metrics/distance/jaro-winkler";
 import metaphone from "talisman/phonetics/double-metaphone";
 
-import { IMatcher } from "../match";
+import { ScoreBasedMatcher } from "./base";
 import { Scorer } from "./scorer";
 
 function process(text: string) {
@@ -35,14 +35,13 @@ const winklerParams = {
  * matcher converts titles and input to a phonetic representation to
  * try to find the closest *sounding* match.
  */
-export class PhoneticMatcher implements IMatcher {
-    public findBest<T>(
+export class PhoneticMatcher extends ScoreBasedMatcher {
+    protected scorer<T>(
         input: string,
-        items: Iterable<T>,
         keyFn: (item: T) => string,
-    ): T | undefined {
+    ) {
         const target = process(input);
-        const scorer = new Scorer<T>(item => {
+        return new Scorer<T>(item => {
             const processed = process(keyFn(item));
 
             // NOTE: we use the Jaro-Winkler distance here instead
@@ -56,7 +55,6 @@ export class PhoneticMatcher implements IMatcher {
             debug(target, "VS", processed, "\t", score);
             return score;
         });
-        return scorer.findBest(items);
     }
 
 }
