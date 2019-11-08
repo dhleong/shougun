@@ -145,7 +145,9 @@ export class Shougun {
         }
 
         return this.context.player.showRecommendations(
+            this.context,
             toArray(this.queryRecommended()),
         );
     }
+
 }

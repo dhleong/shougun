@@ -32,6 +32,7 @@ export interface IPlayer {
     ): Promise<void>;
 
     showRecommendations?(
+        context: Context,
         recommendations: Promise<IMedia[]>,
     ): Promise<void>;
 }

@@ -1,8 +1,11 @@
+import _debug from "debug";
+const debug = _debug("shougun:player:chromecast");
+
 import { ChromecastDevice } from "babbling";
 
 import { Context } from "../../context";
 import { getMetadata } from "../../media/metadata";
-import { IMedia, IPlayable } from "../../model";
+import { IMedia, IPlayable, MediaType } from "../../model";
 import { withQuery } from "../../util/url";
 import { IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
 import { DefaultMediaReceiverApp } from "./apps/default";
@@ -124,6 +127,7 @@ export class ChromecastPlayer implements IPlayer {
     }
 
     public async showRecommendations(
+        context: Context,
         recommendations: Promise<IMedia[]>,
     ) {
         const [ app, media ] = await Promise.all([
@@ -131,15 +135,27 @@ export class ChromecastPlayer implements IPlayer {
             recommendations,
         ]);
 
-        const formattedRecommendations = media.map(m => {
+        const formattedRecommendations = await Promise.all(media.map(async m => {
             // FIXME: to get a cover for local media, we need to get a
             // Playable of it, first
+            let cover = (m as any).cover;
+            if (!cover && m.type !== MediaType.ExternalPlayable) {
+                try {
+                    const p = await context.discovery.createPlayable(context, m);
+                    if (p.getCoverUrl) {
+                        cover = await p.getCoverUrl(context);
+                    }
+                } catch (e) {
+                    // ignore
+                    debug("error preparing cover url for", m, " = ", e);
+                }
+            }
             return {
-                cover: (m as any).cover,
+                cover,
                 id: m.id,
                 title: m.title,
             } as IRecommendation;
-        });
+        }));
 
         return app.showRecommendations(formattedRecommendations);
     }
