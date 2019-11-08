@@ -136,10 +136,10 @@ export class ChromecastPlayer implements IPlayer {
         ]);
 
         const formattedRecommendations = await Promise.all(media.map(async m => {
-            // FIXME: to get a cover for local media, we need to get a
-            // Playable of it, first
             let cover = (m as any).cover;
             if (!cover && m.type !== MediaType.ExternalPlayable) {
+                // to get a cover for local media, we need to get a
+                // Playable of it, first
                 try {
                     const p = await context.discovery.createPlayable(context, m);
                     if (p.getCoverUrl) {
