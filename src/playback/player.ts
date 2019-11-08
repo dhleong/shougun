@@ -30,4 +30,8 @@ export interface IPlayer {
         playable: IPlayable,
         options?: IPlaybackOptions,
     ): Promise<void>;
+
+    showRecommendations?(
+        recommendations: Promise<IMedia[]>,
+    ): Promise<void>;
 }

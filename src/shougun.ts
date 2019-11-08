@@ -137,4 +137,15 @@ export class Shougun {
 
         return media;
     }
+
+    public async showRecommendations() {
+        if (!this.context.player.showRecommendations) {
+            const playerName = this.context.player.constructor.name;
+            throw new Error(`Configured Player (${playerName}) does not support showing recommendations`);
+        }
+
+        return this.context.player.showRecommendations(
+            toArray(this.queryRecommended()),
+        );
+    }
 }
