@@ -31,5 +31,6 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
 
             recommendations,
         });
+        this.device.stop(); // don't hang around
     }
 }
