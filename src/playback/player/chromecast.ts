@@ -1,15 +1,20 @@
+import _debug from "debug";
+const debug = _debug("shougun:player:chromecast");
+
 import { ChromecastDevice } from "babbling";
 
 import { Context } from "../../context";
 import { getMetadata } from "../../media/metadata";
-import { IPlayable } from "../../model";
+import { IMedia, IPlayable, MediaType } from "../../model";
 import { withQuery } from "../../util/url";
 import { IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
 import { DefaultMediaReceiverApp } from "./apps/default";
 import { ICastInfo } from "./apps/generic";
-import { ShougunPlayerApp } from "./apps/shougun-player";
+import { IRecommendation, ShougunPlayerApp } from "./apps/shougun-player";
 
 const chromecastCapabilities = {
+    canShowRecommendations: true,
+
     supportedMimes: new Set<string>([
         "video/mp4", "video/webm",
         "audio/mp4", "audio/mpeg", "audio/webm",
@@ -119,6 +124,40 @@ export class ChromecastPlayer implements IPlayer {
 
             onPlayerPaused: opts.onPlayerPaused,
         });
+    }
+
+    public async showRecommendations(
+        context: Context,
+        recommendations: Promise<IMedia[]>,
+    ) {
+        const [ app, media ] = await Promise.all([
+            this.device.openApp(ShougunPlayerApp),
+            recommendations,
+        ]);
+
+        const formattedRecommendations = await Promise.all(media.map(async m => {
+            let cover = (m as any).cover;
+            if (!cover && m.type !== MediaType.ExternalPlayable) {
+                // to get a cover for local media, we need to get a
+                // Playable of it, first
+                try {
+                    const p = await context.discovery.createPlayable(context, m);
+                    if (p.getCoverUrl) {
+                        cover = await p.getCoverUrl(context);
+                    }
+                } catch (e) {
+                    // ignore
+                    debug("error preparing cover url for", m, " = ", e);
+                }
+            }
+            return {
+                cover,
+                id: m.id,
+                title: m.title,
+            } as IRecommendation;
+        }));
+
+        return app.showRecommendations(formattedRecommendations);
     }
 }
 

@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/dhleong/shougun#readme",
   "dependencies": {
-    "babbling": "^1.18.0",
+    "babbling": "^1.18.1",
     "better-sqlite3": "^5.4.3",
     "chokidar": "^3.2.2",
     "crc": "^3.8.0",
