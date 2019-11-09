@@ -47,6 +47,7 @@ export class Server implements IServer {
         if (!s) return;
         s.close();
         this.server = undefined;
+        this.address = undefined;
     }
 
     public async serve(
