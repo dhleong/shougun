@@ -50,6 +50,10 @@ export class RpcHandler {
         return sorted.slice(0, 20);
     }
 
+    public async showRecommendations() {
+        return this.shougun.showRecommendations();
+    }
+
     public async start(media: IMedia) {
         const candidates = await this.shougun.search(media.title);
         if (!candidates) throw new Error(`No results for ${media.title}`);
