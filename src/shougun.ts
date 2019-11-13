@@ -108,7 +108,8 @@ export class Shougun {
     ) {
         if (isPlayable(media)) {
             debug(`media is itself playable:`, media);
-            return media.play(options);
+            await media.play(options);
+            return media;
         }
 
         if (isSeries(media) || options.currentTime === undefined) {
