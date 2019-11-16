@@ -68,58 +68,6 @@ const transcodeWithOptions = (
     }, 1000);
 });
 
-// priority list of option sets to be used with ffmpeg
-// to try to transcode the input file
-const ffmpegOptionSets = [
-    [],
-
-    // these flags help ensure the output is streamable,
-    // but may prevent seeking
-    [
-        "-movflags frag_keyframe+empty_moov+faststart",
-        "-strict experimental",
-
-        // for source files with DTS audio, for example, we *must* transcode
-        // to AC3 to keep surround sound on chromecast. if the source is
-        // stereo, this seems to still be acceptable. future work could
-        // consider checking the source file's codec and comparing with
-        // player capabilities before doing something like this...
-        "-acodec ac3",
-    ],
-
-    // fall back to a simpler set of flags
-    [
-        "-movflags frag_keyframe+empty_moov+faststart",
-        "-strict experimental",
-    ],
-];
-
-export async function transcode(
-    localPath: string,
-    startTimeSeconds?: number,
-) {
-    const pipe = new stream.PassThrough();
-
-    for (let i = 0; i < ffmpegOptionSets.length; ++i) {
-        const optionSet = ffmpegOptionSets[i];
-        try {
-            const autoEnd = i >= ffmpegOptionSets.length - 1;
-            return await transcodeWithOptions(
-                pipe, localPath, startTimeSeconds, {
-                    autoEnd,
-                }, ...optionSet,
-            );
-        } catch (e) {
-            debug(`error with options ${i} (${optionSet})...`, e);
-            if (i < ffmpegOptionSets.length - 1) {
-                debug("fallback to next options set");
-            }
-        }
-    }
-
-    throw new Error(`Unable to transcode ${localPath}`);
-}
-
 export async function transcodeForAnalysis(
     analysis: IVideoAnalysis,
     capabilities: IPlayerCapabilities,
@@ -176,16 +124,6 @@ export async function transcodeForAnalysis(
             ]);
         },
     });
-}
-
-export async function serveTranscoded(
-    req: fastify.FastifyRequest<any>,
-    reply: fastify.FastifyReply<any>,
-    localPath: string,
-    startTimeSeconds?: number,
-): Promise<NodeJS.ReadableStream> {
-    reply.status(200);
-    return transcode(localPath, startTimeSeconds);
 }
 
 export async function serveTranscodedForAnalysis(
