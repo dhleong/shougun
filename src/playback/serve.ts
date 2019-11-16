@@ -7,14 +7,13 @@ import _debug from "debug";
 const debug = _debug("shougun:serve");
 
 import { Context } from "../context";
+import { analyzeFile } from "../media/analyze";
 import { extractDuration } from "../media/duration";
 import { BasePlayable } from "../media/playable-base";
-import { isVideo } from "../media/util";
 import { ILocalMedia, IMedia } from "../model";
 import { withQuery } from "../util/url";
 import { IPlaybackOptions } from "./player";
-import { serveRanged } from "./serve/ranged";
-import { serveTranscoded } from "./serve/transcode";
+import { serveForPlayer } from "./serve/player-based";
 
 export interface IServer {
     /**
@@ -152,21 +151,12 @@ export class Server implements IServer {
 
         const { player } = context;
         const { contentType, localPath } = toPlay;
-        let stream: NodeJS.ReadableStream;
-        if (!isVideo(localPath) || player.getCapabilities().canPlayMime(contentType)) {
-            stream = await serveRanged(
-                req, reply, contentType, localPath,
-            );
-        } else if (player.getCapabilities().canPlayMime("video/mp4")) {
-            const startTime = req.query.startTime || 0;
-            debug(`serve transcoded from ${contentType} starting @`, startTime);
 
-            stream = await serveTranscoded(
-                req, reply, localPath, startTime,
-            );
-        } else {
-            throw new Error(`Player ${player} does not support ${contentType}`);
-        }
+        const stream = await serveForPlayer(
+            player,
+            req, reply,
+            contentType, localPath,
+        );
 
         debug("got stream");
         stream.once("close", onStreamEnded);
@@ -264,6 +254,10 @@ export class ServedPlayable extends BasePlayable {
         public readonly durationSeconds: number,
     ) {
         super();
+    }
+
+    public async analyze() {
+        return analyzeFile(this.localPath);
     }
 
     public async getCoverUrl(context: Context) {

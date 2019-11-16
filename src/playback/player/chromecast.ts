@@ -4,10 +4,11 @@ const debug = _debug("shougun:player:chromecast");
 import { ChromecastDevice } from "babbling";
 
 import { Context } from "../../context";
+import { IAudioTrack, IVideoAnalysis, IVideoTrack } from "../../media/analyze";
 import { getMetadata } from "../../media/metadata";
 import { IMedia, IPlayable, MediaType } from "../../model";
 import { withQuery } from "../../util/url";
-import { IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
+import { canPlayNatively, IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
 import { DefaultMediaReceiverApp } from "./apps/default";
 import { ICastInfo } from "./apps/generic";
 import { IRecommendation, ShougunPlayerApp } from "./apps/shougun-player";
@@ -16,7 +17,7 @@ const chromecastCapabilities = {
     canShowRecommendations: true,
 
     supportedMimes: new Set<string>([
-        "video/mp4", "video/webm",
+        "video/mp4", "video/webm", "video/x-matroska",
         "audio/mp4", "audio/mpeg", "audio/webm",
     ]),
 
@@ -33,6 +34,137 @@ const chromecastCapabilities = {
     },
 };
 
+const gen1And2Capabilities = {
+    ...chromecastCapabilities,
+
+    audioCodecs: new Set([
+        "aac",
+        "ac3",
+        "eac3",
+        "flac",
+        "mp3",
+        "opus",
+        "wav",
+        "vorbis",
+    ]),
+
+    supportsAudioTrack(track: IAudioTrack) {
+        return this.audioCodecs.has(track.codec);
+    },
+
+    supportsPixelFormat(format: string) {
+        // not documented, but discovered experimentally, with thanks
+        // for the hint to: https://github.com/petrkotek/chromecastize
+        return !format.includes("yuv444");
+    },
+
+    // NOTE: chromecast supports matroska and webm containers, but doesn't
+    // seem to properly support seeking within them, so we just do a
+    // passthrough transcode and use shougun-cast-player to handle seeking
+    containers: new Set([
+        "mp4",
+        "matroska",
+        "webm",
+    ]),
+
+    supportsContainer(container: string) {
+        return this.containers.has(container);
+    },
+
+    supportsVideoTrack(track: IVideoTrack) {
+        switch (track.codec) {
+        case "vp8":
+            return true;
+
+        default:
+            return false;
+        }
+    },
+};
+
+const gen3Capabilities = {
+    ...gen1And2Capabilities,
+
+    supportsVideoTrack(track: IVideoTrack) {
+        switch (track.codec) {
+        case "vp8":
+            return true;
+
+        case "h264":
+            if ((track.level || 0) > 42) return false;
+            if ((track.fps || 24) > 30) return false;
+            return true;
+
+        default:
+            return false;
+        }
+    },
+};
+
+const nestHubCapabilities = {
+    ...gen1And2Capabilities,
+
+    supportsVideoTrack(track: IVideoTrack) {
+        switch (track.codec) {
+        case "vp8":
+            // according to the docs...
+            return false;
+
+        case "h264":
+        case "vp9":
+            if ((track.fps || 24) > 60) return false;
+
+            // max 720p:
+            if (track.width > 1280) return false;
+            if (track.height > 720) return false;
+            return true;
+
+        default:
+            return false;
+        }
+    },
+};
+
+const ultraCapabilities = {
+    ...gen1And2Capabilities,
+
+    supportsVideoTrack(track: IVideoTrack) {
+        switch (track.codec) {
+        case "vp8":
+            return true;
+
+        case "vp9":
+            if (
+                track.profile
+                && !track.profile.includes("0")
+                && !track.profile.includes("2")
+            ) {
+                // unsupported profile
+                return false;
+            }
+            if ((track.fps || 24) > 60) return false;
+            return true;
+
+        case "h264":
+            if ((track.level || 0) > 52) return false;
+            if ((track.fps || 24) > 30) return false;
+            return true;
+
+        case "hevc":
+            if ((track.fps || 24) > 60) return false;
+            if (
+                track.profile !== "Main"
+                && track.profile !== "Main 10"
+            ) return false;
+
+            return true;
+
+        default:
+            return false;
+        }
+    },
+};
+
 export class ChromecastPlayer implements IPlayer {
     public static forNamedDevice(deviceName: string) {
         return new ChromecastPlayer(new ChromecastDevice(deviceName));
@@ -42,8 +174,33 @@ export class ChromecastPlayer implements IPlayer {
         private device: ChromecastDevice,
     ) { }
 
-    public getCapabilities(): IPlayerCapabilities {
-        return chromecastCapabilities;
+    public async getCapabilities(): Promise<IPlayerCapabilities> {
+        debug(`scanning for ${this.device.friendlyName} to determine capabilities...`);
+        const info = await this.device.detect();
+        if (!info) {
+            // guess?
+            debug(`no info; using gen1/2 capabilities`);
+            return gen1And2Capabilities;
+        }
+
+        switch (info.model) {
+        case "Chromecast Ultra":
+            debug("using chromecast ultra capabilities");
+            return ultraCapabilities;
+
+        // NOTE: I'm just guessing on the models here, since I don't have one:
+        case "Chromecast 3rd Gen.":
+            debug("using 3rd gen chromecast capabilities");
+            return gen3Capabilities;
+
+        case "Google Nest Hub":
+            debug("using nest hub capabilities");
+            return nestHubCapabilities;
+
+        default:
+            debug(`unknown model "${info.model}"; using gen1/2 capabilities`);
+            return gen1And2Capabilities;
+        }
     }
 
     public async play(
@@ -53,10 +210,16 @@ export class ChromecastPlayer implements IPlayer {
     ) {
         let urlOpts: IPlaybackOptions | undefined;
 
+        const [ analysis, capabilities ] = await Promise.all([
+            playable.analyze ? playable.analyze() : Promise.resolve(null),
+            this.getCapabilities(),
+        ]);
+
+        let contentType = playable.contentType;
         let currentTime = opts.currentTime;
         if (!currentTime) {
             currentTime = 0;
-        } else if (!chromecastCapabilities.canPlayMime(playable.contentType)) {
+        } else if (!canPlayNatively(capabilities, analysis)) {
             // this content cannot be streamed to Chromecast,
             // so we *cannot* provide currentTime, and instead
             // should pass it to getUrl()
@@ -64,10 +227,13 @@ export class ChromecastPlayer implements IPlayer {
             // currentTime?
             urlOpts = { currentTime };
             currentTime = 0;
+            contentType = "video/mp4"; // we'll be transcoding
         }
 
-        const appType = pickAppTypeFor(playable);
-        const [ app, metadata, url, coverUrl, mediaAround ] = await Promise.all([
+        const appType = pickAppTypeFor(capabilities, analysis);
+        const [
+            app, metadata, url, coverUrl, mediaAround,
+        ] = await Promise.all([
             this.device.openApp(appType),
             getMetadata(context, playable.media),
             playable.getUrl(context, urlOpts),
@@ -80,7 +246,7 @@ export class ChromecastPlayer implements IPlayer {
         metadata.coverUrl = coverUrl;
 
         const media: ICastInfo = {
-            contentType: chromecastCapabilities.effectiveMime(playable.contentType),
+            contentType: chromecastCapabilities.effectiveMime(contentType),
             currentTime,
             customData: {
                 durationSeconds: playable.durationSeconds,
@@ -161,8 +327,11 @@ export class ChromecastPlayer implements IPlayer {
     }
 }
 
-function pickAppTypeFor(playable: IPlayable) {
-    if (!chromecastCapabilities.canPlayMime(playable.contentType)) {
+function pickAppTypeFor(
+    capabilities: IPlayerCapabilities,
+    analysis: IVideoAnalysis | null,
+) {
+    if (!canPlayNatively(capabilities, analysis)) {
         // use Shougun app to support seeking within transcoded videos
         return ShougunPlayerApp;
     }

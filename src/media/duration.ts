@@ -1,25 +1,16 @@
 import _debug from "debug";
 const debug = _debug("shougun:duration");
 
-import ffmpeg from "fluent-ffmpeg";
-
-const ffprobe = (
-    filePath: string,
-) => new Promise<ffmpeg.FfprobeData>((resolve, reject) => {
-    ffmpeg.ffprobe(filePath, (err, data) => {
-        if (err) reject(err);
-        else resolve(data);
-    });
-});
+import { analyzeFile } from "./analyze";
 
 export async function extractDuration(
     localPath: string,
 ): Promise<number> {
-    const data = await ffprobe(localPath);
-    if (!data.format.duration) {
-        debug("full format=", data.format);
+    const data = await analyzeFile(localPath);
+    if (!data.duration) {
+        debug("full analysis=", data);
         throw new Error(`Unable to extract duration of ${localPath}`);
     }
 
-    return data.format.duration;
+    return data.duration;
 }
