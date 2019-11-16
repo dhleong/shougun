@@ -4,6 +4,7 @@ const debug = _debug("shougun:player:chromecast");
 import { ChromecastDevice } from "babbling";
 
 import { Context } from "../../context";
+import { IAudioTrack, IVideoTrack } from "../../media/analyze";
 import { getMetadata } from "../../media/metadata";
 import { IMedia, IPlayable, MediaType } from "../../model";
 import { withQuery } from "../../util/url";
@@ -33,6 +34,71 @@ const chromecastCapabilities = {
     },
 };
 
+const ultraCapabilities = {
+    ...chromecastCapabilities,
+
+    audioCodecs: new Set([
+        "aac",
+        "ac3",
+        "eac3",
+        "flac",
+        "mp3",
+        "opus",
+        "wav",
+        "vorbis",
+    ]),
+
+    containers: new Set([
+        "mp4",
+        "matroska",
+        "webm",
+    ]),
+
+    supportsAudioTrack(track: IAudioTrack) {
+        return this.audioCodecs.has(track.codec);
+    },
+
+    supportsVideoTrack(track: IVideoTrack) {
+        switch (track.codec) {
+        case "vp8":
+            return true;
+
+        case "vp9":
+            if (
+                track.profile
+                && !track.profile.includes("0")
+                && !track.profile.includes("2")
+            ) {
+                // unsupported profile
+                return false;
+            }
+            if ((track.fps || 24) > 60) return false;
+            return true;
+
+        case "h264":
+            if ((track.level || 0) > 52) return false;
+            if ((track.fps || 24) > 30) return false;
+            return true;
+
+        case "hevc":
+            if ((track.fps || 24) > 60) return false;
+            if (
+                track.profile !== "Main"
+                && track.profile !== "Main10"
+            ) return false;
+
+            return true;
+
+        default:
+            return false;
+        }
+    },
+
+    supportsContainer(container: string) {
+        return this.containers.has(container);
+    },
+};
+
 export class ChromecastPlayer implements IPlayer {
     public static forNamedDevice(deviceName: string) {
         return new ChromecastPlayer(new ChromecastDevice(deviceName));
@@ -42,8 +108,9 @@ export class ChromecastPlayer implements IPlayer {
         private device: ChromecastDevice,
     ) { }
 
-    public getCapabilities(): IPlayerCapabilities {
-        return chromecastCapabilities;
+    public async getCapabilities(): Promise<IPlayerCapabilities> {
+        // TODO figure out the actual device type
+        return ultraCapabilities;
     }
 
     public async play(

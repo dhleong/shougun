@@ -5,11 +5,17 @@ import fastify from "fastify";
 import ffmpeg from "fluent-ffmpeg";
 import stream = require("stream");
 
+import { IVideoAnalysis } from "../../media/analyze";
+import { IPlayerCapabilities } from "../player";
+
 const transcodeWithOptions = (
     pipe: stream.PassThrough,
     localPath: string,
     startTimeSeconds: number | undefined,
-    opts: { autoEnd?: boolean },
+    opts: {
+        autoEnd?: boolean,
+        config?: (cmd: ffmpeg.FfmpegCommand) => void,
+    },
     ...ffmpegOptions: string[]  // tslint:disable-line
 ) => new Promise<stream.PassThrough>((resolve, reject) => {
     const command = ffmpeg(localPath)
@@ -35,6 +41,10 @@ const transcodeWithOptions = (
 
     if (startTimeSeconds) {
         command.setStartTime(startTimeSeconds);
+    }
+
+    if (opts.config) {
+        opts.config(command);
     }
 
     pipe.once("close", () => {
@@ -110,6 +120,57 @@ export async function transcode(
     throw new Error(`Unable to transcode ${localPath}`);
 }
 
+export async function transcodeForAnalysis(
+    analysis: IVideoAnalysis,
+    capabilities: IPlayerCapabilities,
+    localPath: string,
+    startTimeSeconds?: number,
+) {
+    const pipe = new stream.PassThrough();
+
+    return transcodeWithOptions(pipe, localPath, startTimeSeconds, {
+        config: command => {
+            debug("configure transcoder with:", analysis);
+            let anyTranscoded = false;
+
+            if (capabilities.supportsVideoTrack(analysis.video)) {
+                debug("pass-through supported video track:", analysis.video);
+                command.videoCodec("copy");
+            } else {
+                debug("must transcode unsupported video", analysis.video);
+                anyTranscoded = true;
+            }
+
+            if (capabilities.supportsAudioTrack(analysis.audio)) {
+                debug("pass-through supported audio track:", analysis.audio);
+                command.audioCodec("copy");
+            } else {
+                // use ac3 to preserve surround sound for dts input
+                debug("must transcode audio:", analysis.audio);
+                command.audioCodec("ac3");
+                anyTranscoded = true;
+            }
+
+            if (
+                anyTranscoded
+                || !analysis.container.find(capabilities.supportsContainer.bind(capabilities))
+            ) {
+                debug(
+                    "disable seeking for container:", analysis.container,
+                    "; anyTranscoded=", anyTranscoded,
+                );
+
+                command.addOptions([
+                    "-movflags frag_keyframe+empty_moov+faststart",
+                    "-strict experimental",
+                ]);
+            }
+        },
+    });
+
+    throw new Error(`Unable to transcode ${localPath}`);
+}
+
 export async function serveTranscoded(
     req: fastify.FastifyRequest<any>,
     reply: fastify.FastifyReply<any>,
@@ -118,4 +179,19 @@ export async function serveTranscoded(
 ): Promise<NodeJS.ReadableStream> {
     reply.status(200);
     return transcode(localPath, startTimeSeconds);
+}
+
+export async function serveTranscodedForAnalysis(
+    analysis: IVideoAnalysis,
+    capabilities: IPlayerCapabilities,
+    req: fastify.FastifyRequest<any>,
+    reply: fastify.FastifyReply<any>,
+    localPath: string,
+    startTimeSeconds?: number,
+): Promise<NodeJS.ReadableStream> {
+    reply.status(200);
+    return transcodeForAnalysis(
+        analysis, capabilities,
+        localPath, startTimeSeconds,
+    );
 }

@@ -1,5 +1,6 @@
 
 import { Context } from "../context";
+import { IAudioTrack, IVideoTrack } from "../media/analyze";
 import { IMedia, IPlayable } from "../model";
 
 export interface IPlaybackOptions {
@@ -20,10 +21,13 @@ export interface IPlaybackOptions {
 
 export interface IPlayerCapabilities {
     canPlayMime(mime: string): boolean;
+    supportsAudioTrack(track: IAudioTrack): boolean;
+    supportsVideoTrack(track: IVideoTrack): boolean;
+    supportsContainer(container: string): boolean;
 }
 
 export interface IPlayer {
-    getCapabilities(): IPlayerCapabilities;
+    getCapabilities(): Promise<IPlayerCapabilities>;
 
     play(
         context: Context,
