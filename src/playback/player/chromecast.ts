@@ -220,11 +220,8 @@ export class ChromecastPlayer implements IPlayer {
         if (!currentTime) {
             currentTime = 0;
         } else if (!canPlayNatively(capabilities, analysis)) {
-            // this content cannot be streamed to Chromecast,
-            // so we *cannot* provide currentTime, and instead
-            // should pass it to getUrl()
-            // FIXME: if we use ShougunPlayerApp, *can we* actually send
-            // currentTime?
+            // this content cannot be streamed to Chromecast, so we *cannot*
+            // provide currentTime, and instead should pass it to getUrl()
             urlOpts = { currentTime };
             currentTime = 0;
             contentType = "video/mp4"; // we'll be transcoding
