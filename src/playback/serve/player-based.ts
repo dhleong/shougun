@@ -39,8 +39,7 @@ export async function serveForPlayer(
     const videoSupported = capabilities.supportsVideoTrack(analysis.video);
     const audioSupported = capabilities.supportsAudioTrack(analysis.audio);
     const containerSupported = !!analysis.container.find(capabilities.supportsContainer.bind(capabilities));
-    const canStreamRanges = videoSupported && audioSupported && containerSupported
-        && analysis.video.codec === "h264";
+    const canStreamRanges = videoSupported && audioSupported && containerSupported;
 
     if (!isVideo(localPath) || canStreamRanges) {
         debug(`serve ranges for ${localPath}`);

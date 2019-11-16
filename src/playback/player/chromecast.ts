@@ -48,10 +48,11 @@ const ultraCapabilities = {
         "vorbis",
     ]),
 
+    // NOTE: chromecast supports matroska and webm containers, but doesn't
+    // seem to properly support seeking within them, so we just do a
+    // passthrough transcode and use shougun-cast-player to handle seeking
     containers: new Set([
         "mp4",
-        "matroska",
-        "webm",
     ]),
 
     supportsAudioTrack(track: IAudioTrack) {
