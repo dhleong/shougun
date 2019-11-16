@@ -70,6 +70,11 @@ class LocalFileHierarchy implements IHierarchy<string> {
             if (e.code === "ENOTDIR") {
                 // file is not a directory
                 return null;
+            } else if (e.code === "ENOENT") {
+                // directory doesn't exist? since we found it, it *ought*
+                // to exist, but this can happen sometimes with network
+                // mounted directories; just ignore it
+                return null;
             }
 
             // unexpected error
