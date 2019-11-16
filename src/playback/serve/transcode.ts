@@ -131,14 +131,12 @@ export async function transcodeForAnalysis(
     return transcodeWithOptions(pipe, localPath, startTimeSeconds, {
         config: command => {
             debug("configure transcoder with:", analysis);
-            let anyTranscoded = false;
 
             if (capabilities.supportsVideoTrack(analysis.video)) {
                 debug("pass-through supported video track:", analysis.video);
                 command.videoCodec("copy");
             } else {
                 debug("must transcode unsupported video", analysis.video);
-                anyTranscoded = true;
             }
 
             if (capabilities.supportsAudioTrack(analysis.audio)) {
@@ -148,23 +146,16 @@ export async function transcodeForAnalysis(
                 // use ac3 to preserve surround sound for dts input
                 debug("must transcode audio:", analysis.audio);
                 command.audioCodec("ac3");
-                anyTranscoded = true;
             }
 
-            if (
-                anyTranscoded
-                || !analysis.container.find(capabilities.supportsContainer.bind(capabilities))
-            ) {
-                debug(
-                    "disable seeking for container:", analysis.container,
-                    "; anyTranscoded=", anyTranscoded,
-                );
-
-                command.addOptions([
-                    "-movflags frag_keyframe+empty_moov+faststart",
-                    "-strict experimental",
-                ]);
-            }
+            // it seems we may always need this, even when both audio and
+            // video formats are supported; since we have ShougunPlayer to
+            // manage seeking through transcoded video, it seems fine to
+            // always include this
+            command.addOptions([
+                "-movflags frag_keyframe+empty_moov+faststart",
+                "-strict experimental",
+            ]);
         },
     });
 

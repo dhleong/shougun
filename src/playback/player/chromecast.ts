@@ -84,7 +84,7 @@ const ultraCapabilities = {
             if ((track.fps || 24) > 60) return false;
             if (
                 track.profile !== "Main"
-                && track.profile !== "Main10"
+                && track.profile !== "Main 10"
             ) return false;
 
             return true;
