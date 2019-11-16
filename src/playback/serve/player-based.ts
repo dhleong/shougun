@@ -5,7 +5,7 @@ import fastify from "fastify";
 
 import { analyzeFile } from "../../media/analyze";
 import { isVideo } from "../../media/util";
-import { IPlayer } from "../player";
+import { canPlayNatively, IPlayer } from "../player";
 
 import { serveRanged } from "./ranged";
 import { serveTranscodedForAnalysis } from "./transcode";
@@ -36,10 +36,7 @@ export async function serveForPlayer(
     ]);
 
     debug("analysis of", localPath, ":", analysis);
-    const videoSupported = capabilities.supportsVideoTrack(analysis.video);
-    const audioSupported = capabilities.supportsAudioTrack(analysis.audio);
-    const containerSupported = !!analysis.container.find(capabilities.supportsContainer.bind(capabilities));
-    const canStreamRanges = videoSupported && audioSupported && containerSupported;
+    const canStreamRanges = canPlayNatively(capabilities, analysis);
 
     if (!isVideo(localPath) || canStreamRanges) {
         debug(`serve ranges for ${localPath}`);

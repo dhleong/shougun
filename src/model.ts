@@ -1,5 +1,6 @@
 import { Context } from "./context";
 import { DiscoveryId } from "./discover/base";
+import { IVideoAnalysis } from "./media/analyze";
 import { IPlaybackOptions } from "./playback/player";
 
 export interface ILocalMedia {
@@ -31,6 +32,12 @@ export interface IPlayable {
     readonly media: IMedia;
 
     loadQueueAround(context: Context): Promise<IMedia[]>;
+
+    /**
+     * If available (IE: a local media file), fetch an analysis
+     * of the media
+     */
+    analyze?(): Promise<IVideoAnalysis>;
 
     /**
      * Get an URL that can be used to stream the media represented

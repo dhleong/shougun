@@ -4,11 +4,11 @@ const debug = _debug("shougun:player:chromecast");
 import { ChromecastDevice } from "babbling";
 
 import { Context } from "../../context";
-import { IAudioTrack, IVideoTrack } from "../../media/analyze";
+import { IAudioTrack, IVideoAnalysis, IVideoTrack } from "../../media/analyze";
 import { getMetadata } from "../../media/metadata";
 import { IMedia, IPlayable, MediaType } from "../../model";
 import { withQuery } from "../../util/url";
-import { IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
+import { canPlayNatively, IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
 import { DefaultMediaReceiverApp } from "./apps/default";
 import { ICastInfo } from "./apps/generic";
 import { IRecommendation, ShougunPlayerApp } from "./apps/shougun-player";
@@ -17,7 +17,7 @@ const chromecastCapabilities = {
     canShowRecommendations: true,
 
     supportedMimes: new Set<string>([
-        "video/mp4", "video/webm",
+        "video/mp4", "video/webm", "video/x-matroska",
         "audio/mp4", "audio/mpeg", "audio/webm",
     ]),
 
@@ -53,6 +53,8 @@ const ultraCapabilities = {
     // passthrough transcode and use shougun-cast-player to handle seeking
     containers: new Set([
         "mp4",
+        "matroska",
+        "webm",
     ]),
 
     supportsAudioTrack(track: IAudioTrack) {
@@ -127,10 +129,16 @@ export class ChromecastPlayer implements IPlayer {
     ) {
         let urlOpts: IPlaybackOptions | undefined;
 
+        const [ analysis, capabilities ] = await Promise.all([
+            playable.analyze ? playable.analyze() : Promise.resolve(null),
+            this.getCapabilities(),
+        ]);
+
+        let contentType = playable.contentType;
         let currentTime = opts.currentTime;
         if (!currentTime) {
             currentTime = 0;
-        } else if (!chromecastCapabilities.canPlayMime(playable.contentType)) {
+        } else if (!canPlayNatively(capabilities, analysis)) {
             // this content cannot be streamed to Chromecast,
             // so we *cannot* provide currentTime, and instead
             // should pass it to getUrl()
@@ -138,10 +146,13 @@ export class ChromecastPlayer implements IPlayer {
             // currentTime?
             urlOpts = { currentTime };
             currentTime = 0;
+            contentType = "video/mp4"; // we'll be transcoding
         }
 
-        const appType = pickAppTypeFor(playable);
-        const [ app, metadata, url, coverUrl, mediaAround ] = await Promise.all([
+        const appType = pickAppTypeFor(capabilities, analysis);
+        const [
+            app, metadata, url, coverUrl, mediaAround,
+        ] = await Promise.all([
             this.device.openApp(appType),
             getMetadata(context, playable.media),
             playable.getUrl(context, urlOpts),
@@ -154,7 +165,7 @@ export class ChromecastPlayer implements IPlayer {
         metadata.coverUrl = coverUrl;
 
         const media: ICastInfo = {
-            contentType: chromecastCapabilities.effectiveMime(playable.contentType),
+            contentType: chromecastCapabilities.effectiveMime(contentType),
             currentTime,
             customData: {
                 durationSeconds: playable.durationSeconds,
@@ -235,8 +246,11 @@ export class ChromecastPlayer implements IPlayer {
     }
 }
 
-function pickAppTypeFor(playable: IPlayable) {
-    if (!chromecastCapabilities.canPlayMime(playable.contentType)) {
+function pickAppTypeFor(
+    capabilities: IPlayerCapabilities,
+    analysis: IVideoAnalysis | null,
+) {
+    if (!canPlayNatively(capabilities, analysis)) {
         // use Shougun app to support seeking within transcoded videos
         return ShougunPlayerApp;
     }

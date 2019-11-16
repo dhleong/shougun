@@ -7,6 +7,7 @@ import _debug from "debug";
 const debug = _debug("shougun:serve");
 
 import { Context } from "../context";
+import { analyzeFile } from "../media/analyze";
 import { extractDuration } from "../media/duration";
 import { BasePlayable } from "../media/playable-base";
 import { ILocalMedia, IMedia } from "../model";
@@ -253,6 +254,10 @@ export class ServedPlayable extends BasePlayable {
         public readonly durationSeconds: number,
     ) {
         super();
+    }
+
+    public async analyze() {
+        return analyzeFile(this.localPath);
     }
 
     public async getCoverUrl(context: Context) {
