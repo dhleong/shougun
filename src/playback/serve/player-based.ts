@@ -48,9 +48,18 @@ export async function serveForPlayer(
         );
     }
 
-    if (!capabilities.canPlayMime("video/mp4")) {
+    if (
+        !(
+            capabilities.supportsContainer("mp4")
+            && capabilities.supportsVideoTrack({
+                codec: "h264",
+                height: analysis.video.height,
+                width: analysis.video.width,
+            })
+        )
+    ) {
         // cannot transcode to mp4 either!
-        throw new Error(`Player ${player.constructor.name} does not support ${contentType}`);
+        throw new Error(`Player ${player.constructor.name} supports neither ${JSON.stringify(analysis)} nor media transcoded to mp4`);
     }
 
     const startTime = req.query.startTime || 0;

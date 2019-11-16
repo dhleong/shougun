@@ -20,7 +20,6 @@ export interface IPlaybackOptions {
 }
 
 export interface IPlayerCapabilities {
-    canPlayMime(mime: string): boolean;
     supportsAudioTrack(track: IAudioTrack): boolean;
     supportsVideoTrack(track: IVideoTrack): boolean;
     supportsContainer(container: string): boolean;
