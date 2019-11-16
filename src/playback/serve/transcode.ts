@@ -80,6 +80,9 @@ export async function transcodeForAnalysis(
         config: command => {
             debug("configure transcoder with:", analysis);
 
+            // TODO: future work might downsample if the player doesn't
+            // support the given resolution
+
             if (capabilities.supportsVideoTrack(analysis.video)) {
                 debug("pass-through supported video track:", analysis.video);
                 command.videoCodec("copy");

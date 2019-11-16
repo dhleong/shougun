@@ -34,7 +34,7 @@ const chromecastCapabilities = {
     },
 };
 
-const ultraCapabilities = {
+const gen1And2Capabilities = {
     ...chromecastCapabilities,
 
     audioCodecs: new Set([
@@ -48,15 +48,6 @@ const ultraCapabilities = {
         "vorbis",
     ]),
 
-    // NOTE: chromecast supports matroska and webm containers, but doesn't
-    // seem to properly support seeking within them, so we just do a
-    // passthrough transcode and use shougun-cast-player to handle seeking
-    containers: new Set([
-        "mp4",
-        "matroska",
-        "webm",
-    ]),
-
     supportsAudioTrack(track: IAudioTrack) {
         return this.audioCodecs.has(track.codec);
     },
@@ -66,6 +57,76 @@ const ultraCapabilities = {
         // for the hint to: https://github.com/petrkotek/chromecastize
         return !format.includes("yuv444");
     },
+
+    // NOTE: chromecast supports matroska and webm containers, but doesn't
+    // seem to properly support seeking within them, so we just do a
+    // passthrough transcode and use shougun-cast-player to handle seeking
+    containers: new Set([
+        "mp4",
+        "matroska",
+        "webm",
+    ]),
+
+    supportsContainer(container: string) {
+        return this.containers.has(container);
+    },
+
+    supportsVideoTrack(track: IVideoTrack) {
+        switch (track.codec) {
+        case "vp8":
+            return true;
+
+        default:
+            return false;
+        }
+    },
+};
+
+const gen3Capabilities = {
+    ...gen1And2Capabilities,
+
+    supportsVideoTrack(track: IVideoTrack) {
+        switch (track.codec) {
+        case "vp8":
+            return true;
+
+        case "h264":
+            if ((track.level || 0) > 42) return false;
+            if ((track.fps || 24) > 30) return false;
+            return true;
+
+        default:
+            return false;
+        }
+    },
+};
+
+const nestHubCapabilities = {
+    ...gen1And2Capabilities,
+
+    supportsVideoTrack(track: IVideoTrack) {
+        switch (track.codec) {
+        case "vp8":
+            // according to the docs...
+            return false;
+
+        case "h264":
+        case "vp9":
+            if ((track.fps || 24) > 60) return false;
+
+            // max 720p:
+            if (track.width > 1280) return false;
+            if (track.height > 720) return false;
+            return true;
+
+        default:
+            return false;
+        }
+    },
+};
+
+const ultraCapabilities = {
+    ...gen1And2Capabilities,
 
     supportsVideoTrack(track: IVideoTrack) {
         switch (track.codec) {
@@ -102,10 +163,6 @@ const ultraCapabilities = {
             return false;
         }
     },
-
-    supportsContainer(container: string) {
-        return this.containers.has(container);
-    },
 };
 
 export class ChromecastPlayer implements IPlayer {
@@ -118,8 +175,32 @@ export class ChromecastPlayer implements IPlayer {
     ) { }
 
     public async getCapabilities(): Promise<IPlayerCapabilities> {
-        // TODO figure out the actual device type
-        return ultraCapabilities;
+        debug(`scanning for ${this.device.friendlyName} to determine capabilities...`);
+        const info = await this.device.detect();
+        if (!info) {
+            // guess?
+            debug(`no info; using gen1/2 capabilities`);
+            return gen1And2Capabilities;
+        }
+
+        switch (info.model) {
+        case "Chromecast Ultra":
+            debug("using chromecast ultra capabilities");
+            return ultraCapabilities;
+
+        // NOTE: I'm just guessing on the models here, since I don't have one:
+        case "Chromecast 3rd Gen.":
+            debug("using 3rd gen chromecast capabilities");
+            return gen3Capabilities;
+
+        case "Google Nest Hub":
+            debug("using nest hub capabilities");
+            return nestHubCapabilities;
+
+        default:
+            debug(`unknown model "${info.model}"; using gen1/2 capabilities`);
+            return gen1And2Capabilities;
+        }
     }
 
     public async play(
