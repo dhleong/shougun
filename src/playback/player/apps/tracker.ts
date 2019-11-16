@@ -3,7 +3,7 @@ const debug = _debug("shougun:chromecast:tracker");
 
 import { BaseApp, IMediaStatus, PlaybackTracker } from "babbling";
 
-import { ILoadParams } from "./generic";
+import { GenericMediaReceiverApp, ILoadParams } from "./generic";
 
 import { IMedia } from "../../../model";
 
@@ -12,16 +12,23 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
     private currentMedia: IMedia;
 
     constructor(
-        app: BaseApp,
+        private appInstance: BaseApp,
         private readonly params: ILoadParams,
     ) {
-        super(app, {
+        super(appInstance, {
             onPlayerPaused: (currentTimeSeconds: number) =>
                 this.handlePlayerPaused(currentTimeSeconds),
         });
 
         this.currentMedia = this.params.media.source;
         debug("new tracker:", this.params);
+    }
+
+    protected async handleClose() {
+        await super.handleClose();
+        if (this.appInstance instanceof GenericMediaReceiverApp) {
+            this.appInstance.close();
+        }
     }
 
     protected async handleMediaStatus(status: IMediaStatus) {

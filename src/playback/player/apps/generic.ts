@@ -191,6 +191,10 @@ export class GenericMediaReceiverApp extends BaseApp {
         debug("playback started", result);
     }
 
+    public close() {
+        this.device.stop();
+    }
+
     protected formatLoadRequest(params: ILoadParams) {
         return formatLoadRequest(params);
     }

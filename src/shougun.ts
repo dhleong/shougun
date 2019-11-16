@@ -128,6 +128,7 @@ export class Shougun {
         debug(`playing ${media.id} as ${playable.id} with ${JSON.stringify(options)}...`);
         await this.context.player.play(this.context, playable, Object.assign({
             onPlayerPaused: async (pausedMedia: IMedia, currentTimeSeconds: number) => {
+                debug(`record playerPaused of ${pausedMedia.id} @ ${currentTimeSeconds}`);
                 return this.context.tracker.saveTrack(
                     pausedMedia,
                     currentTimeSeconds,
