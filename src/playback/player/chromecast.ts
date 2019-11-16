@@ -58,6 +58,12 @@ const ultraCapabilities = {
         return this.audioCodecs.has(track.codec);
     },
 
+    supportsPixelFormat(format: string) {
+        // not documented, but discovered experimentally, with thanks
+        // for the hint to: https://github.com/petrkotek/chromecastize
+        return !format.includes("yuv444");
+    },
+
     supportsVideoTrack(track: IVideoTrack) {
         switch (track.codec) {
         case "vp8":

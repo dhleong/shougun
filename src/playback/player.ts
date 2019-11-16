@@ -24,6 +24,7 @@ export interface IPlayerCapabilities {
     supportsAudioTrack(track: IAudioTrack): boolean;
     supportsVideoTrack(track: IVideoTrack): boolean;
     supportsContainer(container: string): boolean;
+    supportsPixelFormat?(format: string): boolean;
 }
 
 export interface IPlayer {

@@ -137,6 +137,24 @@ export async function transcodeForAnalysis(
                 command.videoCodec("copy");
             } else {
                 debug("must transcode unsupported video", analysis.video);
+
+                // if the player has restrictions on the pixel formats it
+                // supports, check that and transform in necessary
+                const { pixelFormat } = analysis.video;
+                if (
+                    pixelFormat
+                    && capabilities.supportsPixelFormat
+                    && !capabilities.supportsPixelFormat(pixelFormat)
+                ) {
+                    // NOTE: in theory, chromecast ultra supports HDR/10bit,
+                    // so on such devices we should be able to preserve that
+                    // (eg: yuv420p10le) but in practice it causes tearing,
+                    // so we keep it simple:
+                    debug("tranform unsupported pixel format to yuv420p");
+                    command.addOptions([
+                        "-pix_fmt yuv420p",
+                    ]);
+                }
             }
 
             if (capabilities.supportsAudioTrack(analysis.audio)) {
@@ -158,8 +176,6 @@ export async function transcodeForAnalysis(
             ]);
         },
     });
-
-    throw new Error(`Unable to transcode ${localPath}`);
 }
 
 export async function serveTranscoded(

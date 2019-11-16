@@ -20,6 +20,7 @@ export interface IVideoTrack {
     codec: string;
     fps?: number;
     level?: number;
+    pixelFormat?: string;
     profile?: string;
 
     width: number;
@@ -76,6 +77,7 @@ function parseVideoTrack(s: FfprobeStream): IVideoTrack {
     return {
         codec: s.codec_name!,
         fps: parseInt(fpsNum, 10) / parseInt(fpsDen, 10),
+        pixelFormat: s.pix_fmt,
 
         // I think these types got flipped:
         level: s.level as unknown as number,
