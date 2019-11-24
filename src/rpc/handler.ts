@@ -4,6 +4,34 @@ import { Shougun } from "../shougun";
 
 const MAX_RESULTS = 50; // don't try to send more than this over the wire
 
+interface IQueryOpts {
+    maxResults: number;
+}
+
+async function queryVia(
+    options: Partial<IQueryOpts>,
+    iterableResults: AsyncIterable<IMedia>,
+) {
+    const selectedResults = [];
+
+    const opts = {
+        maxResults: 20,
+
+        ...options,
+    };
+
+    let limit = Math.min(opts.maxResults, MAX_RESULTS);
+    for await (const r of iterableResults) {
+        selectedResults.push(r);
+
+        if (--limit <= 0) {
+            break;
+        }
+    }
+
+    return selectedResults;
+}
+
 export class RpcHandler {
     public readonly VERSION = 1;
 
@@ -11,28 +39,16 @@ export class RpcHandler {
         private readonly shougun: Shougun,
     ) {}
 
+    public async queryRecent(options: {
+        onlyLocal?: boolean,
+    } & Partial<IQueryOpts>) {
+        return queryVia(options, this.shougun.queryRecent(options));
+    }
+
     public async queryRecommended(options: {
-        maxResults: number,
-    }) {
-        const opts = {
-            maxResults: 20,
-
-            ...options,
-        };
-
-        const iterableResults = await this.shougun.queryRecommended();
-        const selectedResults = [];
-
-        let limit = Math.min(opts.maxResults, MAX_RESULTS);
-        for await (const r of iterableResults) {
-            selectedResults.push(r);
-
-            if (--limit <= 0) {
-                break;
-            }
-        }
-
-        return selectedResults;
+        onlyLocal?: boolean,
+    } & Partial<IQueryOpts>) {
+        return queryVia(options, this.shougun.queryRecommended(options));
     }
 
     public async search(query: string) {

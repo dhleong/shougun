@@ -112,6 +112,7 @@ export interface IMediaResultsMap {
  * Queryable abstraction
  */
 export interface IQueryable {
+    queryRecent(context: Context): Promise<IMediaResultsMap>;
     queryRecommended(context: Context): Promise<IMediaResultsMap>;
     findMedia(context: Context, query: string): AsyncIterable<IMedia>;
 }

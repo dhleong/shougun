@@ -20,6 +20,11 @@ import {
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
 import { ITracker } from "./track/base";
+import { ContextQueryable } from "./queryables/context";
+
+export interface IQueryOpts {
+    onlyLocal?: boolean;
+}
 
 export class Shougun {
     public static async create(
@@ -67,28 +72,34 @@ export class Shougun {
 
     /**
      * Get a map whose keys are a discovery type and whose values
+     * are AsyncIterables of recently watched media
+     */
+    public async getRecentsMap() {
+        return this.getQueryableMap(q => q.queryRecent(this.context));
+    }
+
+    /**
+     * Get a map whose keys are a discovery type and whose values
      * are AsyncIterables of recommended media
      */
     public async getRecommendationsMap() {
-        const allMaps = await Promise.all(this.context.queryables.map(q =>
-            q.queryRecommended(this.context),
-        ));
+        return this.getQueryableMap(q => q.queryRecommended(this.context));
+    }
 
-        let resultsBySource: IMediaResultsMap = {};
-        for (const m of allMaps) {
-            resultsBySource = { ...resultsBySource, ...m };
-        }
-
-        return resultsBySource;
+    /**
+     * Query "recently watched" titles, interleaving results from
+     * each discovery type
+     */
+    public async *queryRecent(options: IQueryOpts = {}) {
+        yield *this.queryFromMap(options, this.getRecentsMap());
     }
 
     /**
      * Query "recommended" titles to watch, interleaving results from
      * each discovery type
      */
-    public async *queryRecommended() {
-        const resultsBySource = await this.getRecommendationsMap();
-        yield *interleaveAsyncIterables(Object.values(resultsBySource));
+    public async *queryRecommended(options: IQueryOpts = {}) {
+        yield *this.queryFromMap(options, this.getRecommendationsMap());
     }
 
     /**
@@ -152,4 +163,32 @@ export class Shougun {
         );
     }
 
+    private async getQueryableMap(
+        query: (queryable: IQueryable) => Promise<IMediaResultsMap>,
+    ) {
+        const allMaps = await Promise.all(this.context.queryables.map(query));
+
+        let resultsBySource: IMediaResultsMap = {};
+        for (const m of allMaps) {
+            resultsBySource = { ...resultsBySource, ...m };
+        }
+
+        return resultsBySource;
+    }
+
+    private async *queryFromMap(
+        options: IQueryOpts,
+        map: Promise<IMediaResultsMap>,
+    ) {
+        if (options.onlyLocal === true) {
+            const local = this.context.queryables.find(it => it instanceof ContextQueryable);
+            if (!local) return;
+            const recommended = await local.queryRecommended(this.context);
+            yield *recommended.Shougun;
+            return;
+        }
+
+        const resultsBySource = await this.getRecommendationsMap();
+        yield *interleaveAsyncIterables(Object.values(resultsBySource));
+    }
 }
