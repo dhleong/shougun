@@ -82,9 +82,10 @@ export class Sqlite3Storage implements IStorage {
 
     public async *queryRecent() {
         const results = this.prepare(`
-            SELECT * FROM ViewedInformation
+            SELECT *
+            FROM ViewedInformation
             GROUP BY COALESCE(seriesId, id)
-            ORDER BY lastViewedTimestamp DESC
+            ORDER BY MAX(lastViewedTimestamp) DESC
             LIMIT 20
         `).all();
 
