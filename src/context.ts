@@ -21,6 +21,20 @@ export class Context {
         trackMediaChanges(discovery, knownMedia);
     }
 
+    public withPlayer(
+        newPlayer: IPlayer,
+    ) {
+        return new Context(
+            this.queryables,
+            this.discovery,
+            this.matcher,
+            newPlayer,
+            this.tracker,
+            this.server,
+            this.knownMedia,
+        );
+    }
+
     /**
      * Returns an iterable for all known Titles, IE Movies or Series.
      * This should never return episodes
