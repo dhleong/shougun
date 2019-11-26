@@ -1,19 +1,14 @@
 import { DefaultMatcher } from "../match/default";
-import { IMedia, ISeries, isSeries } from "../model";
-import { DummyPlayer } from "../playback/player/dummy";
+import { IMedia } from "../model";
 import { Shougun } from "../shougun";
-import { ITrack } from "../track/base";
+import { TakeoutManager } from "../takeout/manager";
+import { ITakeoutRequest } from "../takeout/model";
 import { IViewedInformation } from "../track/persistent";
 
 const MAX_RESULTS = 50; // don't try to send more than this over the wire
 
 interface IQueryOpts {
     maxResults: number;
-}
-
-interface ITakeoutRequest {
-    episodes: number;
-    seriesId: string;
 }
 
 async function queryVia(
@@ -98,73 +93,18 @@ export class RpcHandler {
         return this.shougun.play(media);
     }
 
-    /**
-     * Request URLs and other data to capture a snapshot of local
-     * media for playback on the local machine. This is sort of a
-     * poor man's sync
-     */
     public async takeout(
         requests: ITakeoutRequest[],
     ) {
-        const { context } = this.shougun;
-        const responses = await Promise.all(requests.map(async req => {
-            const media = await context.getMediaById(req.seriesId);
-            if (!media) return;
-
-            const resume = await context.tracker.pickResumeForMedia(media);
-            const episodes = [resume];
-            if (isSeries(media)) {
-                addNextEpisodes(episodes, media, resume, req.episodes - 1);
-            }
-
-            // create a dummy Context so we receive the original
-            // media without any transcoding
-            const dummyContext = context.withPlayer(new DummyPlayer());
-            return Promise.all(episodes.map(async e => {
-                const p = await context.discovery.createPlayable(context, e.media);
-                return {
-                    ...e,
-                    url: await p.getUrl(dummyContext),
-                };
-            }));
-        }));
-
-        // TODO create a takeout token
-        return {
-            media: responses,
-        };
+        return new TakeoutManager(this.shougun)
+            .takeout(requests);
     }
 
-    /**
-     * Save viewed information encountered during a takeout request.
-     */
     public async returnTakeout(
         token: string,
         viewedInformation: IViewedInformation[],
     ) {
-        // TODO
-    }
-}
-
-function addNextEpisodes(
-    episodes: ITrack[],
-    media: ISeries,
-    resume: ITrack,
-    requested: number,
-) {
-    let remainingCount = requested;
-    let foundResume = false;
-    for (const s of media.seasons) {
-        for (const e of s.episodes) {
-            if (foundResume && remainingCount-- > 0) {
-                episodes.push({ media: e });
-            } else if (!foundResume && e.id === resume.media.id) {
-                foundResume = true;
-            }
-
-            if (remainingCount <= 0) break;
-        }
-
-        if (remainingCount <= 0) break;
+        return new TakeoutManager(this.shougun)
+            .returnTakeout(token, viewedInformation);
     }
 }
