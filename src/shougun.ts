@@ -19,8 +19,8 @@ import {
 } from "./model";
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
-import { ITracker } from "./track/base";
 import { ContextQueryable } from "./queryables/context";
+import { ITracker } from "./track/base";
 
 export interface IQueryOpts {
     onlyLocal?: boolean;
