@@ -175,7 +175,7 @@ export class ShougunBuilder {
 
         if (this.remoteConfig) {
             const rpc = new RpcServer(shougun, this.remoteConfig);
-            rpc.start();
+            await rpc.start();
         }
 
         return shougun;

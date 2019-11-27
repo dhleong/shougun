@@ -59,29 +59,38 @@ export class RpcServer {
         this.handler = new RpcHandler(shougun);
     }
 
-    public start() {
+    public async start() {
         const server = createServer();
 
         registerRpcHandler(server, this.handler);
 
         debug("start listening on", this.config.port);
-        server.listen(this.config.port, () => {
-            const address = server.address();
-            debug("listening on", address);
+        const address = await new Promise<string | net.AddressInfo | null>(resolve => {
+            server.listen(this.config.port, () => {
+                const addr = server.address();
+                debug("listening on", addr);
 
-            let port: number = 0;
-            if (typeof address === "string") {
-                const raw = address.split(/:/);
-                port = parseInt(raw[raw.length - 1], 10);
-            } else if (address) {
-                port = address.port;
-            }
+                resolve(addr);
+            });
+        });
 
-            this.announcer.start({
+        let port: number = 0;
+        if (typeof address === "string") {
+            const raw = address.split(/:/);
+            port = parseInt(raw[raw.length - 1], 10);
+        } else if (address) {
+            port = address.port;
+        }
+
+        try {
+            await this.announcer.start({
                 serverPort: port,
                 version: this.handler.VERSION,
             });
-        });
+        } catch (e) {
+            server.close();
+            throw e;
+        }
 
         this.server = server;
     }

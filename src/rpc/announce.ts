@@ -3,7 +3,7 @@ import { Server } from "node-ssdp";
 export class RpcAnnouncer {
     private server: Server | undefined;
 
-    public start(config: {
+    public async start(config: {
         serverPort: number,
         version: number,
     }) {
@@ -23,7 +23,7 @@ export class RpcAnnouncer {
             ssdpSig: `node/${node} shougun:rpc:${version}`,
         });
         server.addUSN(`urn:schemas:service:ShougunServer:${config.version}`);
-        server.start();
+        await server.start();
         this.server = server;
     }
 
