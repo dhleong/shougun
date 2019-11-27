@@ -1,4 +1,16 @@
+import _debug from "debug";
+const debug = _debug("shougun:rpc:announce");
+
+import os from "os";
+import pathlib from "path";
+
+import fsextra from "fs-extra";
 import { Server } from "node-ssdp";
+
+export const LOCAL_ANNOUNCE_PATH = pathlib.join(
+    os.homedir(),
+    ".config/shougun/announce.port",
+);
 
 export class RpcAnnouncer {
     private server: Server | undefined;
@@ -23,12 +35,30 @@ export class RpcAnnouncer {
             ssdpSig: `node/${node} shougun:rpc:${version}`,
         });
         server.addUSN(`urn:schemas:service:ShougunServer:${config.version}`);
-        await server.start();
-        this.server = server;
+        try {
+            await server.start();
+            this.server = server;
+            return;
+        } catch (e) {
+            if (!e.message.includes("No sockets available")) {
+                throw e;
+            }
+        }
+
+        debug("No sockets available; announcing local-only");
+        await fsextra.mkdirs(pathlib.dirname(LOCAL_ANNOUNCE_PATH));
+        await fsextra.writeFile(LOCAL_ANNOUNCE_PATH, "" + serverPort);
+
+        process.once("exit", () => {
+            debug("Clean up local announce");
+            fsextra.removeSync(LOCAL_ANNOUNCE_PATH);
+        });
     }
 
     public stop() {
-        if (!this.server) return;
-        this.server.stop();
+        if (this.server) {
+            this.server.stop();
+            this.server = undefined;
+        }
     }
 }
