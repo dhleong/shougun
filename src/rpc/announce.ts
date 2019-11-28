@@ -31,8 +31,10 @@ export class RpcAnnouncer {
             location: {
                 path: "/",
                 port: serverPort,
+                protocol: "shougun://",
             },
             ssdpSig: `node/${node} shougun:rpc:${version}`,
+            suppressRootDeviceAdvertisements: true,
         });
         server.addUSN(`urn:schemas:service:ShougunServer:${config.version}`);
         try {
