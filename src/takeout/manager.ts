@@ -20,9 +20,9 @@ export class TakeoutManager {
         requests: ITakeoutRequest[],
     ) {
         const { context } = this.shougun;
-        const responses = await Promise.all(requests.map(async req => {
+        const seriesResponses = await Promise.all(requests.map(async req => {
             const media = await context.getMediaById(req.seriesId);
-            if (!media) return;
+            if (!media) return [];
 
             const resume = await context.tracker.pickResumeForMedia(media);
             const episodes = [resume];
@@ -33,18 +33,26 @@ export class TakeoutManager {
             // create a dummy Context so we receive the original
             // media without any transcoding
             const dummyContext = context.withPlayer(new DummyPlayer());
-            return Promise.all(episodes.map(async e => {
+            const episodesWithUrls = await Promise.all(episodes.map(async e => {
                 const p = await context.discovery.createPlayable(context, e.media);
                 return {
-                    ...e,
+                    id: e.media.id,
+                    title: e.media.title,
+                    type: e.media.type,
                     url: await p.getUrl(dummyContext),
                 };
             }));
+
+            return {
+                episodes: episodesWithUrls,
+                id: media.id,
+                title: media.title,
+            };
         }));
 
         // TODO create a takeout token
         return {
-            media: responses,
+            series: seriesResponses,
         };
     }
 
