@@ -1,9 +1,11 @@
 import _debug from "debug";
 const debug = _debug("shougun:hierarchical");
 
+import util from "util";
+
 import { Context } from "../context";
 import { fileNameToId, fileNameToTitle, fileType, nestId, sortEpisodes, sortSeasons } from "../media/util";
-import { IMedia, IMediaMap, IPlayable, ISeason, ISeries, MediaType } from "../model";
+import { IMedia, IMediaMap, IPlayable, ISeason, ISeries, isSeries, MediaType } from "../model";
 import { groupBy } from "../util/collection";
 import { DiscoveryId, IDiscoveredChange, IDiscovery } from "./base";
 
@@ -160,6 +162,9 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         if (parentAsSeries) {
             // EG: /Nodame/SPECIAL
             // this is a new season belonging to parentId
+            if (!isSeries(parentAsSeries)) {
+                throw new Error(`Expected ${util.inspect(parentAsSeries)} to be ISeries`);
+            }
             (parentAsSeries as ISeries).seasons.push(this.createSeason(
                 candidate,
                 parentId,

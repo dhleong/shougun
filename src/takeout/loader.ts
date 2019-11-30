@@ -23,9 +23,10 @@ export async function loadTakeout(
 
     const takeoutFiles = await Promise.all(
         (await fs.readdir(takeoutDir)).map(async file => {
+            const fullPath = pathlib.join(takeoutDir, file);
             return [
-                file,
-                (await fs.stat(file)).ctime.getTime(),
+                fullPath,
+                (await fs.stat(fullPath)).ctime.getTime(),
             ] as [string, number];
         }),
     );
@@ -36,11 +37,12 @@ export async function loadTakeout(
 
     const saveInstruction = saveMediaTakeoutInstruction.bind(null, shougun);
     for (const [f] of takeoutFiles) {
-        const p = pathlib.join(takeoutDir, f);
-        debug("loading takeout @", p);
+        debug("loading takeout @", f);
 
-        const instructions: ITakeoutInstructions = await fs.readJson(p);
+        const instructions: ITakeoutInstructions = await fs.readJson(f);
         await Promise.all(instructions.nextMedia.map(saveInstruction));
+
+        // FIXME delete the instruction file
     }
 }
 
