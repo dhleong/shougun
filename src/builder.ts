@@ -129,6 +129,17 @@ export class ShougunBuilder {
     }
 
     /*
+     * Takeout support
+     */
+
+    /**
+     * Enable loading media from a "takeout" request.
+     */
+    public enableTakeoutLoading() {
+        return this;
+    }
+
+    /*
      * Builder
      */
 

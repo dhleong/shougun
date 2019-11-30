@@ -1,3 +1,5 @@
+import uuid from "uuid/v4";
+
 import { ISeries, isSeries } from "../model";
 import { DummyPlayer } from "../playback/player/dummy";
 import { Shougun } from "../shougun";
@@ -50,9 +52,14 @@ export class TakeoutManager {
             };
         }));
 
-        // TODO create a takeout token
+        // create a takeout token
+        const token = uuid();
+
+        // TODO save token
+
         return {
             series: seriesResponses,
+            token,
         };
     }
 
