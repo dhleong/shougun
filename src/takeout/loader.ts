@@ -42,7 +42,8 @@ export async function loadTakeout(
         const instructions: ITakeoutInstructions = await fs.readJson(f);
         await Promise.all(instructions.nextMedia.map(saveInstruction));
 
-        // FIXME delete the instruction file
+        debug("finished loading takeout @", f, "; delete it");
+        await fs.remove(f);
     }
 }
 
