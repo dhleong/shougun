@@ -2,8 +2,9 @@ import { DefaultMatcher } from "../match/default";
 import { IMedia } from "../model";
 import { Shougun } from "../shougun";
 import { TakeoutManager } from "../takeout/manager";
-import { ITakeoutRequest } from "../takeout/model";
+import { ITakeoutRequest, TakeoutMode } from "../takeout/model";
 import { IViewedInformation } from "../track/persistent";
+import { IRemoteConfig } from "./server";
 
 const MAX_RESULTS = 50; // don't try to send more than this over the wire
 
@@ -40,6 +41,7 @@ export class RpcHandler {
 
     constructor(
         private readonly shougun: Shougun,
+        private readonly config: IRemoteConfig,
     ) {}
 
     public async queryRecent(options: {
@@ -96,6 +98,10 @@ export class RpcHandler {
     public async takeout(
         requests: ITakeoutRequest[],
     ) {
+        if (this.config.takeout !== TakeoutMode.ALLOW_REQUESTS) {
+            throw new Error("Takeout requests are not enabled");
+        }
+
         return new TakeoutManager(this.shougun)
             .takeout(requests);
     }
@@ -104,6 +110,10 @@ export class RpcHandler {
         token: string,
         viewedInformation: IViewedInformation[],
     ) {
+        if (this.config.takeout !== TakeoutMode.ALLOW_REQUESTS) {
+            throw new Error("Takeout requests are not enabled");
+        }
+
         return new TakeoutManager(this.shougun)
             .returnTakeout(token, viewedInformation);
     }

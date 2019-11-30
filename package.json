@@ -38,6 +38,7 @@
     "leven": "^3.1.0",
     "mime": "^2.4.4",
     "msgpack-rpc-lite": "^1.0.2",
+    "node-machine-id": "^1.1.12",
     "node-ssdp": "^4.0.0",
     "nodecastor": "^0.1.9",
     "range-parser": "^1.2.1",

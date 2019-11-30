@@ -16,7 +16,6 @@ import { BabblingQueryable } from "./queryables/babbling";
 import { ContextQueryable } from "./queryables/context";
 import { IRemoteConfig, RpcServer } from "./rpc/server";
 import { Shougun } from "./shougun";
-import { loadTakeout } from "./takeout/loader";
 import { ITracker } from "./track/base";
 import { IStorage, PersistentTracker } from "./track/persistent";
 import { Sqlite3Storage } from "./track/storage/sqlite3";
@@ -35,7 +34,6 @@ export class ShougunBuilder {
     private tracker: ITracker | undefined;
     private babblingConfig: IBabblingConfig | undefined;
     private remoteConfig: IRemoteConfig | undefined;
-    private takeoutLoadingEnabled = false;
 
     private verifyWritePaths: string[] = [];
 
@@ -131,18 +129,6 @@ export class ShougunBuilder {
     }
 
     /*
-     * Takeout support
-     */
-
-    /**
-     * Enable loading media from a "takeout" request.
-     */
-    public enableTakeoutLoading() {
-        this.takeoutLoadingEnabled = true;
-        return this;
-    }
-
-    /*
      * Builder
      */
 
@@ -190,10 +176,6 @@ export class ShougunBuilder {
         if (this.remoteConfig) {
             const rpc = new RpcServer(shougun, this.remoteConfig);
             await rpc.start();
-        }
-
-        if (this.takeoutLoadingEnabled) {
-            await loadTakeout(shougun);
         }
 
         return shougun;

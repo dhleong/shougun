@@ -42,6 +42,9 @@ export async function loadTakeout(
         const instructions: ITakeoutInstructions = await fs.readJson(f);
         await Promise.all(instructions.nextMedia.map(saveInstruction));
 
+        // TODO save the token for "returning" the takeout later
+        // await shougun.context.tracker.
+
         debug("finished loading takeout @", f, "; delete it");
         await fs.remove(f);
     }

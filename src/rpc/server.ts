@@ -9,6 +9,9 @@ import { Shougun } from "../shougun";
 import { RpcAnnouncer } from "./announce";
 import { RpcHandler } from "./handler";
 
+import { loadTakeout } from "../takeout/loader";
+import { TakeoutMode } from "../takeout/model";
+
 function on(
     server: net.Server,
     event: string,
@@ -45,6 +48,12 @@ function registerRpcHandler(
 
 export interface IRemoteConfig {
     port?: number;
+
+    /*
+     * Takeout options
+     */
+
+    takeout?: TakeoutMode;
 }
 
 export class RpcServer {
@@ -53,14 +62,18 @@ export class RpcServer {
     private readonly handler: RpcHandler;
 
     constructor(
-        shougun: Shougun,
+        private readonly shougun: Shougun,
         private readonly config: IRemoteConfig,
     ) {
-        this.handler = new RpcHandler(shougun);
+        this.handler = new RpcHandler(shougun, config);
     }
 
     public async start() {
         const server = createServer();
+
+        if (this.config.takeout === TakeoutMode.ENABLE_LOADING) {
+            await loadTakeout(this.shougun);
+        }
 
         registerRpcHandler(server, this.handler);
 
@@ -83,6 +96,7 @@ export class RpcServer {
         }
 
         try {
+            // TODO include takeout mode in announcement
             await this.announcer.start({
                 serverPort: port,
                 version: this.handler.VERSION,

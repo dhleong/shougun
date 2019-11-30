@@ -6,6 +6,7 @@ import pathlib from "path";
 
 import fsextra from "fs-extra";
 import { Server } from "node-ssdp";
+import { generateMachineUuid } from "./id";
 
 export const LOCAL_ANNOUNCE_PATH = pathlib.join(
     os.homedir(),
@@ -26,6 +27,7 @@ export class RpcAnnouncer {
         const node = process.version.substr(1);
         const { serverPort, version } = config;
 
+        const uuid = await generateMachineUuid();
         const server = new Server({
             allowWildcards: true,
             location: {
@@ -34,7 +36,12 @@ export class RpcAnnouncer {
                 protocol: "shougun://",
             },
             ssdpSig: `node/${node} shougun:rpc:${version}`,
-            suppressRootDeviceAdvertisements: true,
+            suppressRootDeviceAdvertisements: false,
+            udn: "uuid:" + uuid,
+
+            headers: {
+                SID: uuid,
+            },
         });
         server.addUSN(`urn:schemas:service:ShougunServer:${config.version}`);
         try {
