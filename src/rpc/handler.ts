@@ -4,6 +4,7 @@ import { Shougun } from "../shougun";
 import { TakeoutManager } from "../takeout/manager";
 import { ITakeoutRequest, TakeoutMode } from "../takeout/model";
 import { IViewedInformation } from "../track/persistent";
+import { generateMachineUuid } from "./id";
 import { IRemoteConfig } from "./server";
 
 const MAX_RESULTS = 50; // don't try to send more than this over the wire
@@ -43,6 +44,10 @@ export class RpcHandler {
         private readonly shougun: Shougun,
         private readonly config: IRemoteConfig,
     ) {}
+
+    public async getId() {
+        return generateMachineUuid();
+    }
 
     public async queryRecent(options: {
         onlyLocal?: boolean,
