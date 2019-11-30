@@ -96,9 +96,9 @@ export class RpcServer {
         }
 
         try {
-            // TODO include takeout mode in announcement
             await this.announcer.start({
                 serverPort: port,
+                takeout: this.config.takeout,
                 version: this.handler.VERSION,
             });
         } catch (e) {

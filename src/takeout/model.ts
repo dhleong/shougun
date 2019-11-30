@@ -2,12 +2,12 @@ export enum TakeoutMode {
     /**
      * Allow takeout requests to be made via RPC
      */
-    ALLOW_REQUESTS,
+    ALLOW_REQUESTS = "ALLOW_REQUESTS",
 
     /**
      * Enable takeout instruction loading
      */
-    ENABLE_LOADING,
+    ENABLE_LOADING = "ENABLE_LOADING",
 }
 
 export interface ITakeoutRequest {
