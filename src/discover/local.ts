@@ -174,6 +174,13 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
         yield *iterable;
     }
 
+    public async getLocalPath(
+        context: Context,
+        media: IMedia,
+    ): Promise<string | undefined> {
+        return this.ensureEntity(media);
+    }
+
     private async scanForChanges(
         changeType: ChangeType,
         lastMap: IMediaMap,

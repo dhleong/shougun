@@ -16,6 +16,7 @@ import {
     IQueryable,
     isPlayable,
     isSeries,
+    MediaType,
 } from "./model";
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
@@ -68,6 +69,17 @@ export class Shougun {
                 q.findMedia(this.context, query),
             ),
         ));
+    }
+
+    public async getLocalPath(media: IMedia) {
+        if (media.type === MediaType.ExternalPlayable) {
+            return;
+        }
+
+        return this.context.discovery.getLocalPath(
+            this.context,
+            media,
+        );
     }
 
     /**

@@ -37,6 +37,10 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
     ) { }
 
     public abstract changes(): AsyncIterable<IDiscoveredChange>;
+    public abstract getLocalPath(
+        context: Context,
+        media: IMedia,
+    ): Promise<string | undefined>;
 
     public instanceById(id: DiscoveryId): IDiscovery | undefined {
         if (id !== this.id) return;
@@ -47,19 +51,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         context: Context,
         media: IMedia,
     ) {
-        // NOTE: this should only be called with media that
-        // we created, so it should always have this property.
-        // if not, it is user error
-        const entity = (media as IHierarchicalMedia<TEntity>).entity;
-        if (!entity) {
-            if (media.discovery !== this.id) {
-                throw new Error(
-                    `${this.id} was given media created by other Discovery (${media.discovery})`,
-                );
-            }
-
-            throw new Error(`Media (${media.type}: ${media.id}) did not have an entity attached`);
-        }
+        const entity = this.ensureEntity(media);
 
         const coverEntity: TEntity | undefined =
             (media as IHierarchicalMedia<TEntity>).coverEntity;
@@ -129,6 +121,23 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
                 imageFiles || [],
             );
         }
+    }
+
+    protected ensureEntity(media: IMedia) {
+        // NOTE: this should only be called with media that
+        // we created, so it should always have this property.
+        // if not, it is user error
+        const entity = (media as IHierarchicalMedia<TEntity>).entity;
+        if (!entity) {
+            if (media.discovery !== this.id) {
+                throw new Error(
+                    `${this.id} was given media created by other Discovery (${media.discovery})`,
+                );
+            }
+
+            throw new Error(`Media (${media.type}: ${media.id}) did not have an entity attached`);
+        }
+        return entity;
     }
 
     private async *extractMedia(
