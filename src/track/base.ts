@@ -11,7 +11,18 @@ export interface IRecentMedia {
     title: string;
 }
 
+export interface ITakeoutTrackCreate {
+    token: string;
+    serverId: string;
+}
+
+export interface ITakeoutTrack extends ITakeoutTrackCreate {
+    createdTimestamp: number;
+}
+
 export interface ITracker {
+
+    createTakeout(track: ITakeoutTrackCreate): Promise<void>;
 
     /**
      * Figure out what to actually play when the User requests the

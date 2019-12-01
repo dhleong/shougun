@@ -21,7 +21,7 @@ export interface ITakeoutInstruction {
 }
 
 export interface ITakeoutInstructions {
-    token: string;
-
     nextMedia: ITakeoutInstruction[];
+    serverId: string;
+    token: string;
 }

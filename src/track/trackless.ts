@@ -1,7 +1,11 @@
 import { IMedia, ISeries, isSeries } from "../model";
-import { ITrack, ITracker } from "./base";
+import { ITakeoutTrack, ITrack, ITracker } from "./base";
 
 export class TracklessTracker implements ITracker {
+    public createTakeout(track: ITakeoutTrack): Promise<void> {
+        throw new Error("Takeout not supported");
+    }
+
     public async pickResumeForMedia(media: IMedia): Promise<ITrack> {
         if (!isSeries(media)) {
             return { media };

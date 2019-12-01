@@ -3,9 +3,10 @@ const debug = _debug("shougun:sqlite");
 
 import sqlite from "better-sqlite3";
 
+import { ITakeoutTrackCreate } from "../base";
 import { IStorage, IViewedInformation } from "../persistent";
 
-const SchemaVersion = 1;
+const SchemaVersion = 2;
 
 function unpackInfo(result: any): IViewedInformation | null {
     if (result === undefined) return null;
@@ -41,6 +42,23 @@ export class Sqlite3Storage implements IStorage {
         this.statementsCache = {};
     }
 
+    public async createTakeout(track: ITakeoutTrackCreate) {
+        this.prepare(`
+            INSERT OR IGNORE INTO Takeout (
+                token,
+                serverId,
+                createdTimestamp
+            ) VALUES (
+                :token,
+                :serverId,
+                :createdTimestamp
+            )
+        `).run({
+            createdTimestamp: new Date().getTime(),
+            ...track,
+        });
+    }
+
     public async loadLastViewedForSeries(seriesId: string): Promise<IViewedInformation | null> {
         const result = this.prepare(`
             SELECT * FROM ViewedInformation
@@ -66,9 +84,10 @@ export class Sqlite3Storage implements IStorage {
                 :resumeTimeSeconds,
                 :videoDurationSeconds
             )
-        `).run(Object.assign({
+        `).run({
             seriesId: undefined,
-        }, info));
+            ...info,
+        });
     }
 
     public async loadById(id: string): Promise<IViewedInformation | null> {
@@ -118,7 +137,11 @@ export class Sqlite3Storage implements IStorage {
         case 0:
             debug("create initial DB");
             this.createInitialDb();
-            this.setVersion(SchemaVersion);
+            break;
+
+        case 1:
+            debug(`migrate from ${version} to ${SchemaVersion}`);
+            this.createTakeoutTable();
             break;
 
         case SchemaVersion:
@@ -128,6 +151,9 @@ export class Sqlite3Storage implements IStorage {
         default:
             throw new Error("");
         }
+
+        debug(`set version to ${SchemaVersion}`);
+        this.setVersion(SchemaVersion);
     }
 
     private createInitialDb() {
@@ -144,6 +170,21 @@ export class Sqlite3Storage implements IStorage {
             CREATE INDEX IF NOT EXISTS ViewedInformation_bySeriesId
             ON ViewedInformation (
                 seriesId
+            );
+        `);
+    }
+
+    private createTakeoutTable() {
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS Takeout (
+                token STRING PRIMARY KEY NOT NULL,
+                serverId STRING,
+                createdTimestamp INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS Takeout_byCreatedTimestamp
+            ON Takeout (
+                createdTimestamp
             );
         `);
     }
