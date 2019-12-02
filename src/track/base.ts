@@ -1,4 +1,5 @@
 import { IMedia } from "../model";
+import { IViewedInformation } from "./persistent";
 
 export interface ITrack {
     media: IMedia;
@@ -16,6 +17,11 @@ export interface ITakeoutTrackCreate {
     serverId: string;
 }
 
+export interface IBorrowedData {
+    tokens: Array<{ serverId: string, token: string }>;
+    viewedInformation: IViewedInformation[];
+}
+
 export interface ITakeoutTrack extends ITakeoutTrackCreate {
     createdTimestamp: number;
 }
@@ -23,6 +29,7 @@ export interface ITakeoutTrack extends ITakeoutTrackCreate {
 export interface ITracker {
 
     createTakeout(track: ITakeoutTrackCreate): Promise<void>;
+    retrieveBorrowed(): Promise<IBorrowedData>;
 
     /**
      * Figure out what to actually play when the User requests the

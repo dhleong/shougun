@@ -1,5 +1,5 @@
 import { IEpisode, IMedia, isEpisode, ISeries, isSeries } from "../model";
-import { ITakeoutTrackCreate, ITrack, ITracker } from "./base";
+import { IBorrowedData, ITakeoutTrackCreate, ITrack, ITracker } from "./base";
 import { computeWatchState, WatchState } from "./util";
 
 export interface IViewedInformation {
@@ -22,6 +22,7 @@ export interface IStorage {
     save(info: IViewedInformation): Promise<void>;
 
     createTakeout(track: ITakeoutTrackCreate): Promise<void>;
+    retrieveBorrowed(): Promise<IBorrowedData>;
 }
 
 export function watchStateOf(viewedInfo: IViewedInformation) {
@@ -39,6 +40,10 @@ export class PersistentTracker implements ITracker {
 
     public createTakeout(track: ITakeoutTrackCreate): Promise<void> {
         return this.storage.createTakeout(track);
+    }
+
+    public retrieveBorrowed(): Promise<IBorrowedData> {
+        return this.storage.retrieveBorrowed();
     }
 
     public async pickResumeForMedia(media: IMedia): Promise<ITrack> {

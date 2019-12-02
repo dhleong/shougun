@@ -1,8 +1,12 @@
 import { IMedia, ISeries, isSeries } from "../model";
-import { ITakeoutTrack, ITrack, ITracker } from "./base";
+import { IBorrowedData, ITakeoutTrack, ITrack, ITracker } from "./base";
 
 export class TracklessTracker implements ITracker {
     public createTakeout(track: ITakeoutTrack): Promise<void> {
+        throw new Error("Takeout not supported");
+    }
+
+    public retrieveBorrowed(): Promise<IBorrowedData> {
         throw new Error("Takeout not supported");
     }
 

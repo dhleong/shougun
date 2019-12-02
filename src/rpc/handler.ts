@@ -61,6 +61,11 @@ export class RpcHandler {
         return queryVia(options, this.shougun.queryRecommended(options));
     }
 
+    public async retrieveBorrowed() {
+        const { tracker } = this.shougun.context;
+        return tracker.retrieveBorrowed();
+    }
+
     public async search(query: string) {
         const media = await this.shougun.search(query);
 

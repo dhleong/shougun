@@ -3,7 +3,7 @@ const debug = _debug("shougun:sqlite");
 
 import sqlite from "better-sqlite3";
 
-import { ITakeoutTrackCreate } from "../base";
+import { IBorrowedData, ITakeoutTrackCreate } from "../base";
 import { IStorage, IViewedInformation } from "../persistent";
 
 const SchemaVersion = 2;
@@ -67,6 +67,43 @@ export class Sqlite3Storage implements IStorage {
         `).get(seriesId);
 
         return unpackInfo(result);
+    }
+
+    public async retrieveBorrowed(): Promise<IBorrowedData> {
+        const takeoutRows = this.prepare(`
+            SELECT token, serverId, createdTimestamp FROM Takeout
+            ORDER BY createdTimestamp ASC;
+        `).iterate();
+
+        let oldestViewed: number = -1;
+        const tokens: IBorrowedData["tokens"] = [];
+        for await (const { token, serverId, createdTimestamp } of takeoutRows) {
+            if (oldestViewed === -1) {
+                oldestViewed = createdTimestamp;
+            }
+            tokens.push({ token, serverId });
+        }
+
+        const viewedInformation: IViewedInformation[] = [];
+
+        if (oldestViewed !== -1) {
+            const viewedRows = this.prepare(`
+                SELECT * FROM ViewedInformation
+                WHERE lastViewedTimestamp >= :oldestViewed
+                ORDER BY lastViewedTimestamp ASC
+            `).iterate({
+                oldestViewed,
+            });
+
+            for await (const row of viewedRows) {
+                viewedInformation.push(row);
+            }
+        }
+
+        return {
+            tokens,
+            viewedInformation,
+        };
     }
 
     public async save(info: IViewedInformation): Promise<void> {
@@ -172,6 +209,7 @@ export class Sqlite3Storage implements IStorage {
                 seriesId
             );
         `);
+        this.createTakeoutTable();
     }
 
     private createTakeoutTable() {

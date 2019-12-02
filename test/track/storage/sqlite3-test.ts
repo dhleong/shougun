@@ -1,9 +1,12 @@
 import * as chai from "chai";
+import chaiSubset from "chai-subset";
 
-import { Sqlite3Storage } from "../../../src/track/storage/sqlite3";
+import { ITakeoutTrackCreate } from "../../../src/track/base";
 import { IViewedInformation } from "../../../src/track/persistent";
+import { Sqlite3Storage } from "../../../src/track/storage/sqlite3";
 import { toArray } from "../../discover/util";
 
+chai.use(chaiSubset);
 chai.should();
 
 const seriesId = "firefly";
@@ -73,7 +76,6 @@ describe("Sqlite3Storage", () => {
             lastViewedTimestamp: 42,
         });
 
-
         storage.save(latest);
         storage.save(oldest);
 
@@ -92,8 +94,8 @@ describe("Sqlite3Storage", () => {
 
         const otherSeries = episodeWith({
             id: "other-series",
-            seriesId: "good-place",
             lastViewedTimestamp: 500,
+            seriesId: "good-place",
         });
 
         const latest = episodeWith({
@@ -110,6 +112,40 @@ describe("Sqlite3Storage", () => {
             throw new Error("Should not be null");
         }
         result[0].should.deep.equal(latest);
+    });
+
+    it("retrieveBorrowed fetches watches after", async () => {
+        const beforeTakeout = episodeWith({
+            id: "before-takeout",
+            lastViewedTimestamp: 0,
+        });
+
+        storage.save(beforeTakeout);
+        storage.createTakeout({
+            createdTimestamp: 200,
+            serverId: "serenity",
+            token: "firefly",
+        } as ITakeoutTrackCreate);
+
+        const afterTakeout = episodeWith({
+            id: "after-takeout",
+            lastViewedTimestamp: 500,
+            seriesId: "good-place",
+        });
+        storage.save(afterTakeout);
+
+        const borrowedData = await storage.retrieveBorrowed();
+        borrowedData.should.containSubset({
+            tokens: [{
+                serverId: "serenity",
+                token: "firefly",
+            }],
+            viewedInformation: [{
+                id: "after-takeout",
+                lastViewedTimestamp: 500,
+                seriesId: "good-place",
+            }],
+        });
     });
 });
 
