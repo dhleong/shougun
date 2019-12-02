@@ -106,6 +106,25 @@ export class Sqlite3Storage implements IStorage {
         };
     }
 
+    public async returnBorrowed(
+        tokens: string[],
+        viewedInformation: IViewedInformation[],
+    ) {
+        await this.db.transaction(async () => {
+
+            for (const info of viewedInformation) {
+                await this.save(info);
+            }
+
+            const params = tokens.map(it => "?").join(", ");
+            await this.prepare(`
+                DELETE FROM Takeout
+                WHERE token IN (${params})
+            `).run(...tokens);
+
+        })();
+    }
+
     public async save(info: IViewedInformation): Promise<void> {
         this.prepare(`
             INSERT OR REPLACE INTO ViewedInformation (

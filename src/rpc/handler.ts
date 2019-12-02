@@ -66,6 +66,17 @@ export class RpcHandler {
         return tracker.retrieveBorrowed();
     }
 
+    public async returnBorrowed(
+        tokens: string[],
+        viewedInformation: IViewedInformation[],
+    ) {
+        const { tracker } = this.shougun.context;
+        return tracker.returnBorrowed(
+            tokens,
+            viewedInformation,
+        );
+    }
+
     public async search(query: string) {
         const media = await this.shougun.search(query);
 

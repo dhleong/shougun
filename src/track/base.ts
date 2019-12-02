@@ -26,10 +26,18 @@ export interface ITakeoutTrack extends ITakeoutTrackCreate {
     createdTimestamp: number;
 }
 
-export interface ITracker {
+export interface ITakeoutTracker {
 
     createTakeout(track: ITakeoutTrackCreate): Promise<void>;
     retrieveBorrowed(): Promise<IBorrowedData>;
+    returnBorrowed(
+        tokens: string[],
+        viewedInformation: IViewedInformation[],
+    ): Promise<void>;
+
+}
+
+export interface ITracker extends ITakeoutTracker {
 
     /**
      * Figure out what to actually play when the User requests the

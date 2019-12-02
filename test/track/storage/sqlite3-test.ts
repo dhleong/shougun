@@ -147,6 +147,38 @@ describe("Sqlite3Storage", () => {
             }],
         });
     });
+
+    it("returnBorrowed works", async () => {
+        await storage.createTakeout({
+            createdTimestamp: 200,
+            serverId: "serenity",
+            token: "firefly",
+        } as ITakeoutTrackCreate);
+
+        await storage.returnBorrowed(["firefly"], [
+            {
+                id: "after-takeout",
+                seriesId: "good-place",
+                title: "After Takeout",
+
+                lastViewedTimestamp: 500,
+                resumeTimeSeconds: 0,
+                videoDurationSeconds: 500,
+            },
+        ]);
+
+        const data = await storage.retrieveBorrowed();
+        data.tokens.should.be.empty;
+        data.viewedInformation.should.be.empty;
+
+        const info = await storage.loadLastViewedForSeries("good-place");
+        if (!info) throw new Error("Should have viewedInfo");
+
+        info.should.containSubset({
+            id: "after-takeout",
+            seriesId: "good-place",
+        });
+    });
 });
 
 function episodeWith(
