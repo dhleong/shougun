@@ -39,6 +39,12 @@ export class PersistentTracker implements ITracker {
         return this.storage.createTakeout(track);
     }
 
+    public markBorrowReturned(
+        tokens: string[],
+    ): Promise<void> {
+        return this.storage.markBorrowReturned(tokens);
+    }
+
     public retrieveBorrowed(): Promise<IBorrowedData> {
         return this.storage.retrieveBorrowed();
     }

@@ -49,6 +49,15 @@ export class RpcHandler {
         return generateMachineUuid();
     }
 
+    public async markBorrowReturned(
+        tokens: string[],
+    ) {
+        const { tracker } = this.shougun.context;
+        return tracker.markBorrowReturned(
+            tokens,
+        );
+    }
+
     public async queryRecent(options: {
         onlyLocal?: boolean,
     } & Partial<IQueryOpts>) {

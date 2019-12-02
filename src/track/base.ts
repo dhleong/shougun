@@ -29,6 +29,7 @@ export interface ITakeoutTrack extends ITakeoutTrackCreate {
 export interface ITakeoutTracker {
 
     createTakeout(track: ITakeoutTrackCreate): Promise<void>;
+    markBorrowReturned(tokens: string[]): Promise<void>;
     retrieveBorrowed(): Promise<IBorrowedData>;
     returnBorrowed(
         tokens: string[],

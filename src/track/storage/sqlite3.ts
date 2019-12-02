@@ -69,6 +69,16 @@ export class Sqlite3Storage implements IStorage {
         return unpackInfo(result);
     }
 
+    public async markBorrowReturned(
+        tokens: string[],
+    ): Promise<void> {
+        const params = tokens.map(it => "?").join(", ");
+        await this.prepare(`
+            DELETE FROM Takeout
+            WHERE token IN (${params})
+        `).run(...tokens);
+    }
+
     public async retrieveBorrowed(): Promise<IBorrowedData> {
         const takeoutRows = this.prepare(`
             SELECT token, serverId, createdTimestamp FROM Takeout
@@ -116,11 +126,7 @@ export class Sqlite3Storage implements IStorage {
                 await this.save(info);
             }
 
-            const params = tokens.map(it => "?").join(", ");
-            await this.prepare(`
-                DELETE FROM Takeout
-                WHERE token IN (${params})
-            `).run(...tokens);
+            await this.markBorrowReturned(tokens);
 
         })();
     }
