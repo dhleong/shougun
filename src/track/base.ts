@@ -12,25 +12,25 @@ export interface IRecentMedia {
     title: string;
 }
 
-export interface ITakeoutTrackCreate {
-    token: string;
-    serverId: string;
-}
-
-export interface IBorrowedData {
+export interface ILoanData {
     tokens: Array<{ serverId: string, token: string }>;
     viewedInformation: IViewedInformation[];
 }
 
-export interface ITakeoutTrack extends ITakeoutTrackCreate {
+export interface ILoanCreate {
+    token: string;
+    serverId: string;
+}
+
+export interface ILoan extends ILoanCreate {
     createdTimestamp: number;
 }
 
-export interface ITakeoutTracker {
+export interface ILoanTracker {
 
-    createTakeout(track: ITakeoutTrackCreate): Promise<void>;
+    createLoan(track: ILoanCreate): Promise<void>;
     markBorrowReturned(tokens: string[]): Promise<void>;
-    retrieveBorrowed(): Promise<IBorrowedData>;
+    retrieveBorrowed(): Promise<ILoanData>;
     returnBorrowed(
         tokens: string[],
         viewedInformation: IViewedInformation[],
@@ -38,7 +38,7 @@ export interface ITakeoutTracker {
 
 }
 
-export interface ITracker extends ITakeoutTracker {
+export interface ITracker extends ILoanTracker {
 
     /**
      * Figure out what to actually play when the User requests the

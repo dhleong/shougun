@@ -8,8 +8,8 @@ export { IDiscovery } from "./discover/base";
 export { IPlayer } from "./playback/player";
 export { ChromecastPlayer } from "./playback/player/chromecast";
 
-// takeout
-export { TakeoutMode } from "./takeout/model";
+// borrowing
+export { BorrowMode } from "./borrow/model";
 
 // core:
 export * from "./model";

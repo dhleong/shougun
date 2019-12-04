@@ -7,7 +7,7 @@ import pathlib from "path";
 import fsextra from "fs-extra";
 import { Server } from "node-ssdp";
 
-import { TakeoutMode } from "../takeout/model";
+import { BorrowMode } from "../borrow/model";
 import { generateMachineUuid } from "./id";
 
 export const LOCAL_ANNOUNCE_PATH = pathlib.join(
@@ -20,7 +20,7 @@ export class RpcAnnouncer {
 
     public async start(config: {
         serverPort: number,
-        takeout?: TakeoutMode,
+        borrowing?: BorrowMode,
         version: number,
     }) {
         if (this.server) {
@@ -43,15 +43,15 @@ export class RpcAnnouncer {
             udn: "uuid:" + uuid,
 
             headers: {
+                BORROWING: config.borrowing,
                 SID: uuid,
-                TAKEOUT: config.takeout,
             },
         });
 
         server.addUSN(`urn:schemas:service:ShougunServer:${config.version}`);
-        if (config.takeout === TakeoutMode.ALLOW_REQUESTS) {
+        if (config.borrowing === BorrowMode.LENDER) {
             server.addUSN(`urn:schemas:service:ShougunLibrary:${config.version}`);
-        } else if (config.takeout === TakeoutMode.ENABLE_LOADING) {
+        } else if (config.borrowing === BorrowMode.BORROWER) {
             server.addUSN(`urn:schemas:service:ShougunBorrower:${config.version}`);
         }
 

@@ -3,7 +3,7 @@ const debug = _debug("shougun:sqlite");
 
 import sqlite from "better-sqlite3";
 
-import { IBorrowedData, ITakeoutTrackCreate } from "../base";
+import { ILoanCreate, ILoanData } from "../base";
 import { IStorage, IViewedInformation } from "../persistent";
 
 const SchemaVersion = 2;
@@ -42,9 +42,9 @@ export class Sqlite3Storage implements IStorage {
         this.statementsCache = {};
     }
 
-    public async createTakeout(track: ITakeoutTrackCreate) {
+    public async createLoan(track: ILoanCreate) {
         this.prepare(`
-            INSERT OR IGNORE INTO Takeout (
+            INSERT OR IGNORE INTO Loans (
                 token,
                 serverId,
                 createdTimestamp
@@ -75,15 +75,15 @@ export class Sqlite3Storage implements IStorage {
         this.markBorrowReturnedBlocking(tokens);
     }
 
-    public async retrieveBorrowed(): Promise<IBorrowedData> {
-        const takeoutRows = this.prepare(`
-            SELECT token, serverId, createdTimestamp FROM Takeout
+    public async retrieveBorrowed(): Promise<ILoanData> {
+        const loanRows = this.prepare(`
+            SELECT token, serverId, createdTimestamp FROM Loans
             ORDER BY createdTimestamp ASC;
         `).iterate();
 
         let oldestViewed: number = -1;
-        const tokens: IBorrowedData["tokens"] = [];
-        for (const { token, serverId, createdTimestamp } of takeoutRows) {
+        const tokens: ILoanData["tokens"] = [];
+        for (const { token, serverId, createdTimestamp } of loanRows) {
             if (oldestViewed === -1) {
                 oldestViewed = createdTimestamp;
             }
@@ -181,7 +181,7 @@ export class Sqlite3Storage implements IStorage {
         const params = tokens.map(it => "?").join(", ");
         this.db.transaction(() => {
             const result = this.prepare(`
-                DELETE FROM Takeout
+                DELETE FROM Loans
                 WHERE token IN (${params})
             `).run(...tokens);
 
@@ -216,7 +216,7 @@ export class Sqlite3Storage implements IStorage {
 
         case 1:
             debug(`migrate from ${version} to ${SchemaVersion}`);
-            this.createTakeoutTable();
+            this.createLoansTable();
             break;
 
         case SchemaVersion:
@@ -247,19 +247,19 @@ export class Sqlite3Storage implements IStorage {
                 seriesId
             );
         `);
-        this.createTakeoutTable();
+        this.createLoansTable();
     }
 
-    private createTakeoutTable() {
+    private createLoansTable() {
         this.db.exec(`
-            CREATE TABLE IF NOT EXISTS Takeout (
+            CREATE TABLE IF NOT EXISTS Loans (
                 token STRING PRIMARY KEY NOT NULL,
                 serverId STRING,
                 createdTimestamp INTEGER NOT NULL
             );
 
-            CREATE INDEX IF NOT EXISTS Takeout_byCreatedTimestamp
-            ON Takeout (
+            CREATE INDEX IF NOT EXISTS Loans_byCreatedTimestamp
+            ON Loans (
                 createdTimestamp
             );
         `);

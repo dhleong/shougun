@@ -9,8 +9,8 @@ import { Shougun } from "../shougun";
 import { RpcAnnouncer } from "./announce";
 import { RpcHandler } from "./handler";
 
-import { loadTakeout } from "../takeout/loader";
-import { TakeoutMode } from "../takeout/model";
+import { loadLoans } from "../borrow/loader";
+import { BorrowMode } from "../borrow/model";
 
 function on(
     server: net.Server,
@@ -50,10 +50,10 @@ export interface IRemoteConfig {
     port?: number;
 
     /*
-     * Takeout options
+     * Borrowing options
      */
 
-    takeout?: TakeoutMode;
+    borrowing?: BorrowMode;
 }
 
 export class RpcServer {
@@ -71,8 +71,8 @@ export class RpcServer {
     public async start() {
         const server = createServer();
 
-        if (this.config.takeout === TakeoutMode.ENABLE_LOADING) {
-            await loadTakeout(this.shougun);
+        if (this.config.borrowing === BorrowMode.BORROWER) {
+            await loadLoans(this.shougun);
         }
 
         registerRpcHandler(server, this.handler);
@@ -97,8 +97,8 @@ export class RpcServer {
 
         try {
             await this.announcer.start({
+                borrowing: this.config.borrowing,
                 serverPort: port,
-                takeout: this.config.takeout,
                 version: this.handler.VERSION,
             });
         } catch (e) {

@@ -1,5 +1,5 @@
 import _debug from "debug";
-const debug = _debug("shougun:takeout:loader");
+const debug = _debug("shougun:borrow:loader");
 
 import fs from "fs-extra";
 import os from "os";
@@ -7,55 +7,58 @@ import pathlib from "path";
 
 import { extractDuration } from "../media/duration";
 import { Shougun } from "../shougun";
-import { ITakeoutInstruction, ITakeoutInstructions } from "./model";
+import { ILoanInstruction, ILoanInstructions } from "./model";
 
-export async function loadTakeout(
+/**
+ * Load information about media that was loaned to us/that we borrowed
+ */
+export async function loadLoans(
     shougun: Shougun,
 ) {
-    const takeoutDir = pathlib.join(
+    const borrowDir = pathlib.join(
         os.homedir(),
-        ".config", "shougun", "takeout",
+        ".config", "shougun", "borrow",
     );
-    if (!await fs.pathExists(takeoutDir)) {
-        debug("no takeout dir");
+    if (!await fs.pathExists(borrowDir)) {
+        debug("no borrow dir");
         return;
     }
 
-    const takeoutFiles = await Promise.all(
-        (await fs.readdir(takeoutDir)).map(async file => {
-            const fullPath = pathlib.join(takeoutDir, file);
+    const borrowFiles = await Promise.all(
+        (await fs.readdir(borrowDir)).map(async file => {
+            const fullPath = pathlib.join(borrowDir, file);
             return [
                 fullPath,
                 (await fs.stat(fullPath)).ctime.getTime(),
             ] as [string, number];
         }),
     );
-    takeoutFiles.sort(([_, a], [__, b]) => {
+    borrowFiles.sort(([_, a], [__, b]) => {
         return b - a;
     });
-    debug("load takeout files:", takeoutFiles);
+    debug("load borrow files:", borrowFiles);
 
-    const saveInstruction = saveMediaTakeoutInstruction.bind(null, shougun);
-    for (const [f] of takeoutFiles) {
-        debug("loading takeout @", f);
+    const saveInstruction = saveMediaBorrowInstruction.bind(null, shougun);
+    for (const [f] of borrowFiles) {
+        debug("loading borrow @", f);
 
-        const instructions: ITakeoutInstructions = await fs.readJson(f);
+        const instructions: ILoanInstructions = await fs.readJson(f);
         await Promise.all(instructions.nextMedia.map(saveInstruction));
 
-        // save the token and serverId for "returning" the takeout later
-        await shougun.context.tracker.createTakeout({
+        // save the token and serverId for "returning" the loan later
+        await shougun.context.tracker.createLoan({
             serverId: instructions.serverId,
             token: instructions.token,
         });
 
-        debug("finished loading takeout @", f, "; delete it");
+        debug("finished loading borrow @", f, "; delete it");
         await fs.remove(f);
     }
 }
 
-async function saveMediaTakeoutInstruction(
+async function saveMediaBorrowInstruction(
     shougun: Shougun,
-    instruction: ITakeoutInstruction,
+    instruction: ILoanInstruction,
 ) {
     const media = await shougun.context.getMediaById(instruction.id);
     if (!media) {

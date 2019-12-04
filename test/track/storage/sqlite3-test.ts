@@ -2,7 +2,7 @@ import * as chai from "chai";
 import chaiAsPromised from "chai-as-promised";
 import chaiSubset from "chai-subset";
 
-import { ITakeoutTrackCreate } from "../../../src/track/base";
+import { ILoanCreate } from "../../../src/track/base";
 import { IViewedInformation } from "../../../src/track/persistent";
 import { Sqlite3Storage } from "../../../src/track/storage/sqlite3";
 import { toArray } from "../../discover/util";
@@ -119,24 +119,24 @@ describe("Sqlite3Storage", () => {
     });
 
     it("retrieveBorrowed fetches watches after", async () => {
-        const beforeTakeout = episodeWith({
-            id: "before-takeout",
+        const beforeBorrow = episodeWith({
+            id: "before-borrow",
             lastViewedTimestamp: 0,
         });
 
-        storage.save(beforeTakeout);
-        storage.createTakeout({
+        storage.save(beforeBorrow);
+        storage.createLoan({
             createdTimestamp: 200,
             serverId: "serenity",
             token: "firefly",
-        } as ITakeoutTrackCreate);
+        } as ILoanCreate);
 
-        const afterTakeout = episodeWith({
-            id: "after-takeout",
+        const afterBorrow = episodeWith({
+            id: "after-borrow",
             lastViewedTimestamp: 500,
             seriesId: "good-place",
         });
-        storage.save(afterTakeout);
+        storage.save(afterBorrow);
 
         const borrowedData = await storage.retrieveBorrowed();
         borrowedData.should.containSubset({
@@ -145,7 +145,7 @@ describe("Sqlite3Storage", () => {
                 token: "firefly",
             }],
             viewedInformation: [{
-                id: "after-takeout",
+                id: "after-borrow",
                 lastViewedTimestamp: 500,
                 seriesId: "good-place",
             }],
@@ -153,17 +153,17 @@ describe("Sqlite3Storage", () => {
     });
 
     it("returnBorrowed works", async () => {
-        await storage.createTakeout({
+        await storage.createLoan({
             createdTimestamp: 200,
             serverId: "serenity",
             token: "firefly",
-        } as ITakeoutTrackCreate);
+        } as ILoanCreate);
 
         await storage.returnBorrowed(["firefly"], [
             {
-                id: "after-takeout",
+                id: "after-borrow",
                 seriesId: "good-place",
-                title: "After Takeout",
+                title: "After Borrow",
 
                 lastViewedTimestamp: 500,
                 resumeTimeSeconds: 0,
@@ -179,24 +179,24 @@ describe("Sqlite3Storage", () => {
         if (!info) throw new Error("Should have viewedInfo");
 
         info.should.containSubset({
-            id: "after-takeout",
+            id: "after-borrow",
             seriesId: "good-place",
         });
     });
 
     it("returnBorrowed rolls back when invalid tokens provided", async () => {
-        await storage.createTakeout({
+        await storage.createLoan({
             createdTimestamp: 200,
             serverId: "serenity",
             token: "firefly",
-        } as ITakeoutTrackCreate);
+        } as ILoanCreate);
 
         await (async () => {
             return storage.returnBorrowed(["firefly", "alliance"], [
                 {
-                    id: "after-takeout",
+                    id: "after-borrow",
                     seriesId: "good-place",
-                    title: "After Takeout",
+                    title: "After Borrow",
 
                     lastViewedTimestamp: 500,
                     resumeTimeSeconds: 0,

@@ -1,5 +1,11 @@
 import { IEpisode, IMedia, isEpisode, ISeries, isSeries } from "../model";
-import { IBorrowedData, ITakeoutTrackCreate, ITakeoutTracker, ITrack, ITracker } from "./base";
+import {
+    ILoanCreate,
+    ILoanData,
+    ILoanTracker,
+    ITrack,
+    ITracker,
+} from "./base";
 import { computeWatchState, WatchState } from "./util";
 
 export interface IViewedInformation {
@@ -14,7 +20,7 @@ export interface IViewedInformation {
     videoDurationSeconds: number;
 }
 
-export interface IStorage extends ITakeoutTracker {
+export interface IStorage extends ILoanTracker {
     close(): void;
     loadById(id: string): Promise<IViewedInformation | null>;
     loadLastViewedForSeries(seriesId: string): Promise<IViewedInformation | null>;
@@ -35,8 +41,8 @@ export class PersistentTracker implements ITracker {
         private readonly storage: IStorage,
     ) {}
 
-    public createTakeout(track: ITakeoutTrackCreate): Promise<void> {
-        return this.storage.createTakeout(track);
+    public createLoan(track: ILoanCreate): Promise<void> {
+        return this.storage.createLoan(track);
     }
 
     public markBorrowReturned(
@@ -45,7 +51,7 @@ export class PersistentTracker implements ITracker {
         return this.storage.markBorrowReturned(tokens);
     }
 
-    public retrieveBorrowed(): Promise<IBorrowedData> {
+    public retrieveBorrowed(): Promise<ILoanData> {
         return this.storage.retrieveBorrowed();
     }
 

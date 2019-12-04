@@ -1,8 +1,8 @@
+import { borrow } from "../borrow/borrow";
+import { BorrowMode, IBorrowRequest } from "../borrow/model";
 import { DefaultMatcher } from "../match/default";
 import { IMedia } from "../model";
 import { Shougun } from "../shougun";
-import { TakeoutManager } from "../takeout/manager";
-import { ITakeoutRequest, TakeoutMode } from "../takeout/model";
 import { IViewedInformation } from "../track/persistent";
 import { generateMachineUuid } from "./id";
 import { IRemoteConfig } from "./server";
@@ -71,6 +71,10 @@ export class RpcHandler {
     }
 
     public async retrieveBorrowed() {
+        if (this.config.borrowing !== BorrowMode.BORROWER) {
+            throw new Error("Borrower requests are not enabled");
+        }
+
         const { tracker } = this.shougun.context;
         return tracker.retrieveBorrowed();
     }
@@ -79,6 +83,10 @@ export class RpcHandler {
         tokens: string[],
         viewedInformation: IViewedInformation[],
     ) {
+        if (this.config.borrowing !== BorrowMode.LENDER) {
+            throw new Error("Lender requests are not enabled");
+        }
+
         const { tracker } = this.shougun.context;
         return tracker.returnBorrowed(
             tokens,
@@ -125,26 +133,14 @@ export class RpcHandler {
         return this.shougun.play(media);
     }
 
-    public async takeout(
-        requests: ITakeoutRequest[],
+    public async borrow(
+        requests: IBorrowRequest[],
     ) {
-        if (this.config.takeout !== TakeoutMode.ALLOW_REQUESTS) {
-            throw new Error("Takeout requests are not enabled");
+        if (this.config.borrowing !== BorrowMode.LENDER) {
+            throw new Error("Lender requests are not enabled");
         }
 
-        return new TakeoutManager(this.shougun)
-            .takeout(requests);
+        return borrow(this.shougun, requests);
     }
 
-    public async returnTakeout(
-        token: string,
-        viewedInformation: IViewedInformation[],
-    ) {
-        if (this.config.takeout !== TakeoutMode.ALLOW_REQUESTS) {
-            throw new Error("Takeout requests are not enabled");
-        }
-
-        return new TakeoutManager(this.shougun)
-            .returnTakeout(token, viewedInformation);
-    }
 }
