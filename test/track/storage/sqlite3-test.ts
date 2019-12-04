@@ -1,4 +1,5 @@
 import * as chai from "chai";
+import chaiAsPromised from "chai-as-promised";
 import chaiSubset from "chai-subset";
 
 import { ITakeoutTrackCreate } from "../../../src/track/base";
@@ -6,8 +7,11 @@ import { IViewedInformation } from "../../../src/track/persistent";
 import { Sqlite3Storage } from "../../../src/track/storage/sqlite3";
 import { toArray } from "../../discover/util";
 
+chai.use(chaiAsPromised);
 chai.use(chaiSubset);
 chai.should();
+
+const { expect } = chai;
 
 const seriesId = "firefly";
 
@@ -178,6 +182,38 @@ describe("Sqlite3Storage", () => {
             id: "after-takeout",
             seriesId: "good-place",
         });
+    });
+
+    it("returnBorrowed rolls back when invalid tokens provided", async () => {
+        await storage.createTakeout({
+            createdTimestamp: 200,
+            serverId: "serenity",
+            token: "firefly",
+        } as ITakeoutTrackCreate);
+
+        await (async () => {
+            return storage.returnBorrowed(["firefly", "alliance"], [
+                {
+                    id: "after-takeout",
+                    seriesId: "good-place",
+                    title: "After Takeout",
+
+                    lastViewedTimestamp: 500,
+                    resumeTimeSeconds: 0,
+                    videoDurationSeconds: 500,
+                },
+            ]);
+        })().should.be.rejectedWith(/Invalid tokens/);
+
+        const data = await storage.retrieveBorrowed();
+        data.tokens.should.deep.equal([{
+            serverId: "serenity",
+            token: "firefly",
+        }]);
+        data.viewedInformation.should.be.empty;
+
+        const info = await storage.loadLastViewedForSeries("good-place");
+        expect(info).to.be.null;
     });
 });
 

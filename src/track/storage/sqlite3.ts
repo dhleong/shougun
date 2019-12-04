@@ -72,11 +72,7 @@ export class Sqlite3Storage implements IStorage {
     public async markBorrowReturned(
         tokens: string[],
     ): Promise<void> {
-        const params = tokens.map(it => "?").join(", ");
-        await this.prepare(`
-            DELETE FROM Takeout
-            WHERE token IN (${params})
-        `).run(...tokens);
+        this.markBorrowReturnedBlocking(tokens);
     }
 
     public async retrieveBorrowed(): Promise<IBorrowedData> {
@@ -87,7 +83,7 @@ export class Sqlite3Storage implements IStorage {
 
         let oldestViewed: number = -1;
         const tokens: IBorrowedData["tokens"] = [];
-        for await (const { token, serverId, createdTimestamp } of takeoutRows) {
+        for (const { token, serverId, createdTimestamp } of takeoutRows) {
             if (oldestViewed === -1) {
                 oldestViewed = createdTimestamp;
             }
@@ -105,7 +101,7 @@ export class Sqlite3Storage implements IStorage {
                 oldestViewed,
             });
 
-            for await (const row of viewedRows) {
+            for (const row of viewedRows) {
                 viewedInformation.push(row);
             }
         }
@@ -120,13 +116,13 @@ export class Sqlite3Storage implements IStorage {
         tokens: string[],
         viewedInformation: IViewedInformation[],
     ) {
-        await this.db.transaction(async () => {
+        this.db.transaction(() => {
 
             for (const info of viewedInformation) {
-                await this.save(info);
+                this.save(info);
             }
 
-            await this.markBorrowReturned(tokens);
+            this.markBorrowReturnedBlocking(tokens);
 
         })();
     }
@@ -176,6 +172,23 @@ export class Sqlite3Storage implements IStorage {
                 yield unpacked;
             }
         }
+    }
+
+    /**
+     * Non-async version that can be used inside transactions
+     */
+    private markBorrowReturnedBlocking(tokens: string[]) {
+        const params = tokens.map(it => "?").join(", ");
+        this.db.transaction(() => {
+            const result = this.prepare(`
+                DELETE FROM Takeout
+                WHERE token IN (${params})
+            `).run(...tokens);
+
+            if (result.changes !== tokens.length) {
+                throw new Error(`Invalid tokens provided`);
+            }
+        })();
     }
 
     private prepare(statement: string) {

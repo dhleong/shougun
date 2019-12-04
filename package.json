@@ -26,8 +26,10 @@
   },
   "homepage": "https://github.com/dhleong/shougun#readme",
   "dependencies": {
+    "@types/chai-as-promised": "^7.1.2",
     "babbling": "^1.19.0",
     "better-sqlite3": "^5.4.3",
+    "chai-as-promised": "^7.1.1",
     "chokidar": "^3.2.2",
     "crc": "^3.8.0",
     "debug": "^4.1.1",
