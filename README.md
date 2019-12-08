@@ -14,10 +14,10 @@ looks like this:
 ```typescript
 // ShougunBuilder is a convenient, typesafe, fluent interface for building a
 // Shougun instance with whatever features you desire.
-const shougun = await new ShougunBuilder()
+const shougun = await ShougunBuilder.create()
 
-    // track episode watch progress in a sqlite db
-    .trackInSqlite("shougun.db")
+    // play back on a specific chromecast device
+    .playOnNamedChromecast("Family Room TV")
 
     // call this multiple times to scan multiple local folders
     .scanFolder("~/Movies")
@@ -26,11 +26,11 @@ const shougun = await new ShougunBuilder()
     // results in findMedia
     .includeBabblingMedia()
 
+    // track episode watch progress in a sqlite db
+    .trackInSqlite("shougun.db")
+
     // use a phonetic matcher for queries, suitable for use with voice assistants
     .matchByPhonetics()
-
-    // play back on a specific chromecast device
-    .playOnNamedChromecast("Family Room TV")
 
     // construct the instance
     .build();

@@ -1,6 +1,13 @@
 import fs from "fs-extra";
 import path from "path";
 
+import {
+    IBabblingConfig,
+    IEmptyBuilder,
+    IExtraRemoteBuilderConfig,
+} from "./builder-model";
+
+import { BorrowMode } from "./borrow/model";
 import { IDiscovery } from "./discover/base";
 import { CompositeDiscovery } from "./discover/composite";
 import { LocalDiscovery } from "./discover/local";
@@ -21,12 +28,10 @@ import { IStorage, PersistentTracker } from "./track/persistent";
 import { Sqlite3Storage } from "./track/storage/sqlite3";
 import { TracklessTracker } from "./track/trackless";
 
-interface IBabblingConfig {
-    configPath?: string;
-    deviceName?: string;
-}
-
-export class ShougunBuilder {
+export class ShougunBuilder implements IExtraRemoteBuilderConfig {
+    public static create(): IEmptyBuilder {
+        return new ShougunBuilder();
+    }
 
     private discoveries: IDiscovery[] = [];
     private matcher: IMatcher | undefined;
@@ -39,11 +44,13 @@ export class ShougunBuilder {
 
     private chromecastDeviceName: string | undefined;
 
+    private constructor() {}
+
     /*
      * Discovery
      */
 
-    public scanFolder(folderPath: string) {
+    public scanFolder(folderPath: string): this {
         this.discoveries.push(
             new LocalDiscovery(resolvePath(folderPath)),
         );
@@ -125,6 +132,24 @@ export class ShougunBuilder {
      */
     public enableRemote(config: IRemoteConfig = {}) {
         this.remoteConfig = config;
+        return this;
+    }
+
+    public enableBorrowerMode() {
+        this.remoteConfig = {
+            ...this.remoteConfig,
+
+            borrowing: BorrowMode.BORROWER,
+        };
+        return this;
+    }
+
+    public enableLenderMode() {
+        this.remoteConfig = {
+            ...this.remoteConfig,
+
+            borrowing: BorrowMode.LENDER,
+        };
         return this;
     }
 
