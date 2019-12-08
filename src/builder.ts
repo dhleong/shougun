@@ -4,8 +4,10 @@ import path from "path";
 import {
     IBabblingConfig,
     IEmptyBuilder,
+    IExtraRemoteBuilderConfig,
 } from "./builder-model";
 
+import { BorrowMode } from "./borrow/model";
 import { IDiscovery } from "./discover/base";
 import { CompositeDiscovery } from "./discover/composite";
 import { LocalDiscovery } from "./discover/local";
@@ -26,7 +28,7 @@ import { IStorage, PersistentTracker } from "./track/persistent";
 import { Sqlite3Storage } from "./track/storage/sqlite3";
 import { TracklessTracker } from "./track/trackless";
 
-export class ShougunBuilder {
+export class ShougunBuilder implements IExtraRemoteBuilderConfig {
     public static create(): IEmptyBuilder {
         return new ShougunBuilder();
     }
@@ -130,6 +132,24 @@ export class ShougunBuilder {
      */
     public enableRemote(config: IRemoteConfig = {}) {
         this.remoteConfig = config;
+        return this;
+    }
+
+    public enableBorrowerMode() {
+        this.remoteConfig = {
+            ...this.remoteConfig,
+
+            borrowing: BorrowMode.BORROWER,
+        };
+        return this;
+    }
+
+    public enableLenderMode() {
+        this.remoteConfig = {
+            ...this.remoteConfig,
+
+            borrowing: BorrowMode.LENDER,
+        };
         return this;
     }
 

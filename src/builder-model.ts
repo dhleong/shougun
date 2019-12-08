@@ -1,3 +1,4 @@
+import { BorrowMode } from "./borrow/model";
 import { IMatcher } from "./match";
 import { IPlayer } from "./playback/player";
 import { IRemoteConfig } from "./rpc/server";
@@ -45,18 +46,51 @@ export interface IBuilderWithDiscovery {
 // include functions from the first again + build) but it's okay
 // Future typescript releases might also fix it
 
+//
+// match mode:
+
 interface IMatchBuilderConfig {
     matchByPhonetics(): Omit<this, keyof IMatchBuilderConfig>;
     matchWith(matcher: IMatcher): Omit<this, keyof IMatchBuilderConfig>;
 }
 
+//
+// remote config:
+
+export type OptionalExtraRemoteBuilder<T> =
+    T extends { borrowing: BorrowMode } ? {} :
+    IExtraRemoteBuilderConfig;
+
 interface IRemoteBuilderConfig {
-    enableRemote(config?: IRemoteConfig): Omit<this, keyof IRemoteBuilderConfig>;
+    enableRemote(
+        config?: Omit<IRemoteConfig, "borrowing">,
+    ): Omit<
+        this,
+        keyof IRemoteBuilderConfig
+    > & OptionalExtraRemoteBuilder<typeof config>;
+
+    enableRemote(
+        config: IRemoteConfig & { borrowing: BorrowMode },
+    ): Omit<
+        this,
+        keyof IRemoteBuilderConfig
+    >;
 }
+
+export interface IExtraRemoteBuilderConfig {
+    enableBorrowerMode(): Omit<this, keyof IExtraRemoteBuilderConfig>;
+    enableLenderMode(): Omit<this, keyof IExtraRemoteBuilderConfig>;
+}
+
+//
+// composite of all optionals:
 
 type OptionalConfig =
     IMatchBuilderConfig
     & IRemoteBuilderConfig;
+
+//
+// configured:
 
 export interface IConfiguredBuilder {
     build(): Promise<Shougun>;
