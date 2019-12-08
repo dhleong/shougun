@@ -6,6 +6,7 @@ import { IStorage } from "./track/persistent";
 
 export interface IEmptyBuilder {
     playOnNamedChromecast(deviceName: string): IBuilderWithChromecast;
+    playOnVlc(): IBuilderWithPlayer;
     playOn(player: IPlayer): IBuilderWithPlayer;
 }
 
