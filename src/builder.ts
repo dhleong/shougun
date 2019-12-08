@@ -11,6 +11,7 @@ import { resolvePath } from "./media/util";
 import { IQueryable } from "./model";
 import { IPlayer } from "./playback/player";
 import { ChromecastPlayer } from "./playback/player/chromecast";
+import { VlcPlayer } from "./playback/player/vlc";
 import { BabblingQueryable } from "./queryables/babbling";
 import { ContextQueryable } from "./queryables/context";
 import { IRemoteConfig, RpcServer } from "./rpc/server";
@@ -72,13 +73,23 @@ export class ShougunBuilder {
      */
 
     public playOnNamedChromecast(deviceName: string) {
+        this.chromecastDeviceName = deviceName;
+        return this.playOn(
+            ChromecastPlayer.forNamedDevice(deviceName),
+        );
+    }
+
+    public playOnVlc() {
+        return this.playOn(new VlcPlayer());
+    }
+
+    public playOn(player: IPlayer) {
         if (this.player) {
             // TODO does it make sense to ever have >1?
             throw new Error("Only one Player allowed");
         }
 
-        this.chromecastDeviceName = deviceName;
-        this.player = ChromecastPlayer.forNamedDevice(deviceName);
+        this.player = player;
         return this;
     }
 
@@ -164,7 +175,7 @@ export class ShougunBuilder {
 
         if (this.remoteConfig) {
             const rpc = new RpcServer(shougun, this.remoteConfig);
-            rpc.start();
+            await rpc.start();
         }
 
         return shougun;

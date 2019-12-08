@@ -8,6 +8,9 @@ export { IDiscovery } from "./discover/base";
 export { IPlayer } from "./playback/player";
 export { ChromecastPlayer } from "./playback/player/chromecast";
 
+// borrowing
+export { BorrowMode } from "./borrow/model";
+
 // core:
 export * from "./model";
 export { Context } from "./context";

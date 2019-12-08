@@ -1,6 +1,12 @@
+import { borrow } from "../borrow/borrow";
+import { loadLoans } from "../borrow/loader";
+import { BorrowMode, IBorrowRequest } from "../borrow/model";
 import { DefaultMatcher } from "../match/default";
 import { IMedia } from "../model";
 import { Shougun } from "../shougun";
+import { IViewedInformation } from "../track/persistent";
+import { generateMachineUuid } from "./id";
+import { IRemoteConfig } from "./server";
 
 const MAX_RESULTS = 50; // don't try to send more than this over the wire
 
@@ -37,7 +43,33 @@ export class RpcHandler {
 
     constructor(
         private readonly shougun: Shougun,
+        private readonly config: IRemoteConfig,
     ) {}
+
+    public async getId() {
+        return generateMachineUuid();
+    }
+
+    public async loadLoans() {
+        if (this.config.borrowing !== BorrowMode.BORROWER) {
+            throw new Error("Borrower requests are not enabled");
+        }
+
+        // refresh the local media in case some was downloaded
+        // and we haven't detected the changes yet
+        await this.shougun.refresh();
+
+        await loadLoans(this.shougun);
+    }
+
+    public async markBorrowReturned(
+        tokens: string[],
+    ) {
+        const { tracker } = this.shougun.context;
+        return tracker.markBorrowReturned(
+            tokens,
+        );
+    }
 
     public async queryRecent(options: {
         onlyLocal?: boolean,
@@ -49,6 +81,30 @@ export class RpcHandler {
         onlyLocal?: boolean,
     } & Partial<IQueryOpts>) {
         return queryVia(options, this.shougun.queryRecommended(options));
+    }
+
+    public async retrieveBorrowed() {
+        if (this.config.borrowing !== BorrowMode.BORROWER) {
+            throw new Error("Borrower requests are not enabled");
+        }
+
+        const { tracker } = this.shougun.context;
+        return tracker.retrieveBorrowed();
+    }
+
+    public async returnBorrowed(
+        tokens: string[],
+        viewedInformation: IViewedInformation[],
+    ) {
+        if (this.config.borrowing !== BorrowMode.LENDER) {
+            throw new Error("Lender requests are not enabled");
+        }
+
+        const { tracker } = this.shougun.context;
+        return tracker.returnBorrowed(
+            tokens,
+            viewedInformation,
+        );
     }
 
     public async search(query: string) {
@@ -89,4 +145,15 @@ export class RpcHandler {
 
         return this.shougun.play(media);
     }
+
+    public async borrow(
+        requests: IBorrowRequest[],
+    ) {
+        if (this.config.borrowing !== BorrowMode.LENDER) {
+            throw new Error("Lender requests are not enabled");
+        }
+
+        return borrow(this.shougun, requests);
+    }
+
 }

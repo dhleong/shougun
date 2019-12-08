@@ -29,13 +29,7 @@ export class CompositeDiscovery implements IDiscovery {
         context: Context,
         media: IMedia,
     ) {
-        const instance = this.instanceById(media.discovery);
-        if (!instance) {
-            throw new Error(
-                `${media.id} provided by unknown: ${media.discovery}`,
-            );
-        }
-
+        const instance = this.instanceForMedia(media);
         return instance.createPlayable(context, media);
     }
 
@@ -45,10 +39,28 @@ export class CompositeDiscovery implements IDiscovery {
         );
     }
 
+    public async getLocalPath(
+        context: Context,
+        media: IMedia,
+    ) {
+        const instance = this.instanceForMedia(media);
+        return instance.getLocalPath(context, media);
+    }
+
     public instanceById(id: DiscoveryId): IDiscovery | undefined {
         for (const delegate of this.delegates) {
             const found = delegate.instanceById(id);
             if (found) return found;
         }
+    }
+
+    private instanceForMedia(media: IMedia) {
+        const instance = this.instanceById(media.discovery);
+        if (!instance) {
+            throw new Error(
+                `${media.id} provided by unknown: ${media.discovery}`,
+            );
+        }
+        return instance;
     }
 }

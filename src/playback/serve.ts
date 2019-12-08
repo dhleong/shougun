@@ -275,6 +275,11 @@ export class ServedPlayable extends BasePlayable {
     }
 
     public async getUrl(context: Context, opts?: IPlaybackOptions) {
+        const capabilities = await context.player.getCapabilities();
+        if (capabilities.supportsLocalPlayback) {
+            return "file://" + this.localPath;
+        }
+
         const serveUrl = await this.server.serve(context, this, opts);
         debug("computed URL for", this.localPath, "with", opts, " -> ", serveUrl);
         return serveUrl;

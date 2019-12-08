@@ -3,9 +3,10 @@ const debug = _debug("shougun:sqlite");
 
 import sqlite from "better-sqlite3";
 
+import { ILoanCreate, ILoanData } from "../base";
 import { IStorage, IViewedInformation } from "../persistent";
 
-const SchemaVersion = 1;
+const SchemaVersion = 2;
 
 function unpackInfo(result: any): IViewedInformation | null {
     if (result === undefined) return null;
@@ -41,6 +42,23 @@ export class Sqlite3Storage implements IStorage {
         this.statementsCache = {};
     }
 
+    public async createLoan(track: ILoanCreate) {
+        this.prepare(`
+            INSERT OR IGNORE INTO Loans (
+                token,
+                serverId,
+                createdTimestamp
+            ) VALUES (
+                :token,
+                :serverId,
+                :createdTimestamp
+            )
+        `).run({
+            createdTimestamp: new Date().getTime(),
+            ...track,
+        });
+    }
+
     public async loadLastViewedForSeries(seriesId: string): Promise<IViewedInformation | null> {
         const result = this.prepare(`
             SELECT * FROM ViewedInformation
@@ -49,6 +67,71 @@ export class Sqlite3Storage implements IStorage {
         `).get(seriesId);
 
         return unpackInfo(result);
+    }
+
+    public async markBorrowReturned(
+        tokens: string[],
+    ): Promise<void> {
+        this.markBorrowReturnedBlocking(tokens);
+    }
+
+    public async retrieveBorrowed(): Promise<ILoanData> {
+        const loanRows = this.prepare(`
+            SELECT token, serverId, createdTimestamp FROM Loans
+            ORDER BY createdTimestamp ASC;
+        `).iterate();
+
+        let oldestViewed: number = -1;
+        const tokens: ILoanData["tokens"] = [];
+        for (const { token, serverId, createdTimestamp } of loanRows) {
+            if (oldestViewed === -1) {
+                oldestViewed = createdTimestamp;
+            }
+            tokens.push({ token, serverId });
+        }
+
+        const viewedInformation: IViewedInformation[] = [];
+
+        if (oldestViewed !== -1) {
+            const viewedRows = this.prepare(`
+                SELECT * FROM ViewedInformation
+                WHERE lastViewedTimestamp >= :oldestViewed
+                ORDER BY lastViewedTimestamp ASC
+            `).iterate({
+                oldestViewed,
+            });
+
+            for (const row of viewedRows) {
+                viewedInformation.push(row);
+            }
+        }
+
+        return {
+            tokens,
+            viewedInformation,
+        };
+    }
+
+    public async returnBorrowed(
+        tokens: string[],
+        viewedInformation: IViewedInformation[],
+    ) {
+        if (!tokens.length && !viewedInformation.length) {
+            debug("Nothing provided; skipping returnBorrowed");
+            return;
+        } else if (!tokens.length) {
+            throw new Error("No tokens provided");
+        }
+
+        this.db.transaction(() => {
+
+            for (const info of viewedInformation) {
+                this.save(info);
+            }
+
+            this.markBorrowReturnedBlocking(tokens);
+
+        })();
     }
 
     public async save(info: IViewedInformation): Promise<void> {
@@ -66,9 +149,10 @@ export class Sqlite3Storage implements IStorage {
                 :resumeTimeSeconds,
                 :videoDurationSeconds
             )
-        `).run(Object.assign({
+        `).run({
             seriesId: undefined,
-        }, info));
+            ...info,
+        });
     }
 
     public async loadById(id: string): Promise<IViewedInformation | null> {
@@ -97,6 +181,28 @@ export class Sqlite3Storage implements IStorage {
         }
     }
 
+    /**
+     * Non-async version that can be used inside transactions
+     */
+    private markBorrowReturnedBlocking(tokens: string[]) {
+        if (!tokens.length) {
+            // nothing to do
+            return;
+        }
+
+        const params = tokens.map(it => "?").join(", ");
+        this.db.transaction(() => {
+            const result = this.prepare(`
+                DELETE FROM Loans
+                WHERE token IN (${params})
+            `).run(...tokens);
+
+            if (result.changes !== tokens.length) {
+                throw new Error(`Invalid tokens provided`);
+            }
+        })();
+    }
+
     private prepare(statement: string) {
         this.ensureInitialized();
 
@@ -118,7 +224,11 @@ export class Sqlite3Storage implements IStorage {
         case 0:
             debug("create initial DB");
             this.createInitialDb();
-            this.setVersion(SchemaVersion);
+            break;
+
+        case 1:
+            debug(`migrate from ${version} to ${SchemaVersion}`);
+            this.createLoansTable();
             break;
 
         case SchemaVersion:
@@ -128,6 +238,9 @@ export class Sqlite3Storage implements IStorage {
         default:
             throw new Error("");
         }
+
+        debug(`set version to ${SchemaVersion}`);
+        this.setVersion(SchemaVersion);
     }
 
     private createInitialDb() {
@@ -144,6 +257,22 @@ export class Sqlite3Storage implements IStorage {
             CREATE INDEX IF NOT EXISTS ViewedInformation_bySeriesId
             ON ViewedInformation (
                 seriesId
+            );
+        `);
+        this.createLoansTable();
+    }
+
+    private createLoansTable() {
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS Loans (
+                token STRING PRIMARY KEY NOT NULL,
+                serverId STRING,
+                createdTimestamp INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS Loans_byCreatedTimestamp
+            ON Loans (
+                createdTimestamp
             );
         `);
     }

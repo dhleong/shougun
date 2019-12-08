@@ -20,6 +20,8 @@ export interface IPlaybackOptions {
 }
 
 export interface IPlayerCapabilities {
+    supportsLocalPlayback?: boolean;
+
     supportsAudioTrack(track: IAudioTrack): boolean;
     supportsVideoTrack(track: IVideoTrack): boolean;
     supportsContainer(container: string): boolean;

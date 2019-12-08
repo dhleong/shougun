@@ -1,10 +1,17 @@
 import * as chai from "chai";
+import chaiAsPromised from "chai-as-promised";
+import chaiSubset from "chai-subset";
 
-import { Sqlite3Storage } from "../../../src/track/storage/sqlite3";
+import { ILoanCreate } from "../../../src/track/base";
 import { IViewedInformation } from "../../../src/track/persistent";
+import { Sqlite3Storage } from "../../../src/track/storage/sqlite3";
 import { toArray } from "../../discover/util";
 
+chai.use(chaiAsPromised);
+chai.use(chaiSubset);
 chai.should();
+
+const { expect } = chai;
 
 const seriesId = "firefly";
 
@@ -73,7 +80,6 @@ describe("Sqlite3Storage", () => {
             lastViewedTimestamp: 42,
         });
 
-
         storage.save(latest);
         storage.save(oldest);
 
@@ -92,8 +98,8 @@ describe("Sqlite3Storage", () => {
 
         const otherSeries = episodeWith({
             id: "other-series",
-            seriesId: "good-place",
             lastViewedTimestamp: 500,
+            seriesId: "good-place",
         });
 
         const latest = episodeWith({
@@ -110,6 +116,121 @@ describe("Sqlite3Storage", () => {
             throw new Error("Should not be null");
         }
         result[0].should.deep.equal(latest);
+    });
+
+    it("retrieveBorrowed fetches watches after", async () => {
+        const beforeBorrow = episodeWith({
+            id: "before-borrow",
+            lastViewedTimestamp: 0,
+        });
+
+        storage.save(beforeBorrow);
+        storage.createLoan({
+            createdTimestamp: 200,
+            serverId: "serenity",
+            token: "firefly",
+        } as ILoanCreate);
+
+        const afterBorrow = episodeWith({
+            id: "after-borrow",
+            lastViewedTimestamp: 500,
+            seriesId: "good-place",
+        });
+        storage.save(afterBorrow);
+
+        const borrowedData = await storage.retrieveBorrowed();
+        borrowedData.should.containSubset({
+            tokens: [{
+                serverId: "serenity",
+                token: "firefly",
+            }],
+            viewedInformation: [{
+                id: "after-borrow",
+                lastViewedTimestamp: 500,
+                seriesId: "good-place",
+            }],
+        });
+    });
+
+    it("returnBorrowed works", async () => {
+        await storage.createLoan({
+            createdTimestamp: 200,
+            serverId: "serenity",
+            token: "firefly",
+        } as ILoanCreate);
+
+        await storage.returnBorrowed(["firefly"], [
+            {
+                id: "after-borrow",
+                seriesId: "good-place",
+                title: "After Borrow",
+
+                lastViewedTimestamp: 500,
+                resumeTimeSeconds: 0,
+                videoDurationSeconds: 500,
+            },
+        ]);
+
+        const data = await storage.retrieveBorrowed();
+        data.tokens.should.be.empty;
+        data.viewedInformation.should.be.empty;
+
+        const info = await storage.loadLastViewedForSeries("good-place");
+        if (!info) throw new Error("Should have viewedInfo");
+
+        info.should.containSubset({
+            id: "after-borrow",
+            seriesId: "good-place",
+        });
+    });
+
+    it("returnBorrowed rolls back when invalid tokens provided", async () => {
+        await storage.createLoan({
+            createdTimestamp: 200,
+            serverId: "serenity",
+            token: "firefly",
+        } as ILoanCreate);
+
+        await (async () => {
+            return storage.returnBorrowed(["firefly", "alliance"], [
+                {
+                    id: "after-borrow",
+                    seriesId: "good-place",
+                    title: "After Borrow",
+
+                    lastViewedTimestamp: 500,
+                    resumeTimeSeconds: 0,
+                    videoDurationSeconds: 500,
+                },
+            ]);
+        })().should.be.rejectedWith(/Invalid tokens/);
+
+        const data = await storage.retrieveBorrowed();
+        data.tokens.should.deep.equal([{
+            serverId: "serenity",
+            token: "firefly",
+        }]);
+        data.viewedInformation.should.be.empty;
+
+        const info = await storage.loadLastViewedForSeries("good-place");
+        expect(info).to.be.null;
+    });
+
+    it("returnBorrowed with empty arrays is a nop", async () => {
+        await storage.createLoan({
+            createdTimestamp: 200,
+            serverId: "serenity",
+            token: "firefly",
+        } as ILoanCreate);
+
+        await storage.returnBorrowed([], []);
+
+        const data = await storage.retrieveBorrowed();
+        data.tokens.should.deep.equal([{
+            serverId: "serenity",
+            token: "firefly",
+        }]);
+        data.viewedInformation.should.be.empty;
     });
 });
 

@@ -11,16 +11,16 @@ import { IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
 import {
     IMedia,
-    IMediaMap,
     IMediaResultsMap,
     IQueryable,
     isPlayable,
     isSeries,
+    MediaType,
 } from "./model";
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
-import { ITracker } from "./track/base";
 import { ContextQueryable } from "./queryables/context";
+import { ITracker } from "./track/base";
 
 export interface IQueryOpts {
     onlyLocal?: boolean;
@@ -38,11 +38,6 @@ export class Shougun {
             throw new Error("No queryables provided");
         }
 
-        const map: IMediaMap = {};
-        for await (const media of discovery.discover()) {
-            map[media.id] = media;
-        }
-
         const context = new Context(
             queryables,
             discovery,
@@ -50,17 +45,25 @@ export class Shougun {
             player,
             tracker,
             new Server(),
-            map,
+            {},
         );
 
-        return new Shougun(
-            context,
-        );
+        await context.refreshKnownMedia();
+
+        return new Shougun(context);
     }
 
     constructor(
         public readonly context: Context,
     ) {}
+
+    /**
+     * Reloads all media from all configured discoveries. Updates
+     * [context.knownMedia] and returns that new `IMediaMap`
+     */
+    public async refresh() {
+        return this.context.refreshKnownMedia();
+    }
 
     public async search(query: string) {
         return toArray(mergeAsyncIterables(
@@ -68,6 +71,17 @@ export class Shougun {
                 q.findMedia(this.context, query),
             ),
         ));
+    }
+
+    public async getLocalPath(media: IMedia) {
+        if (media.type === MediaType.ExternalPlayable) {
+            return;
+        }
+
+        return this.context.discovery.getLocalPath(
+            this.context,
+            media,
+        );
     }
 
     /**

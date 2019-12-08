@@ -1,5 +1,11 @@
 import { IEpisode, IMedia, isEpisode, ISeries, isSeries } from "../model";
-import { ITrack, ITracker } from "./base";
+import {
+    ILoanCreate,
+    ILoanData,
+    ILoanTracker,
+    ITrack,
+    ITracker,
+} from "./base";
 import { computeWatchState, WatchState } from "./util";
 
 export interface IViewedInformation {
@@ -14,7 +20,7 @@ export interface IViewedInformation {
     videoDurationSeconds: number;
 }
 
-export interface IStorage {
+export interface IStorage extends ILoanTracker {
     close(): void;
     loadById(id: string): Promise<IViewedInformation | null>;
     loadLastViewedForSeries(seriesId: string): Promise<IViewedInformation | null>;
@@ -34,6 +40,27 @@ export class PersistentTracker implements ITracker {
     constructor(
         private readonly storage: IStorage,
     ) {}
+
+    public createLoan(track: ILoanCreate): Promise<void> {
+        return this.storage.createLoan(track);
+    }
+
+    public markBorrowReturned(
+        tokens: string[],
+    ): Promise<void> {
+        return this.storage.markBorrowReturned(tokens);
+    }
+
+    public retrieveBorrowed(): Promise<ILoanData> {
+        return this.storage.retrieveBorrowed();
+    }
+
+    public returnBorrowed(
+        tokens: string[],
+        viewedInformation: IViewedInformation[],
+    ): Promise<void> {
+        return this.storage.returnBorrowed(tokens, viewedInformation);
+    }
 
     public async pickResumeForMedia(media: IMedia): Promise<ITrack> {
         if (!isSeries(media)) {

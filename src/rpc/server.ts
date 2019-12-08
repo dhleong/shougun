@@ -9,6 +9,9 @@ import { Shougun } from "../shougun";
 import { RpcAnnouncer } from "./announce";
 import { RpcHandler } from "./handler";
 
+import { loadLoans } from "../borrow/loader";
+import { BorrowMode } from "../borrow/model";
+
 function on(
     server: net.Server,
     event: string,
@@ -45,6 +48,12 @@ function registerRpcHandler(
 
 export interface IRemoteConfig {
     port?: number;
+
+    /*
+     * Borrowing options
+     */
+
+    borrowing?: BorrowMode;
 }
 
 export class RpcServer {
@@ -53,35 +62,49 @@ export class RpcServer {
     private readonly handler: RpcHandler;
 
     constructor(
-        shougun: Shougun,
+        private readonly shougun: Shougun,
         private readonly config: IRemoteConfig,
     ) {
-        this.handler = new RpcHandler(shougun);
+        this.handler = new RpcHandler(shougun, config);
     }
 
-    public start() {
+    public async start() {
         const server = createServer();
+
+        if (this.config.borrowing === BorrowMode.BORROWER) {
+            await loadLoans(this.shougun);
+        }
 
         registerRpcHandler(server, this.handler);
 
         debug("start listening on", this.config.port);
-        server.listen(this.config.port, () => {
-            const address = server.address();
-            debug("listening on", address);
+        const address = await new Promise<string | net.AddressInfo | null>(resolve => {
+            server.listen(this.config.port, () => {
+                const addr = server.address();
+                debug("listening on", addr);
 
-            let port: number = 0;
-            if (typeof address === "string") {
-                const raw = address.split(/:/);
-                port = parseInt(raw[raw.length - 1], 10);
-            } else if (address) {
-                port = address.port;
-            }
+                resolve(addr);
+            });
+        });
 
-            this.announcer.start({
+        let port: number = 0;
+        if (typeof address === "string") {
+            const raw = address.split(/:/);
+            port = parseInt(raw[raw.length - 1], 10);
+        } else if (address) {
+            port = address.port;
+        }
+
+        try {
+            await this.announcer.start({
+                borrowing: this.config.borrowing,
                 serverPort: port,
                 version: this.handler.VERSION,
             });
-        });
+        } catch (e) {
+            server.close();
+            throw e;
+        }
 
         this.server = server;
     }

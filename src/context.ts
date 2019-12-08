@@ -16,9 +16,32 @@ export class Context {
         public readonly player: IPlayer,
         public readonly tracker: ITracker,
         public readonly server: IServer,
-        private readonly knownMedia: IMediaMap,
+        private knownMedia: IMediaMap,
     ) {
         trackMediaChanges(discovery, knownMedia);
+    }
+
+    public async refreshKnownMedia() {
+        const map: IMediaMap = {};
+        for await (const media of this.discovery.discover()) {
+            map[media.id] = media;
+        }
+        this.knownMedia = map;
+        return map;
+    }
+
+    public withPlayer(
+        newPlayer: IPlayer,
+    ) {
+        return new Context(
+            this.queryables,
+            this.discovery,
+            this.matcher,
+            newPlayer,
+            this.tracker,
+            this.server,
+            this.knownMedia,
+        );
     }
 
     /**
@@ -30,7 +53,19 @@ export class Context {
     }
 
     public async getMediaById(id: string): Promise<IMedia | undefined> {
-        return this.knownMedia[id];
+        const direct = this.knownMedia[id];
+        if (direct) return direct;
+
+        const seriesIdEnd = id.indexOf(":");
+        if (seriesIdEnd !== -1) {
+            // could be an episode ID
+            const seriesId = id.substring(0, seriesIdEnd);
+            const series = this.knownMedia[seriesId];
+            if (series && isSeries(series)) {
+                const episode = findEpisodeById(series, id);
+                if (episode) return episode; // found!
+            }
+        }
     }
 
     public async getSeries(seriesId: string): Promise<ISeries | undefined> {
@@ -42,6 +77,16 @@ export class Context {
         }
 
         return media;
+    }
+}
+
+function findEpisodeById(series: ISeries, id: string) {
+    for (const s of series.seasons) {
+        for (const e of s.episodes) {
+            if (e.id === id) {
+                return e;
+            }
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 import { IMedia } from "../model";
+import { IViewedInformation } from "./persistent";
 
 export interface ITrack {
     media: IMedia;
@@ -11,7 +12,33 @@ export interface IRecentMedia {
     title: string;
 }
 
-export interface ITracker {
+export interface ILoanData {
+    tokens: Array<{ serverId: string, token: string }>;
+    viewedInformation: IViewedInformation[];
+}
+
+export interface ILoanCreate {
+    token: string;
+    serverId: string;
+}
+
+export interface ILoan extends ILoanCreate {
+    createdTimestamp: number;
+}
+
+export interface ILoanTracker {
+
+    createLoan(track: ILoanCreate): Promise<void>;
+    markBorrowReturned(tokens: string[]): Promise<void>;
+    retrieveBorrowed(): Promise<ILoanData>;
+    returnBorrowed(
+        tokens: string[],
+        viewedInformation: IViewedInformation[],
+    ): Promise<void>;
+
+}
+
+export interface ITracker extends ILoanTracker {
 
     /**
      * Figure out what to actually play when the User requests the
