@@ -116,6 +116,13 @@ export class Sqlite3Storage implements IStorage {
         tokens: string[],
         viewedInformation: IViewedInformation[],
     ) {
+        if (!tokens.length && !viewedInformation.length) {
+            debug("Nothing provided; skipping returnBorrowed");
+            return;
+        } else if (!tokens.length) {
+            throw new Error("No tokens provided");
+        }
+
         this.db.transaction(() => {
 
             for (const info of viewedInformation) {
@@ -178,6 +185,11 @@ export class Sqlite3Storage implements IStorage {
      * Non-async version that can be used inside transactions
      */
     private markBorrowReturnedBlocking(tokens: string[]) {
+        if (!tokens.length) {
+            // nothing to do
+            return;
+        }
+
         const params = tokens.map(it => "?").join(", ");
         this.db.transaction(() => {
             const result = this.prepare(`

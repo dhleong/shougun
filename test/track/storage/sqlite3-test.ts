@@ -215,6 +215,23 @@ describe("Sqlite3Storage", () => {
         const info = await storage.loadLastViewedForSeries("good-place");
         expect(info).to.be.null;
     });
+
+    it("returnBorrowed with empty arrays is a nop", async () => {
+        await storage.createLoan({
+            createdTimestamp: 200,
+            serverId: "serenity",
+            token: "firefly",
+        } as ILoanCreate);
+
+        await storage.returnBorrowed([], []);
+
+        const data = await storage.retrieveBorrowed();
+        data.tokens.should.deep.equal([{
+            serverId: "serenity",
+            token: "firefly",
+        }]);
+        data.viewedInformation.should.be.empty;
+    });
 });
 
 function episodeWith(
