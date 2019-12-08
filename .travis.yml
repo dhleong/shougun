@@ -1,0 +1,8 @@
+language: node_js
+dist: xenial
+node_js:
+    - 11.0.0
+
+cache: npm
+
+script: npm run check
