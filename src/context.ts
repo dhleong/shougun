@@ -16,9 +16,18 @@ export class Context {
         public readonly player: IPlayer,
         public readonly tracker: ITracker,
         public readonly server: IServer,
-        private readonly knownMedia: IMediaMap,
+        private knownMedia: IMediaMap,
     ) {
         trackMediaChanges(discovery, knownMedia);
+    }
+
+    public async refreshKnownMedia() {
+        const map: IMediaMap = {};
+        for await (const media of this.discovery.discover()) {
+            map[media.id] = media;
+        }
+        this.knownMedia = map;
+        return map;
     }
 
     public withPlayer(
