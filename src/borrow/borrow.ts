@@ -49,8 +49,10 @@ export async function borrow(
 
     // create a borrow token
     const token = uuid();
-
-    // TODO save token
+    await shougun.context.tracker.createLoan({
+        serverId: "",
+        token,
+    });
 
     return {
         series: seriesResponses,
