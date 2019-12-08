@@ -1,4 +1,5 @@
 import { borrow } from "../borrow/borrow";
+import { loadLoans } from "../borrow/loader";
 import { BorrowMode, IBorrowRequest } from "../borrow/model";
 import { DefaultMatcher } from "../match/default";
 import { IMedia } from "../model";
@@ -47,6 +48,14 @@ export class RpcHandler {
 
     public async getId() {
         return generateMachineUuid();
+    }
+
+    public async loadLoans() {
+        if (this.config.borrowing !== BorrowMode.BORROWER) {
+            throw new Error("Borrower requests are not enabled");
+        }
+
+        await loadLoans(this.shougun);
     }
 
     public async markBorrowReturned(
