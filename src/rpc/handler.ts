@@ -55,6 +55,10 @@ export class RpcHandler {
             throw new Error("Borrower requests are not enabled");
         }
 
+        // refresh the local media in case some was downloaded
+        // and we haven't detected the changes yet
+        await this.shougun.refresh();
+
         await loadLoans(this.shougun);
     }
 
