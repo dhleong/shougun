@@ -10,12 +10,15 @@ import { Context } from "../context";
 import { analyzeFile } from "../media/analyze";
 import { extractDuration } from "../media/duration";
 import { BasePlayable } from "../media/playable-base";
-import { ILocalMedia, IMedia } from "../model";
+import { ILocalMedia, IMedia, IPlayableWithClients } from "../model";
 import { withQuery } from "../util/url";
 import { IPlaybackOptions } from "./player";
 import { serveForPlayer } from "./serve/player-based";
 
 export interface IServer {
+    addActiveClient(client: string): void;
+    removeActiveClient(client: string): void;
+
     /**
      * If a start time is provided via `opts` AND we serve
      * the file via transcoding, we will try to start transcoding
@@ -39,6 +42,8 @@ export class Server implements IServer {
     private activeStreams: {[id: string]: number} = {};
     private activeRequests = 0;
 
+    private activeClients = new Set<string>();
+
     private checkStreamsForShutdownRequest: NodeJS.Timeout | undefined;
 
     public close() {
@@ -47,6 +52,17 @@ export class Server implements IServer {
         s.close();
         this.server = undefined;
         this.address = undefined;
+    }
+
+    public addActiveClient(client: string) {
+        debug("add active client:", client);
+        this.activeClients.add(client);
+    }
+
+    public removeActiveClient(client: string) {
+        debug("remove active client:", client);
+        this.activeClients.delete(client);
+        this.deferCheckStreamsForShutdown();
     }
 
     public async serve(
@@ -158,8 +174,11 @@ export class Server implements IServer {
             contentType, localPath,
         );
 
-        debug("got stream");
-        stream.once("close", onStreamEnded);
+        debug("got stream @", req.headers.range);
+        stream.once("close", () => {
+            debug("end stream @", req.headers.range);
+            onStreamEnded();
+        });
 
         // if we get here, the stream was created without error
         this.onStreamStarted(media);
@@ -202,6 +221,11 @@ export class Server implements IServer {
             return;
         }
 
+        if (this.activeClients.size) {
+            debug(`found active clients; stay alive`);
+            return;
+        }
+
         for (const id of Object.keys(this.activeStreams)) {
             if (this.activeStreams[id] > 0) {
                 // still active streams
@@ -213,12 +237,12 @@ export class Server implements IServer {
             }
         }
 
-        debug("no remaining active streams; shut down server");
+        debug("no remaining active streams or clients; shut down server");
         this.close();
     }
 }
 
-export class ServedPlayable extends BasePlayable {
+export class ServedPlayable extends BasePlayable implements IPlayableWithClients {
     public static async createFromPath(
         server: IServer,
         media: IMedia,
@@ -254,6 +278,14 @@ export class ServedPlayable extends BasePlayable {
         public readonly durationSeconds: number,
     ) {
         super();
+    }
+
+    public addActiveClient(client: string) {
+        this.server.addActiveClient(client);
+    }
+
+    public removeActiveClient(client: string) {
+        this.server.removeActiveClient(client);
     }
 
     public async analyze() {

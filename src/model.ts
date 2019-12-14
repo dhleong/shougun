@@ -55,6 +55,16 @@ export interface IPlayable {
     getCoverUrl?(context: Context): Promise<string | undefined>;
 }
 
+export interface IPlayableWithClients extends IPlayable {
+    addActiveClient(client: string): void;
+    removeActiveClient(client: string): void;
+}
+
+/** Check if the given IPlayable supports having clients */
+export function supportsClients(playable: IPlayable): playable is IPlayableWithClients {
+    return (playable as any).addActiveClient;
+}
+
 export enum MediaType {
     Episode,
     Movie,

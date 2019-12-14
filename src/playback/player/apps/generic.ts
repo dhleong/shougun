@@ -49,6 +49,14 @@ export interface ILoadParams {
         media: IMedia,
         currentTimeSeconds: number,
     ) => Promise<void>;
+
+    /**
+     * Callback when the player has been stopped---either from the
+     * app being closed, or from the queue being cleared---that can
+     * be used for releasing any resources the player is holding onto
+     * (ex: keeping the server running to handle queues)
+     */
+    onPlayerStop?: () => void;
 }
 
 export interface IQueueData {

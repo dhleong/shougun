@@ -29,6 +29,9 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
         if (this.appInstance instanceof GenericMediaReceiverApp) {
             this.appInstance.close();
         }
+        if (this.params.onPlayerStop) {
+            this.params.onPlayerStop();
+        }
     }
 
     protected async handleMediaStatus(status: IMediaStatus) {

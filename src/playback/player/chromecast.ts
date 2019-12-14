@@ -6,7 +6,7 @@ import { ChromecastDevice } from "babbling";
 import { Context } from "../../context";
 import { IAudioTrack, IVideoAnalysis, IVideoTrack } from "../../media/analyze";
 import { getMetadata } from "../../media/metadata";
-import { IMedia, IPlayable, MediaType } from "../../model";
+import { IMedia, IPlayable, MediaType, supportsClients } from "../../model";
 import { withQuery } from "../../util/url";
 import { canPlayNatively, IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
 import { DefaultMediaReceiverApp } from "./apps/default";
@@ -261,9 +261,10 @@ export class ChromecastPlayer implements IPlayer {
 
             // NOTE: copy base metadata; if there *is* a seriesTitle, for
             // example, that one should have it
-            const myMetadata = Object.assign({}, metadata, {
+            const myMetadata = {
+                ...metadata,
                 title: m.title,
-            });
+            };
 
             const myUrl = indexOfMediaInQueue === index
                 ? url
@@ -278,14 +279,30 @@ export class ChromecastPlayer implements IPlayer {
                 metadata: myMetadata,
                 source: m,
                 url: myUrl,
-            };
+            } as ICastInfo;
         });
+
+        let client: string | undefined;
+        if (queueAround.length && supportsClients(playable)) {
+            // we have a queue; in order to be able to consistently
+            // continue the queue, we need to request that the server
+            // stay active until the app stops (especially for a
+            // ranged media playback, since we might fetch the last
+            // range and not need to request anything again for some time
+            client = `chromecast:${playable.id}`;
+            playable.addActiveClient(client);
+        }
 
         return app.load({
             media,
             queueAround,
 
             onPlayerPaused: opts.onPlayerPaused,
+            onPlayerStop() {
+                if (client && supportsClients(playable)) {
+                    playable.removeActiveClient(client);
+                }
+            },
         });
     }
 
