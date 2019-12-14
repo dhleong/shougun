@@ -52,18 +52,21 @@ export function formatError(
     error: Error,
     details?: string,
 ) {
+    const messageParts = (error.stack || error.message).split("\n");
+
     const errorJson: {
         details?: string,
         message: string;
         stack?: string[]
     } = {
         details,
-        message: error.message,
+        message: messageParts[0],
     };
 
-    if (error.stack) {
-        errorJson.stack = error.stack.split("\n")
-            .map(line => line.trim());
+    const stack: string[] = messageParts.slice(1);
+
+    if (stack.length) {
+        errorJson.stack = stack;
     }
 
     return errorJson;
