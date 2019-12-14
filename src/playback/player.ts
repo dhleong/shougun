@@ -37,10 +37,36 @@ export interface IPlayer {
         options?: IPlaybackOptions,
     ): Promise<void>;
 
+    showError?(
+        error: Error,
+        details?: string,
+    ): Promise<void>;
+
     showRecommendations?(
         context: Context,
         recommendations: Promise<IMedia[]>,
     ): Promise<void>;
+}
+
+export function formatError(
+    error: Error,
+    details?: string,
+) {
+    const errorJson: {
+        details?: string,
+        message: string;
+        stack?: string[]
+    } = {
+        details,
+        message: error.message,
+    };
+
+    if (error.stack) {
+        errorJson.stack = error.stack.split("\n")
+            .map(line => line.trim());
+    }
+
+    return errorJson;
 }
 
 export function canPlayNatively(

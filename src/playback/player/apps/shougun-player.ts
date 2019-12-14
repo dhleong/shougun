@@ -1,5 +1,6 @@
 import { IDevice } from "babbling";
 
+import { formatError } from "../../player";
 import { GenericMediaReceiverApp } from "./generic";
 
 const DEV_ID = "81066132";
@@ -32,5 +33,22 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
             recommendations,
         });
         this.device.stop(); // don't hang around
+    }
+
+    public async showError(
+        error: Error,
+        details?: string,
+    ) {
+        const s = await this.joinOrRunNamespace(CUSTOM_NS);
+        s.send({
+            type: "ERROR",
+
+            error: formatError(error, details),
+        });
+        this.device.stop(); // don't hang around
+
+        return new Promise(resolve => {
+            setTimeout(resolve, 1000);
+        });
     }
 }

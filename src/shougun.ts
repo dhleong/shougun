@@ -120,16 +120,39 @@ export class Shougun {
      * Find a Series or Movie by title
      */
     public async findMedia(query: string) {
-        const titles = await this.search(query);
+        return this.withErrorsDisplayed(async () => {
+            const titles = await this.search(query);
 
-        return this.context.matcher.findBest(query, titles, (media: IMedia) =>
-            media.title,
-        );
+            return this.context.matcher.findBest(query, titles, (media: IMedia) =>
+                media.title,
+            );
+        });
     }
 
     public async play(
         media: IMedia,
         options: IPlaybackOptions = {},
+    ) {
+        return this.withErrorsDisplayed(() =>
+            this.playUnsafe(media, options),
+        );
+    }
+
+    public async showRecommendations() {
+        if (!this.context.player.showRecommendations) {
+            const playerName = this.context.player.constructor.name;
+            throw new Error(`Configured Player (${playerName}) does not support showing recommendations`);
+        }
+
+        return this.context.player.showRecommendations(
+            this.context,
+            toArray(this.queryRecommended()),
+        );
+    }
+
+    private async playUnsafe(
+        media: IMedia,
+        options: IPlaybackOptions,
     ) {
         if (isPlayable(media)) {
             debug(`media is itself playable:`, media);
@@ -165,18 +188,6 @@ export class Shougun {
         return media;
     }
 
-    public async showRecommendations() {
-        if (!this.context.player.showRecommendations) {
-            const playerName = this.context.player.constructor.name;
-            throw new Error(`Configured Player (${playerName}) does not support showing recommendations`);
-        }
-
-        return this.context.player.showRecommendations(
-            this.context,
-            toArray(this.queryRecommended()),
-        );
-    }
-
     private async getQueryableMap(
         query: (queryable: IQueryable) => Promise<IMediaResultsMap>,
     ) {
@@ -204,5 +215,18 @@ export class Shougun {
 
         const resultsBySource = await this.getRecommendationsMap();
         yield *interleaveAsyncIterables(Object.values(resultsBySource));
+    }
+
+    private async withErrorsDisplayed<R>(
+        block: () => Promise<R>,
+    ): Promise<R> {
+        try {
+            return await block();
+        } catch (e) {
+            if (this.context.player.showError) {
+                await this.context.player.showError(e);
+            }
+            throw e;
+        }
     }
 }

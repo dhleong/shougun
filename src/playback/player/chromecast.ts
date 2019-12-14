@@ -306,6 +306,14 @@ export class ChromecastPlayer implements IPlayer {
         });
     }
 
+    public async showError(
+        error: Error,
+        details?: string,
+    ) {
+        const app = await this.device.openApp(ShougunPlayerApp);
+        await app.showError(error, details);
+    }
+
     public async showRecommendations(
         context: Context,
         recommendations: Promise<IMedia[]>,
