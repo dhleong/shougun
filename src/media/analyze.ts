@@ -12,6 +12,7 @@ const ffprobe = (localPath: string) => new Promise<FfprobeData>((resolve, reject
 });
 
 export interface IAudioTrack {
+    channels?: number;
     codec: string;
     profile?: string;
 }
@@ -67,6 +68,7 @@ export async function analyzeFile(
 
 function parseAudioTrack(s: FfprobeStream): IAudioTrack {
     return {
+        channels: s.channels,
         codec: s.codec_name!,
         profile: s.profile as unknown as string,
     };

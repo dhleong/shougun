@@ -49,7 +49,18 @@ const gen1And2Capabilities = {
     ]),
 
     supportsAudioTrack(track: IAudioTrack) {
-        return this.audioCodecs.has(track.codec);
+        if (!this.audioCodecs.has(track.codec)) return false;
+        if (
+            track.codec === "aac"
+            && track.channels
+            && track.channels > 2
+        ) {
+            // also not documented, but aac audio with more than 2 channels
+            // seems to be unsupported. it's possible other codecs (besides
+            // ac3 of course) are similar.
+            return false;
+        }
+        return true;
     },
 
     supportsPixelFormat(format: string) {

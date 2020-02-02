@@ -122,7 +122,7 @@ export async function transcodeForAnalysis(
             // manage seeking through transcoded video, it seems fine to
             // always include this
             command.addOptions([
-                "-movflags frag_keyframe+empty_moov+faststart",
+                "-movflags frag_keyframe+empty_moov+faststart+delay_moov",
                 "-strict experimental",
             ]);
         },
