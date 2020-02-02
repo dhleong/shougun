@@ -174,6 +174,24 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
         yield *iterable;
     }
 
+    public async findByPath(
+        context: Context,
+        mediaPath: string,
+    ): Promise<IMedia | undefined> {
+        // only allow users to play files within our root
+        const resolved = resolvePath(mediaPath);
+        if (!resolved.startsWith(this.root)) {
+            debug(`${resolved} is not under ${this.root}`);
+            return;
+        }
+
+        // make sure it exists
+        const exists = await fs.pathExists(resolved);
+        if (!exists) return;
+
+        return this.createRootMedia(resolved);
+    }
+
     public async getLocalPath(
         context: Context,
         media: IMedia,

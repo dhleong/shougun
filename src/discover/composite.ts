@@ -2,6 +2,7 @@ import { mergeAsyncIterables } from "babbling/dist/async";
 
 import { Context } from "../context";
 import { IMedia } from "../model";
+import { anyPromise } from "../util/any-promise";
 import { DiscoveryId, IDiscoveredChange, IDiscovery } from "./base";
 
 export class CompositeDiscovery implements IDiscovery {
@@ -37,6 +38,15 @@ export class CompositeDiscovery implements IDiscovery {
         yield *mergeAsyncIterables(
             this.delegates.map(it => it.discover()),
         );
+    }
+
+    public async findByPath(
+        context: Context,
+        media: string,
+    ) {
+        return anyPromise(this.delegates.map(d =>
+            d.findByPath(context, media),
+        ));
     }
 
     public async getLocalPath(

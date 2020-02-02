@@ -129,6 +129,14 @@ export class Shougun {
         });
     }
 
+    public async findMediaByPath(path: string) {
+        return this.withErrorsDisplayed(async () =>
+            this.context.discovery.findByPath(
+                this.context, path,
+            ),
+        );
+    }
+
     public async play(
         media: IMedia,
         options: IPlaybackOptions = {},

@@ -39,6 +39,10 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
     ) { }
 
     public abstract changes(): AsyncIterable<IDiscoveredChange>;
+    public abstract findByPath(
+        context: Context,
+        path: string,
+    ): Promise<IMedia | undefined>;
     public abstract getLocalPath(
         context: Context,
         media: IMedia,
