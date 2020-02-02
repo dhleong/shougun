@@ -139,6 +139,13 @@ export class RpcHandler {
         throw new Error(`No media with title ${media.title} and ID ${media.id}`);
     }
 
+    public async startByPath(path: string) {
+        const media = await this.shougun.findMediaByPath(path);
+        if (!media) throw new Error(`No result for ${path}`);
+
+        return this.shougun.play(media);
+    }
+
     public async startByTitle(title: string) {
         const media = await this.shougun.findMedia(title);
         if (!media) throw new Error(`No result for ${title}`);
