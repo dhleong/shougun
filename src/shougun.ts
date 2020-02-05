@@ -1,11 +1,13 @@
 import _debug from "debug";
 const debug = _debug("shougun:core");
 
+import { IEpisodeQuery } from "babbling/dist/app";
 import {
     interleaveAsyncIterables,
     mergeAsyncIterables,
     toArray,
 } from "babbling/dist/async";
+
 import { Context, IShougunOpts } from "./context";
 import { IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
@@ -116,6 +118,32 @@ export class Shougun {
      */
     public async *queryRecommended(options: IQueryOpts = {}) {
         yield *this.queryFromMap(options, this.getRecommendationsMap());
+    }
+
+    /**
+     * Given a SERIES or EXTERNAL-type Media object, attempt to locate
+     * an `IMedia` instance representing a specific episode
+     */
+    public async findEpisodeFor(media: IMedia, query: IEpisodeQuery) {
+        if (
+            media.type === MediaType.Episode
+                || media.type === MediaType.Movie
+        ) {
+            throw new Error(`Media type ${media.type} cannot have episodes`);
+        }
+
+        if (isPlayable(media)) {
+            if (media.findEpisode) {
+                return media.findEpisode(this.context, query);
+            }
+            return;
+        }
+
+        return this.context.discovery.findEpisodeFor(
+            this.context,
+            media,
+            query,
+        );
     }
 
     /**

@@ -3,6 +3,8 @@ const debug = _debug("shougun:discovery:hierarchical");
 
 import util from "util";
 
+import { IEpisodeQuery } from "babbling/dist/app";
+
 import { Context } from "../context";
 import { fileNameToId, fileNameToTitle, fileType, nestId, sortEpisodes, sortSeasons } from "../media/util";
 import { IMedia, IMediaMap, IPlayable, ISeason, ISeries, isSeries, MediaType } from "../model";
@@ -81,6 +83,15 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         for (const m of Object.values(discovered)) {
             yield m;
         }
+    }
+
+    public async findEpisodeFor(
+        context: Context,
+        media: IMedia,
+        query: IEpisodeQuery,
+    ): Promise<IMedia | undefined> {
+        // TODO
+        return;
     }
 
     protected createRootMedia(

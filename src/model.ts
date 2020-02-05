@@ -1,3 +1,5 @@
+import { IEpisodeQuery } from "babbling/dist/app";
+
 import { Context } from "./context";
 import { DiscoveryId } from "./discover/base";
 import { IVideoAnalysis } from "./media/analyze";
@@ -129,6 +131,7 @@ export interface IQueryable {
 
 export interface IPlayableMedia extends IMedia {
     play(opts: IPlaybackOptions): Promise<void>;
+    findEpisode?(context: Context, query: IEpisodeQuery): Promise<IMedia | undefined>;
 }
 
 export function isPlayable(media: IMedia): media is IPlayableMedia {
