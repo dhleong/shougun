@@ -98,7 +98,6 @@ function resultToMedia(
         },
 
         async findEpisode(context, query) {
-            console.log("FIND", query);
             const episode = await player.findEpisodeFor(result, query);
             if (episode) {
                 return resultToMedia(player, episode);
