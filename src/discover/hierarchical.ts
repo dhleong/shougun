@@ -90,8 +90,26 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         media: IMedia,
         query: IEpisodeQuery,
     ): Promise<IMedia | undefined> {
-        // TODO
-        return;
+        if (!isSeries(media)) return;
+
+        // TODO: we do not attempt to determine an actual season *number* or
+        // episode *number* from our media, so this does not work for a partial
+        // checkout, or a partial collection. It is likely to be possible to do
+        // this (for the user's own sorting purposes, there's probably a number
+        // in the filename) but may be hard to get right.  So, for now, we
+        // just... hope for the best.
+        if (
+            query.seasonIndex === undefined
+            || query.episodeIndex === undefined
+            || query.seasonIndex >= media.seasons.length
+        ) {
+            return;
+        }
+
+        const season = media.seasons[query.seasonIndex];
+        if (query.episodeIndex < season.episodes.length) {
+            return season.episodes[query.episodeIndex];
+        }
     }
 
     protected createRootMedia(
