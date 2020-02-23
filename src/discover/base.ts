@@ -17,7 +17,7 @@ export interface IDiscoveredChange {
 export interface IDiscovery {
     id: DiscoveryId;
 
-    changes(): AsyncIterable<IDiscoveredChange>;
+    changes(context: Context): AsyncIterable<IDiscoveredChange>;
     createPlayable(context: Context, media: IMedia): Promise<IPlayable>;
     discover(): AsyncIterable<IMedia>;
     findByPath(context: Context, path: string): Promise<IMedia | undefined>;

@@ -110,12 +110,22 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
         this.id = `local:${rootPath}`;
     }
 
-    public async *changes(): AsyncIterable<IDiscoveredChange> {
-        const events = chokidar.watch(this.root, {
-            persistent: false,
-        });
+    public async *changes(context: Context): AsyncIterable<IDiscoveredChange> {
+        // NOTE: if we are allowed to keep the process alive, we can
+        // simply use the default "persistent" mode; otherwise, we have
+        // to disable persistent mode AND fsevents, since otherwise it
+        // will NOT fall back to polling
+        const chokidarOpts: chokidar.WatchOptions = context.opts.allowProcessKeepalive
+            ? { persistent: true }
+            : {
+                persistent: false,
+                useFsEvents: false,
+            };
+        const events = chokidar.watch(this.root, chokidarOpts);
+
+        debug("watching ", this.root);
         const iterable = new QueuedIterable<IDiscoveredChange>(() => {
-            // cleanup;
+            // cleanup:
             debug("cleanup changes subscription");
             events.close();
         });
@@ -222,7 +232,7 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
             return;
         }
 
-        debug("check for changed media in: ", rootDir);
+        debug("check for changed media in: ", rootDir, "(", fullPath, ")");
 
         try {
             for await (const m of this.discoverFromRoot(lastMap, fullPath)) {
@@ -238,7 +248,11 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
                 // if ENOENT we're probably trying to scan a directory
                 // that was just recursively deleted
                 throw e;
+            } else {
+                debug("NOENT at", fullPath);
             }
         }
+
+        debug("Done", rootDir, "(", fullPath, ")");
     }
 }

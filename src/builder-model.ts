@@ -83,11 +83,26 @@ export interface IExtraRemoteBuilderConfig {
 }
 
 //
+// misc optioanl config:
+
+export interface IMiscConfig {
+    /**
+     * By default, Shougun will try to avoid keeping the NodeJS process
+     * alive, but it can be more efficient about certain things if it
+     * knows it is allowed to keep the process alive.
+     *
+     * Some other configs imply this setting, such as [enableRemote()]
+     */
+    allowProcessKeepalive(): this;
+}
+
+//
 // composite of all optionals:
 
 type OptionalConfig =
     IMatchBuilderConfig
-    & IRemoteBuilderConfig;
+    & IRemoteBuilderConfig
+    & IMiscConfig;
 
 //
 // configured:

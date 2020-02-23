@@ -8,6 +8,7 @@ import {
 } from "./builder-model";
 
 import { BorrowMode } from "./borrow/model";
+import { IShougunOpts } from "./context";
 import { IDiscovery } from "./discover/base";
 import { CompositeDiscovery } from "./discover/composite";
 import { LocalDiscovery } from "./discover/local";
@@ -41,6 +42,7 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
     private remoteConfig: IRemoteConfig | undefined;
 
     private verifyWritePaths: string[] = [];
+    private opts: IShougunOpts = {};
 
     private chromecastDeviceName: string | undefined;
 
@@ -132,6 +134,7 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
      */
     public enableRemote(config: IRemoteConfig = {}) {
         this.remoteConfig = config;
+        this.opts.allowProcessKeepalive = true;
         return this;
     }
 
@@ -150,6 +153,15 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
 
             borrowing: BorrowMode.LENDER,
         };
+        return this;
+    }
+
+    /*
+     * Misc
+     */
+
+    public allowProcessKeepalive() {
+        this.opts.allowProcessKeepalive = true;
         return this;
     }
 
@@ -196,6 +208,7 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
             matcher,
             this.player,
             this.tracker,
+            this.opts,
         );
 
         if (this.remoteConfig) {

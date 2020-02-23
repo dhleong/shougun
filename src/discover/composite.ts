@@ -20,9 +20,9 @@ export class CompositeDiscovery implements IDiscovery {
         private readonly delegates: IDiscovery[],
     ) {}
 
-    public async *changes(): AsyncIterable<IDiscoveredChange> {
+    public async *changes(context: Context): AsyncIterable<IDiscoveredChange> {
         yield *mergeAsyncIterables(
-            this.delegates.map(it => it.changes()),
+            this.delegates.map(it => it.changes(context)),
         );
     }
 

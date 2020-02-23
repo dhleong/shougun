@@ -1,5 +1,5 @@
 import _debug from "debug";
-const debug = _debug("shougun:hierarchical");
+const debug = _debug("shougun:discovery:hierarchical");
 
 import util from "util";
 
@@ -38,7 +38,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         protected readonly root: TEntity,
     ) { }
 
-    public abstract changes(): AsyncIterable<IDiscoveredChange>;
+    public abstract changes(context: Context): AsyncIterable<IDiscoveredChange>;
     public abstract findByPath(
         context: Context,
         path: string,

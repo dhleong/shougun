@@ -8,6 +8,10 @@ import { IPlayer } from "./playback/player";
 import { IServer } from "./playback/serve";
 import { ITracker} from "./track/base";
 
+export interface IShougunOpts {
+    allowProcessKeepalive?: boolean;
+}
+
 export class Context {
     constructor(
         public readonly queryables: IQueryable[],
@@ -16,9 +20,10 @@ export class Context {
         public readonly player: IPlayer,
         public readonly tracker: ITracker,
         public readonly server: IServer,
+        public readonly opts: IShougunOpts,
         private knownMedia: IMediaMap,
     ) {
-        trackMediaChanges(discovery, knownMedia);
+        trackMediaChanges(this, discovery, knownMedia);
     }
 
     public async refreshKnownMedia() {
@@ -40,6 +45,7 @@ export class Context {
             newPlayer,
             this.tracker,
             this.server,
+            this.opts,
             this.knownMedia,
         );
     }
@@ -90,9 +96,14 @@ function findEpisodeById(series: ISeries, id: string) {
     }
 }
 
-function trackMediaChanges(discovery: IDiscovery, knownMedia: IMediaMap) {
+function trackMediaChanges(
+    context: Context,
+    discovery: IDiscovery,
+    knownMedia: IMediaMap,
+) {
     (async () => {
-        for await (const change of discovery.changes()) {
+        debug("tracking changes to", discovery);
+        for await (const change of discovery.changes(context)) {
             debug("received change", change);
 
             if (change.type === ChangeType.MEDIA_REMOVED) {

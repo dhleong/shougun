@@ -6,7 +6,7 @@ import {
     mergeAsyncIterables,
     toArray,
 } from "babbling/dist/async";
-import { Context } from "./context";
+import { Context, IShougunOpts } from "./context";
 import { IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
 import {
@@ -33,6 +33,7 @@ export class Shougun {
         matcher: IMatcher,
         player: IPlayer,
         tracker: ITracker,
+        opts: IShougunOpts,
     ) {
         if (!queryables.length) {
             throw new Error("No queryables provided");
@@ -45,6 +46,7 @@ export class Shougun {
             player,
             tracker,
             new Server(),
+            opts,
             {},
         );
 
