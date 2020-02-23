@@ -164,18 +164,34 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         const parentId = this.idOf(parent);
         const parentAsSeries = discovered[parentId];
         if (parentAsSeries) {
+            debug("parentAsSeries @", candidate, videoFiles);
             // EG: /Nodame/SPECIAL
             // this is a new season belonging to parentId
             if (!isSeries(parentAsSeries)) {
                 throw new Error(`Expected ${util.inspect(parentAsSeries)} to be ISeries`);
             }
-            (parentAsSeries as ISeries).seasons.push(this.createSeason(
+
+            const newSeason = this.createSeason(
                 candidate,
                 parentId,
                 this.createTitle(candidate),
                 videoFiles,
-            ));
-            sortSeasons((parentAsSeries as ISeries).seasons);
+            );
+
+            // are we discovering or *re*-discovering this season?
+            const { seasons } = parentAsSeries as ISeries;
+            const index = seasons.findIndex(s => s.id === newSeason.id);
+            if (index >= 0) {
+                // update:
+                seasons[index] = newSeason;
+            } else {
+                // add:
+                seasons.push(newSeason);
+                sortSeasons((parentAsSeries as ISeries).seasons);
+            }
+
+            // yield again, to notify about the change
+            yield parentAsSeries as IHierarchicalMedia<TEntity>;
             return;
         }
 
