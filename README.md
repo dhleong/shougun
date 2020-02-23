@@ -32,6 +32,11 @@ const shougun = await ShougunBuilder.create()
     // use a phonetic matcher for queries, suitable for use with voice assistants
     .matchByPhonetics()
 
+    // allow Shougun to keep the Node process alive; since this is for
+    // a long-running server, we ought to do this since it enables various
+    // internal optimizations
+    .allowProcessKeepalive()
+
     // construct the instance
     .build();
 
