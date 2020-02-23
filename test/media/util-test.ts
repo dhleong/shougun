@@ -16,6 +16,9 @@ describe("fileNameToTitle", () => {
         fileNameToTitle("Movie [1080p]")
             .should.equal("Movie");
 
+        fileNameToTitle("Movie.1920.BluRay.1080p.x265.10bit.4Audio.ABCD-EFG")
+            .should.equal("Movie 1920");
+
         fileNameToTitle("[TV] Show 091 (H264,OGG)-.mkv")
             .should.equal("Show 091");
 
