@@ -73,20 +73,36 @@ export class BabblingQueryable implements IQueryable {
 }
 
 async function *transformQueryResultsToPlayableMedia(
-    player: any,
+    player: Player,
     results: AsyncIterable<IQueryResult>,
 ) {
     for await (const result of results) {
-        yield {
-            cover: (result as any).cover,
-            discovery: `babbling:${result.appName}`,
-            id: result.url || `${result.appName}:${result.title}`,
-            title: result.title,
-            type: MediaType.ExternalPlayable,
-
-            async play(opts) {
-                await player.play(result);
-            },
-        } as IPlayableMedia;
+        yield resultToMedia(player, result);
     }
+}
+
+function resultToMedia(
+    player: Player,
+    result: IQueryResult,
+): IPlayableMedia & { cover?: string } {
+    return {
+
+        cover: (result as any).cover,
+        discovery: `babbling:${result.appName}`,
+        id: result.url || `${result.appName}:${result.title}`,
+        title: result.title,
+        type: MediaType.ExternalPlayable,
+
+        async play(opts) {
+            await player.play(result);
+        },
+
+        async findEpisode(context, query) {
+            const episode = await player.findEpisodeFor(result, query);
+            if (episode) {
+                return resultToMedia(player, episode);
+            }
+        },
+
+    };
 }

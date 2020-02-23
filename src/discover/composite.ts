@@ -1,3 +1,4 @@
+import { IEpisodeQuery } from "babbling/dist/app";
 import { mergeAsyncIterables } from "babbling/dist/async";
 
 import { Context } from "../context";
@@ -47,6 +48,16 @@ export class CompositeDiscovery implements IDiscovery {
         return anyPromise(this.delegates.map(d =>
             d.findByPath(context, media),
         ));
+    }
+
+    public async findEpisodeFor(
+        context: Context,
+        media: IMedia,
+        query: IEpisodeQuery,
+    ) {
+        const discovery = this.instanceById(media.discovery);
+        if (!discovery) throw new Error(`Unknown discovery ${media.discovery}`);
+        return discovery.findEpisodeFor(context, media, query);
     }
 
     public async getLocalPath(

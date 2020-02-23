@@ -1,3 +1,5 @@
+import { IEpisodeQuery } from "babbling/dist/app";
+
 import { borrow } from "../borrow/borrow";
 import { loadLoans } from "../borrow/loader";
 import { BorrowMode, IBorrowRequest } from "../borrow/model";
@@ -151,6 +153,16 @@ export class RpcHandler {
         if (!media) throw new Error(`No result for ${title}`);
 
         return this.shougun.play(media);
+    }
+
+    public async startEpisodeByTitle(title: string, query: IEpisodeQuery) {
+        const media = await this.shougun.findMedia(title);
+        if (!media) throw new Error(`No result for ${title}`);
+
+        const episode = await this.shougun.findEpisodeFor(media, query);
+        if (!episode) throw new Error(`Unable to resolve matching episode for ${media.title}`);
+
+        return this.shougun.play(episode);
     }
 
     public async borrow(
