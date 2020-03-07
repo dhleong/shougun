@@ -30,7 +30,7 @@ export function fileNameToTitle(name: string) {
 
         // strip format/codec info
         // tslint:disable-next-line max-line-length
-        .replace(/((720|1080)p|[0-9]{3,4}x[0-9]{3,4}|(x|h)[ ]?264|ogg|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?).*$/gi, "")
+        .replace(/((720|1080)p|[0-9]{3,4}x[0-9]{3,4}|(x|h)[ ]?264|ogg|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?)(.(?!\b[sep]+\d))*/gi, "")
         .replace(/\b(web|hdtv|tv|br|bd|bluray)\b[-]?(rip|dl)?/gi, "")
 
         // this strips parenthesis with irrelevent stuff inside

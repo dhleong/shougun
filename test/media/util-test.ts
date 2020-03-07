@@ -19,6 +19,15 @@ describe("fileNameToTitle", () => {
         fileNameToTitle("Movie.1920.BluRay.1080p.x265.10bit.4Audio.ABCD-EFG")
             .should.equal("Movie 1920");
 
+        fileNameToTitle("Firefly.S01E05.Is.Shiny.1080p.HEVC.x265-Awesome")
+            .should.equal("Firefly S01E05 is Shiny");
+
+        fileNameToTitle("Firefly.720p.Ep01.mkv")
+            .should.equal("Firefly Ep01");
+
+        fileNameToTitle("Firefly.S01E01.720p.Shiny.DD5.1.H.264.mkv")
+            .should.equal("Firefly S01E01");
+
         fileNameToTitle("[TV] Show 091 (H264,OGG)-.mkv")
             .should.equal("Show 091");
 
@@ -61,6 +70,16 @@ describe("sortEpisodes", () => {
             "Firefly 1",
             "Firefly 2",
             "Firefly 10",
+        ]);
+
+        sortEpisodes([
+            namedEpisode(fileNameToTitle("Firefly.720p.Ep01")),
+            namedEpisode(fileNameToTitle("Firefly.720p.Ep100")),
+            namedEpisode(fileNameToTitle("Firefly.720p.Ep10")),
+        ]).map(it => it.title).should.deep.equal([
+            "Firefly Ep01",
+            "Firefly Ep10",
+            "Firefly Ep100",
         ]);
     });
 
