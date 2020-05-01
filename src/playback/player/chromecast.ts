@@ -167,6 +167,11 @@ const ultraCapabilities = {
                 track.profile !== "Main"
                 && track.profile !== "Main 10"
             ) return false;
+            if ((track.levelNormalized || 51) > 51) {
+                // supports up to 5.1
+                debug("unsupported hevc level:", track.level, "/", track.levelNormalized);
+                return false;
+            }
 
             return true;
 

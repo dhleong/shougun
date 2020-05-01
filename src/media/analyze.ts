@@ -20,7 +20,19 @@ export interface IAudioTrack {
 export interface IVideoTrack {
     codec: string;
     fps?: number;
+
+    /** eg: 153 for 5.1 on hevc; 41 for 4.1 on h264 */
     level?: number;
+
+    /**
+     * level, but normalized to be an integer, similar to
+     * how level 4.1 gets reported as 41 for h264
+     *
+     * eg: 51 (if `level` was 153, for hevc)
+     */
+    levelNormalized?: number;
+
+    colorSpace?: string;
     pixelFormat?: string;
     profile?: string;
 
@@ -76,8 +88,9 @@ function parseAudioTrack(s: FfprobeStream): IAudioTrack {
 
 function parseVideoTrack(s: FfprobeStream): IVideoTrack {
     const [ fpsNum, fpsDen ] = (s.avg_frame_rate || "0/1").split("/");
-    return {
+    const base: IVideoTrack = {
         codec: s.codec_name!,
+        colorSpace: s.color_space,
         fps: parseInt(fpsNum, 10) / parseInt(fpsDen, 10),
         pixelFormat: s.pix_fmt,
 
@@ -88,4 +101,20 @@ function parseVideoTrack(s: FfprobeStream): IVideoTrack {
         height: s.height!,
         width: s.width!,
     };
+
+    if (base.level) {
+        switch (base.codec) {
+        case "h264":
+            base.levelNormalized = base.level;
+            break;
+
+        case "hevc":
+            // general_level_idc: level is actually `level * 30` for hevc
+            // we divide by 3 to get eg 51 for simpler comparisons
+            base.levelNormalized = base.level / 3;
+            break;
+        }
+    }
+
+    return base;
 }

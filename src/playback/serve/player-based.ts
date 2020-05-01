@@ -39,7 +39,7 @@ export async function serveForPlayer(
     const canStreamRanges = canPlayNatively(capabilities, analysis);
 
     if (!isVideo(localPath) || canStreamRanges) {
-        debug(`serve ranges for ${localPath}`);
+        debug(`serve ranges for ${contentType}: ${localPath}`);
         return serveRanged(
             req, reply, contentType, localPath,
         );
