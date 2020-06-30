@@ -1,3 +1,6 @@
+import _debug from "debug";
+const debug = _debug("shougun:builder");
+
 import fs from "fs-extra";
 import path from "path";
 
@@ -170,8 +173,10 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
      */
 
     public async build() {
-        if (!this.discoveries.length) {
+        if (!this.discoveries.length && !this.babblingConfig) {
             throw new Error("No discovery method provided");
+        } else if (!this.discoveries.length) {
+            debug("NOTE: Only babbling discovery configured");
         }
 
         if (!this.player) {
