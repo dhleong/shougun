@@ -1,5 +1,5 @@
 import { machineId } from "node-machine-id";
-import uuid from "uuid/v5";
+import { v5 as uuid} from "uuid";
 
 const NAMESPACE = "778b1b44-c3aa-4274-8e54-f505b0d4dda3";
 
