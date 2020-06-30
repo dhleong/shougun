@@ -1,6 +1,6 @@
 /// <reference types="node" />
 
-declare module "talisman/metrics/distance/jaro-winkler" {
+declare module "talisman/metrics/jaro-winkler" {
     export interface IJaroWinklerParams {
         boostThreshold?: number;
         scalingFactor?: number;

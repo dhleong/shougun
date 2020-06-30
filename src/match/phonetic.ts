@@ -1,7 +1,7 @@
 import _debug from "debug";
 const debug = _debug("shougun:phonetic");
 
-import jaroWinkler from "talisman/metrics/distance/jaro-winkler";
+import jaroWinkler from "talisman/metrics/jaro-winkler";
 import metaphone from "talisman/phonetics/double-metaphone";
 
 import { ScoreBasedMatcher } from "./base";
