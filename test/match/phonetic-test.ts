@@ -21,4 +21,17 @@ describe("PhoneticMatcher", () => {
             "Reynolds Malcolm",
         ]);
     });
+
+    it("prefers exact matches", () => {
+        const matcher = new PhoneticMatcher();
+        const sorted = matcher.sort("brave", [
+            "Brave 10",
+            "Brave",
+        ], item => item);
+
+        sorted.should.contain.ordered.members([
+            "Brave",
+            "Brave 10",
+        ]);
+    });
 });

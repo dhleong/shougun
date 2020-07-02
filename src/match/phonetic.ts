@@ -1,6 +1,7 @@
 import _debug from "debug";
 const debug = _debug("shougun:phonetic");
 
+import slug from "speakingurl";
 import jaroWinkler from "talisman/metrics/jaro-winkler";
 import metaphone from "talisman/phonetics/double-metaphone";
 
@@ -40,17 +41,30 @@ export class PhoneticMatcher extends ScoreBasedMatcher {
         input: string,
         keyFn: (item: T) => string,
     ) {
+        const inputSlug = slug(input);
         const target = process(input);
         return new Scorer<T>(item => {
-            const processed = process(keyFn(item));
+            const itemKey = keyFn(item);
+            const processed = process(itemKey);
 
             // NOTE: we use the Jaro-Winkler distance here instead
             // of Levenshtein because in some tests on local data
             // it experimentally provided better, more consistent
             // results.
-            const score = jaroWinkler.custom(
+            let score = jaroWinkler.custom(
                 winklerParams, target, processed,
             );
+
+            // NOTE: boost the score of exact slug matches. As an example,
+            // for the query "brave," both the Disney movie "Brave" and the
+            // anime "Brave 10" are exact phonetic matches, but given that
+            // the query doesn't include the numbers, "Brave 10" should not
+            // have as high of a score.
+            // Future work might translate numbers in titles to their phonetic
+            // equivalents for more natural scoring here....
+            if (inputSlug === slug(itemKey)) {
+                score *= 1.1;
+            }
 
             debug(target, "VS", processed, "\t", score);
             return score;
