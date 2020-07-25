@@ -30,6 +30,14 @@ export abstract class BasePlayable implements IPlayable {
             throw new Error(`Couldn't find last-watched episode ${this.media.title}`);
         }
 
+        // merge in prefs
+        for (const ep of episodes) {
+            ep.prefs = {
+                ...ep.prefs,
+                ...this.media.prefs,
+            };
+        }
+
         const start = Math.max(0, idx - QUEUE_CONTEXT_EXTENT);
         const end = Math.min(episodes.length, idx + QUEUE_CONTEXT_EXTENT);
 
