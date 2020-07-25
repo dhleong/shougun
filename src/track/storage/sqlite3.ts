@@ -7,7 +7,7 @@ import { ILoanCreate, ILoanData } from "../base";
 import { IStorage, IViewedInformation } from "../persistent";
 import { IMediaPrefs } from "../../model";
 
-const SchemaVersion = 2;
+const SchemaVersion = 3;
 
 function unpackInfo(result: any): IViewedInformation | null {
     if (result === undefined) return null;
