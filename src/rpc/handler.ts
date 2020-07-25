@@ -9,6 +9,7 @@ import { Shougun } from "../shougun";
 import { IViewedInformation } from "../track/persistent";
 import { generateMachineUuid } from "./id";
 import { IRemoteConfig } from "./server";
+import { IPlaybackOptions } from "../playback/player";
 
 const MAX_RESULTS = 50; // don't try to send more than this over the wire
 
@@ -141,28 +142,28 @@ export class RpcHandler {
         throw new Error(`No media with title ${media.title} and ID ${media.id}`);
     }
 
-    public async startByPath(path: string) {
+    public async startByPath(path: string, options: IPlaybackOptions = {}) {
         const media = await this.shougun.findMediaByPath(path);
         if (!media) throw new Error(`No result for ${path}`);
 
-        return this.shougun.play(media);
+        return this.shougun.play(media, options);
     }
 
-    public async startByTitle(title: string) {
+    public async startByTitle(title: string, options: IPlaybackOptions = {}) {
         const media = await this.shougun.findMedia(title);
         if (!media) throw new Error(`No result for ${title}`);
 
-        return this.shougun.play(media);
+        return this.shougun.play(media, options);
     }
 
-    public async startEpisodeByTitle(title: string, query: IEpisodeQuery) {
+    public async startEpisodeByTitle(title: string, query: IEpisodeQuery, options: IPlaybackOptions = {}) {
         const media = await this.shougun.findMedia(title);
         if (!media) throw new Error(`No result for ${title}`);
 
         const episode = await this.shougun.findEpisodeFor(media, query);
         if (!episode) throw new Error(`Unable to resolve matching episode for ${media.title}`);
 
-        return this.shougun.play(episode);
+        return this.shougun.play(episode, options);
     }
 
     public async borrow(

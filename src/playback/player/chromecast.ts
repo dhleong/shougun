@@ -382,11 +382,9 @@ function pickAppTypeFor(
         return ShougunPlayerApp;
     }
 
-    // TODO: can we support this in ShougunPlayer?
-    // if (playable.media.prefs && playable.media.prefs.preferredAudioLanguage) {
-    //     // need Shougun app to select a specific audio track
-    //     return ShougunPlayerApp;
-    // }
+    // NOTE: in theory CAF supports "tracks" and selecting different
+    // tracks, but in practice when we stream things to the chromecast
+    // it just returns an empty array for the available audio tracks...
 
     // use the default media receiver app, otherwise
     return DefaultMediaReceiverApp;
