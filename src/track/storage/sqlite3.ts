@@ -189,7 +189,7 @@ export class Sqlite3Storage implements IStorage {
     public async updatePrefsForSeries(
         seriesId: string,
         prefs: IMediaPrefs,
-    ): Promise<IMediaPrefs | null> {
+    ): Promise<IMediaPrefs> {
         return this.db.transaction(() => {
             const existing = this.loadPrefsForSeriesBlocking(seriesId);
             const updated = {

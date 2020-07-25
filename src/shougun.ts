@@ -22,7 +22,7 @@ import {
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
 import { ContextQueryable } from "./queryables/context";
-import { ITracker } from "./track/base";
+import { ITracker, IPrefsTracker } from "./track/base";
 
 export interface IQueryOpts {
     onlyLocal?: boolean;
@@ -60,6 +60,10 @@ export class Shougun {
     constructor(
         public readonly context: Context,
     ) {}
+
+    public get prefs(): IPrefsTracker {
+        return this.context.tracker;
+    }
 
     /**
      * Reloads all media from all configured discoveries. Updates

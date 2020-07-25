@@ -28,7 +28,7 @@ export interface IPrefsStorage {
     updatePrefsForSeries(
         seriesId: string,
         prefs: IMediaPrefs,
-    ): Promise<IMediaPrefs | null>;
+    ): Promise<IMediaPrefs>;
 }
 
 export interface IStorage extends ILoanTracker, IPrefsStorage {
@@ -143,7 +143,7 @@ export class PersistentTracker implements ITracker {
     }
 
     public async updatePrefs(seriesId: string, prefs: IMediaPrefs) {
-        await this.storage.updatePrefsForSeries(seriesId, prefs);
+        return this.storage.updatePrefsForSeries(seriesId, prefs);
     }
 
     private async trackForFirstEpisodeOf(series: ISeries): Promise<ITrack> {

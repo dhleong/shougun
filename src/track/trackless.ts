@@ -48,7 +48,12 @@ export class TracklessTracker implements ITracker {
     }
 
     public async updatePrefs(seriesId: string, prefs: IMediaPrefs) {
-        this.prefs[seriesId] = prefs;
+        const updated = {
+            ...this.prefs[seriesId],
+            ...prefs,
+        };
+        this.prefs[seriesId] = updated;
+        return updated;
     }
 
 }
