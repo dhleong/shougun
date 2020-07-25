@@ -182,17 +182,8 @@ export class Sqlite3Storage implements IStorage {
         }
     }
 
-    public loadPrefsForSeries(seriesId: string): IMediaPrefs | null {
-        const result = this.prepare(`
-            SELECT prefs FROM SeriesPrefs
-            WHERE seriesId = ?
-        `).get(seriesId);
-
-        if (!result || !result.prefs) {
-            return null;
-        }
-
-        return JSON.parse(result.prefs);
+    public async loadPrefsForSeries(seriesId: string) {
+        return this.loadPrefsForSeriesBlocking(seriesId);
     }
 
     public async updatePrefsForSeries(
@@ -200,7 +191,7 @@ export class Sqlite3Storage implements IStorage {
         prefs: IMediaPrefs,
     ): Promise<IMediaPrefs | null> {
         return this.db.transaction(() => {
-            const existing = this.loadPrefsForSeries(seriesId);
+            const existing = this.loadPrefsForSeriesBlocking(seriesId);
             const updated = {
                 ...existing,
                 ...prefs,
@@ -218,6 +209,19 @@ export class Sqlite3Storage implements IStorage {
 
             return updated;
         })();
+    }
+
+    private loadPrefsForSeriesBlocking(seriesId: string): IMediaPrefs | null {
+        const result = this.prepare(`
+            SELECT prefs FROM SeriesPrefs
+            WHERE seriesId = ?
+        `).pluck().get(seriesId);
+
+        if (!result) {
+            return null;
+        }
+
+        return JSON.parse(result);
     }
 
     /**

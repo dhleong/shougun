@@ -244,7 +244,7 @@ describe("Sqlite3Storage", () => {
                 preferredAudioLanguage: "en",
             } as any);
 
-            const loaded = storage.loadPrefsForSeries("firefly");
+            const loaded = await storage.loadPrefsForSeries("firefly");
             expect(loaded).to.deep.equal({
                 preferredAudioLanguage: "en",
                 someOtherValue: "serenity",

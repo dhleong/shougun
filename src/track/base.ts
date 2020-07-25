@@ -1,4 +1,4 @@
-import { IMedia } from "../model";
+import { IMedia, IMediaPrefs } from "../model";
 import { IViewedInformation } from "./persistent";
 
 export interface ITrack {
@@ -38,7 +38,14 @@ export interface ILoanTracker {
 
 }
 
-export interface ITracker extends ILoanTracker {
+export interface IPrefsTracker {
+
+    loadPrefsForSeries(seriesId: string): Promise<IMediaPrefs | null>;
+    updatePrefs(seriesId: string, prefs: IMediaPrefs): Promise<void>;
+
+}
+
+export interface ITracker extends ILoanTracker, IPrefsTracker {
 
     /**
      * Figure out what to actually play when the User requests the

@@ -203,6 +203,14 @@ export class Shougun {
         media: IMedia,
         options: IPlaybackOptions,
     ) {
+        if (!media.prefs) {
+            // try to fetch stored prefs
+            const stored = await this.context.tracker.loadPrefsForSeries(media.id);
+            if (stored) {
+                media.prefs = stored;
+            }
+        }
+
         if (options.prefs) {
             media.prefs = {
                 ...media.prefs,
