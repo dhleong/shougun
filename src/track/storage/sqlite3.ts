@@ -182,6 +182,13 @@ export class Sqlite3Storage implements IStorage {
         }
     }
 
+    public async deletePrefsForSeries(seriesId: string) {
+        this.prepare(`
+            DELETE FROM SeriesPrefs
+            WHERE seriesId = :seriesId
+        `).run({ seriesId });
+    }
+
     public async loadPrefsForSeries(seriesId: string) {
         return this.loadPrefsForSeriesBlocking(seriesId);
     }

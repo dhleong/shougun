@@ -40,12 +40,16 @@ export interface ILoanTracker {
 
 export interface IPrefsTracker {
 
+    deletePrefsForSeries(
+        seriesId: string,
+    ): Promise<void>;
+
     loadPrefsForSeries(seriesId: string): Promise<IMediaPrefs | null>;
 
     /**
      * @return the updated Prefs object
      */
-    updatePrefs(seriesId: string, prefs: IMediaPrefs): Promise<IMediaPrefs>;
+    updatePrefsForSeries(seriesId: string, prefs: IMediaPrefs): Promise<IMediaPrefs>;
 
 }
 

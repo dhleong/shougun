@@ -3,8 +3,7 @@ import { IEpisodeQuery } from "babbling/dist/app";
 import { borrow } from "../borrow/borrow";
 import { loadLoans } from "../borrow/loader";
 import { BorrowMode, IBorrowRequest } from "../borrow/model";
-import { DefaultMatcher } from "../match/default";
-import { IMedia } from "../model";
+import { IMedia, IMediaPrefs } from "../model";
 import { Shougun } from "../shougun";
 import { IViewedInformation } from "../track/persistent";
 import { generateMachineUuid } from "./id";
@@ -51,6 +50,16 @@ export class RpcHandler {
 
     public async getId() {
         return generateMachineUuid();
+    }
+
+    public async borrow(
+        requests: IBorrowRequest[],
+    ) {
+        if (this.config.borrowing !== BorrowMode.LENDER) {
+            throw new Error("Lender requests are not enabled");
+        }
+
+        return borrow(this.shougun, requests);
     }
 
     public async loadLoans() {
@@ -113,8 +122,7 @@ export class RpcHandler {
     public async search(query: string) {
         const media = await this.shougun.search(query);
 
-        const matcher = new DefaultMatcher();
-        const sorted = matcher.sort(
+        const sorted = this.shougun.context.matcher.sort(
             query,
             media,
             item => item.title,
@@ -166,14 +174,16 @@ export class RpcHandler {
         return this.shougun.play(episode, options);
     }
 
-    public async borrow(
-        requests: IBorrowRequest[],
-    ) {
-        if (this.config.borrowing !== BorrowMode.LENDER) {
-            throw new Error("Lender requests are not enabled");
-        }
+    public async deletePrefsForSeries(seriesId: string) {
+        return this.shougun.prefs.deletePrefsForSeries(seriesId);
+    }
 
-        return borrow(this.shougun, requests);
+    public async loadPrefsForSeries(seriesId: string) {
+        return this.shougun.prefs.loadPrefsForSeries(seriesId);
+    }
+
+    public async updatePrefsForSeries(seriesId: string, prefs: IMediaPrefs) {
+        return this.shougun.prefs.updatePrefsForSeries(seriesId, prefs);
     }
 
 }
