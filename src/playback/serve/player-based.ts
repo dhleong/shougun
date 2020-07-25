@@ -9,6 +9,7 @@ import { canPlayNatively, IPlayer } from "../player";
 
 import { serveRanged } from "./ranged";
 import { serveTranscodedForAnalysis } from "./transcode";
+import { IMediaPrefs } from "../../model";
 
 /**
  * serveForPlayer analyzes the media and compares with the IPlayer's
@@ -21,6 +22,7 @@ export async function serveForPlayer(
     reply: fastify.FastifyReply<any>,
     contentType: string,
     localPath: string,
+    mediaPrefs?: IMediaPrefs,
 ): Promise<NodeJS.ReadableStream> {
     if (!isVideo(localPath)) {
         // quick shortcut for cover art, etc
@@ -31,7 +33,9 @@ export async function serveForPlayer(
     }
 
     const [ analysis, capabilities ] = await Promise.all([
-        analyzeFile(localPath),
+        analyzeFile(localPath, {
+            preferredAudioLanguage: mediaPrefs?.preferredAudioLanguage,
+        }),
         player.getCapabilities(),
     ]);
 
@@ -49,6 +53,7 @@ export async function serveForPlayer(
         !(
             capabilities.supportsContainer("mp4")
             && capabilities.supportsVideoTrack({
+                index: 0,
                 codec: "h264",
                 height: analysis.video.height,
                 width: analysis.video.width,

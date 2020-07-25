@@ -134,16 +134,27 @@ export class Shougun {
 
         if (isPlayable(media)) {
             if (media.findEpisode) {
-                return media.findEpisode(this.context, query);
+                const epFromMedia = await media.findEpisode(this.context, query);
+                if (epFromMedia) {
+                    epFromMedia.prefs = epFromMedia.prefs ?? media.prefs;
+                }
+                return epFromMedia;
             }
+
+            // NOTE: if media is directly playable but doesn't support findEpisode,
+            // we won't be able to find it through our discovery below, so don't try
             return;
         }
 
-        return this.context.discovery.findEpisodeFor(
+        const ep = await this.context.discovery.findEpisodeFor(
             this.context,
             media,
             query,
         );
+        if (ep) {
+            ep.prefs = ep.prefs ?? media.prefs;
+        }
+        return ep;
     }
 
     /**
@@ -200,9 +211,10 @@ export class Shougun {
 
         if (isSeries(media) || options.currentTime === undefined) {
             const track = await this.context.tracker.pickResumeForMedia(media);
+            track.media.prefs = track.media.prefs ?? media.prefs; // copy over prefs if missing?
             media = track.media;
             options.currentTime = track.resumeTimeSeconds;
-            debug(`resuming ${media.title} with ${media.id} @${options.currentTime}`);
+            debug(`resuming ${media.title} (#${media.id}) @${options.currentTime} with`, media.prefs);
         }
 
         debug(`create playable for ${media.id}...`);

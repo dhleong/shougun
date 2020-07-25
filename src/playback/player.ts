@@ -25,6 +25,7 @@ export interface IPlayerCapabilities {
     supportsAudioTrack(track: IAudioTrack): boolean;
     supportsVideoTrack(track: IVideoTrack): boolean;
     supportsContainer(container: string): boolean;
+    supportsNonDefaultAudioTrackForContainer?(container: string): boolean;
     supportsPixelFormat?(format: string): boolean;
 }
 
@@ -81,5 +82,30 @@ export function canPlayNatively(
     const videoSupported = capabilities.supportsVideoTrack(analysis.video);
     const audioSupported = capabilities.supportsAudioTrack(analysis.audio);
     const containerSupported = !!analysis.container.find(capabilities.supportsContainer.bind(capabilities));
+
+    if (
+        audioSupported
+        && !analysis.audio.isDefault
+        && !canPlayNonDefaultAudioTrack(capabilities, analysis)
+    ) {
+        // we've selected a non-default audio track, but the player
+        // doesn't support doing that with this container natively
+        return false;
+    }
+
     return videoSupported && audioSupported && containerSupported;
+}
+
+function canPlayNonDefaultAudioTrack(
+    capabilities: IPlayerCapabilities,
+    analysis: IVideoAnalysis,
+) {
+    if (!capabilities.supportsNonDefaultAudioTrackForContainer) {
+        // it doesn't support for any container
+        return false;
+    }
+
+    return !!analysis.container.find(
+        capabilities.supportsNonDefaultAudioTrackForContainer.bind(capabilities)
+    );
 }

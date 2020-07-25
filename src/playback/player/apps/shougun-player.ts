@@ -14,12 +14,24 @@ export interface IRecommendation {
     title: string;
 }
 
+function shougunAppId() {
+    if (!process.env.DEBUG) return PROD_ID;
+
+    if (process.env.SHOUGUN_APP_ID) {
+        return process.env.SHOUGUN_APP_ID;
+    }
+
+    if (process.env.DEBUG.includes("shougun:cast:dev")) {
+        return DEV_ID;
+    }
+
+    return PROD_ID
+}
+
 export class ShougunPlayerApp extends GenericMediaReceiverApp {
     constructor(device: IDevice) {
         super(device, {
-            appId: process.env.DEBUG && process.env.DEBUG.includes("shougun:cast:dev")
-                ? DEV_ID
-                : PROD_ID,
+            appId: shougunAppId(),
         });
     }
 

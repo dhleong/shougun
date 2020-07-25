@@ -117,6 +117,12 @@ export async function transcodeForAnalysis(
                 command.audioCodec("ac3");
             }
 
+            if (!analysis.audio.isDefault) {
+                debug("select non-default audio track");
+                command.addOptions("-map", "0:" + analysis.video.index);
+                command.addOptions("-map", "0:" + analysis.audio.index);
+            }
+
             // it seems we may always need this, even when both audio and
             // video formats are supported; since we have ShougunPlayer to
             // manage seeking through transcoded video, it seems fine to

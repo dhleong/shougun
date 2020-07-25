@@ -171,7 +171,7 @@ export class Server implements IServer {
         const stream = await serveForPlayer(
             player,
             req, reply,
-            contentType, localPath,
+            contentType, localPath, toPlay.media?.prefs,
         );
 
         debug("got stream @", req.headers.range);
@@ -289,7 +289,9 @@ export class ServedPlayable extends BasePlayable implements IPlayableWithClients
     }
 
     public async analyze() {
-        return analyzeFile(this.localPath);
+        return analyzeFile(this.localPath, {
+            preferredAudioLanguage: this.media.prefs?.preferredAudioLanguage,
+        });
     }
 
     public async getCoverUrl(context: Context) {

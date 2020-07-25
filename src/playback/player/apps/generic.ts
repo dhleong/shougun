@@ -8,6 +8,7 @@ import { ShougunPlaybackTracker } from "./tracker";
 
 export interface ICustomCastData {
     durationSeconds?: number;
+    preferredAudioLanguage?: string;
     queueIndex?: number;
     startTimeAbsolute?: number;
 }
@@ -35,6 +36,12 @@ export interface ILoadParams {
      * The thing to play
      */
     media: ICastInfo;
+
+    /**
+     * If present, the audio language to prefer instead of
+     * the default track (if possible)
+     */
+    preferredAudioLanguage?: string;
 
     /**
      * A list of ICastInfo objects around (and including)
