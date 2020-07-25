@@ -79,10 +79,16 @@ export enum MediaType {
     ExternalPlayable,
 }
 
+export interface IMediaPrefs {
+    preferredAudioLanguage?: string;
+}
+
 export interface IMedia {
     id: string;
     title: string;
     type: MediaType;
+
+    prefs?: IMediaPrefs;
 
     /** ID of the discovery that provides this media */
     discovery: DiscoveryId;

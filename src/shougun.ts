@@ -22,7 +22,7 @@ import {
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
 import { ContextQueryable } from "./queryables/context";
-import { ITracker } from "./track/base";
+import { ITracker, IPrefsTracker } from "./track/base";
 
 export interface IQueryOpts {
     onlyLocal?: boolean;
@@ -60,6 +60,10 @@ export class Shougun {
     constructor(
         public readonly context: Context,
     ) {}
+
+    public get prefs(): IPrefsTracker {
+        return this.context.tracker;
+    }
 
     /**
      * Reloads all media from all configured discoveries. Updates
@@ -134,16 +138,27 @@ export class Shougun {
 
         if (isPlayable(media)) {
             if (media.findEpisode) {
-                return media.findEpisode(this.context, query);
+                const epFromMedia = await media.findEpisode(this.context, query);
+                if (epFromMedia) {
+                    epFromMedia.prefs = epFromMedia.prefs ?? media.prefs;
+                }
+                return epFromMedia;
             }
+
+            // NOTE: if media is directly playable but doesn't support findEpisode,
+            // we won't be able to find it through our discovery below, so don't try
             return;
         }
 
-        return this.context.discovery.findEpisodeFor(
+        const ep = await this.context.discovery.findEpisodeFor(
             this.context,
             media,
             query,
         );
+        if (ep) {
+            ep.prefs = ep.prefs ?? media.prefs;
+        }
+        return ep;
     }
 
     /**
@@ -192,6 +207,21 @@ export class Shougun {
         media: IMedia,
         options: IPlaybackOptions,
     ) {
+        if (!media.prefs) {
+            // try to fetch stored prefs
+            const stored = await this.context.tracker.loadPrefsForSeries(media.id);
+            if (stored) {
+                media.prefs = stored;
+            }
+        }
+
+        if (options.prefs) {
+            media.prefs = {
+                ...media.prefs,
+                ...options.prefs,
+            };
+        }
+
         if (isPlayable(media)) {
             debug(`media is itself playable:`, media);
             await media.play(options);
@@ -200,9 +230,14 @@ export class Shougun {
 
         if (isSeries(media) || options.currentTime === undefined) {
             const track = await this.context.tracker.pickResumeForMedia(media);
+            track.media.prefs = {
+                ...media.prefs,
+                ...track.media.prefs,
+                ...options.prefs,  // provided prefs still override
+            }
             media = track.media;
             options.currentTime = track.resumeTimeSeconds;
-            debug(`resuming ${media.title} with ${media.id} @${options.currentTime}`);
+            debug(`resuming ${media.title} (#${media.id}) @${options.currentTime} with`, media.prefs);
         }
 
         debug(`create playable for ${media.id}...`);

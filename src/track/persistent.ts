@@ -1,10 +1,11 @@
-import { IEpisode, IMedia, isEpisode, ISeries, isSeries } from "../model";
+import { IEpisode, IMedia, isEpisode, ISeries, isSeries, IMediaPrefs } from "../model";
 import {
     ILoanCreate,
     ILoanData,
     ILoanTracker,
     ITrack,
     ITracker,
+    IPrefsTracker,
 } from "./base";
 import { computeWatchState, WatchState } from "./util";
 
@@ -20,7 +21,7 @@ export interface IViewedInformation {
     videoDurationSeconds: number;
 }
 
-export interface IStorage extends ILoanTracker {
+export interface IStorage extends ILoanTracker, IPrefsTracker {
     close(): void;
     loadById(id: string): Promise<IViewedInformation | null>;
     loadLastViewedForSeries(seriesId: string): Promise<IViewedInformation | null>;
@@ -125,6 +126,18 @@ export class PersistentTracker implements ITracker {
             resumeTimeSeconds,
             videoDurationSeconds,
         } as IViewedInformation);
+    }
+
+    public async loadPrefsForSeries(seriesId: string) {
+        return this.storage.loadPrefsForSeries(seriesId);
+    }
+
+    public async updatePrefsForSeries(seriesId: string, prefs: IMediaPrefs) {
+        return this.storage.updatePrefsForSeries(seriesId, prefs);
+    }
+
+    public async deletePrefsForSeries(seriesId: string) {
+        return this.storage.deletePrefsForSeries(seriesId);
     }
 
     private async trackForFirstEpisodeOf(series: ISeries): Promise<ITrack> {

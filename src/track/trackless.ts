@@ -1,8 +1,11 @@
-import { IMedia, ISeries, isSeries } from "../model";
+import { IMedia, ISeries, isSeries, IMediaPrefs } from "../model";
 import { ILoanCreate, ILoanData, ITrack, ITracker } from "./base";
 import { IViewedInformation } from "./persistent";
 
 export class TracklessTracker implements ITracker {
+
+    private prefs: {[key: string]: IMediaPrefs} = {};
+
     public markBorrowReturned(tokens: string[]): Promise<void> {
         throw new Error("Loans not supported");
     }
@@ -39,4 +42,22 @@ export class TracklessTracker implements ITracker {
     public async *queryRecent() {
         // nop
     }
+
+    public async deletePrefsForSeries(seriesId: string) {
+        delete this.prefs[seriesId];
+    }
+
+    public async loadPrefsForSeries(seriesId: string) {
+        return this.prefs[seriesId];
+    }
+
+    public async updatePrefsForSeries(seriesId: string, prefs: IMediaPrefs) {
+        const updated = {
+            ...this.prefs[seriesId],
+            ...prefs,
+        };
+        this.prefs[seriesId] = updated;
+        return updated;
+    }
+
 }

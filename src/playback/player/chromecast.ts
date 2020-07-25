@@ -10,7 +10,7 @@ import { IMedia, IPlayable, MediaType, supportsClients } from "../../model";
 import { withQuery } from "../../util/url";
 import { canPlayNatively, IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
 import { DefaultMediaReceiverApp } from "./apps/default";
-import { ICastInfo } from "./apps/generic";
+import { ICastInfo, ICustomCastData } from "./apps/generic";
 import { IRecommendation, ShougunPlayerApp } from "./apps/shougun-player";
 
 const chromecastCapabilities = {
@@ -243,7 +243,7 @@ export class ChromecastPlayer implements IPlayer {
             contentType = "video/mp4"; // we'll be transcoding
         }
 
-        const appType = pickAppTypeFor(capabilities, analysis);
+        const appType = pickAppTypeFor(capabilities, analysis, playable);
         const [
             app, metadata, url, coverUrl, mediaAround,
         ] = await Promise.all([
@@ -258,10 +258,15 @@ export class ChromecastPlayer implements IPlayer {
 
         metadata.coverUrl = coverUrl;
 
+        const sharedCustomData: ICustomCastData = {
+            preferredAudioLanguage: playable.media.prefs?.preferredAudioLanguage,
+        };
+
         const media: ICastInfo = {
             contentType: chromecastCapabilities.effectiveMime(contentType),
             currentTime,
             customData: {
+                ...sharedCustomData,
                 durationSeconds: playable.durationSeconds,
                 startTimeAbsolute: opts.currentTime,
             },
@@ -289,6 +294,7 @@ export class ChromecastPlayer implements IPlayer {
             return {
                 contentType: media.contentType, // guess?
                 customData: {
+                    ...sharedCustomData,
                     queueIndex: index,
                 },
                 id: m.id,
@@ -312,6 +318,7 @@ export class ChromecastPlayer implements IPlayer {
         return app.load({
             media,
             queueAround,
+            preferredAudioLanguage: playable.media.prefs?.preferredAudioLanguage,
 
             onPlayerPaused: opts.onPlayerPaused,
             onPlayerStop() {
@@ -368,11 +375,16 @@ export class ChromecastPlayer implements IPlayer {
 function pickAppTypeFor(
     capabilities: IPlayerCapabilities,
     analysis: IVideoAnalysis | null,
+    playable: IPlayable,
 ) {
     if (!canPlayNatively(capabilities, analysis)) {
         // use Shougun app to support seeking within transcoded videos
         return ShougunPlayerApp;
     }
+
+    // NOTE: in theory CAF supports "tracks" and selecting different
+    // tracks, but in practice when we stream things to the chromecast
+    // it just returns an empty array for the available audio tracks...
 
     // use the default media receiver app, otherwise
     return DefaultMediaReceiverApp;

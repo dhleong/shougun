@@ -3,6 +3,7 @@ import {
     FfprobeData,
     FfprobeStream,
 } from "fluent-ffmpeg";
+import { languageCodeMatches } from "../util/language";
 
 const ffprobe = (localPath: string) => new Promise<FfprobeData>((resolve, reject) => {
     ffprobeCallback(localPath, (err, data) => {
@@ -12,12 +13,18 @@ const ffprobe = (localPath: string) => new Promise<FfprobeData>((resolve, reject
 });
 
 export interface IAudioTrack {
+    id?: string;
+    index: number;
     channels?: number;
     codec: string;
+    isDefault: boolean;
+    language?: string;
     profile?: string;
 }
 
 export interface IVideoTrack {
+    index: number;
+
     codec: string;
     fps?: number;
 
@@ -50,24 +57,46 @@ export interface IVideoAnalysis {
 
 export async function analyzeFile(
     localPath: string,
+    opts?: {
+        preferredAudioLanguage?: string,
+    }
 ) {
     const data = await ffprobe(localPath);
 
     let videoTrack: IVideoTrack | undefined;
     let audioTrack: IAudioTrack | undefined;
+    let defaultAudioTrack: IAudioTrack | undefined;
     for (const s of data.streams) {
         if (!videoTrack && s.codec_type === "video") {
             videoTrack = parseVideoTrack(s);
         }
 
         if (!audioTrack && s.codec_type === "audio") {
-            audioTrack = parseAudioTrack(s);
+            const parsed = parseAudioTrack(s);
+            if (!defaultAudioTrack || parsed.isDefault) {
+                // pick a reasonable default/fallback
+                defaultAudioTrack = parsed;
+            }
+
+            // is this "the one"?
+            if (
+                !opts?.preferredAudioLanguage
+                || languageCodeMatches(
+                    parsed.language ?? "",
+                    opts.preferredAudioLanguage
+                )
+            ) {
+                audioTrack = parsed;
+            }
         }
 
         if (videoTrack && audioTrack) {
             break;
         }
     }
+
+    // couldn't find the requested track; fallback to the default
+    if (!audioTrack) audioTrack = defaultAudioTrack;
 
     return {
         audio: audioTrack!,
@@ -80,15 +109,21 @@ export async function analyzeFile(
 
 function parseAudioTrack(s: FfprobeStream): IAudioTrack {
     return {
+        id: s.id,
+        index: s.index,
         channels: s.channels,
         codec: s.codec_name!,
+        language: s.tags?.language,
         profile: s.profile as unknown as string,
+        isDefault: (s.disposition?.default ?? 0) > 0,
     };
 }
 
 function parseVideoTrack(s: FfprobeStream): IVideoTrack {
     const [ fpsNum, fpsDen ] = (s.avg_frame_rate || "0/1").split("/");
     const base: IVideoTrack = {
+        index: s.index,
+
         codec: s.codec_name!,
         colorSpace: s.color_space,
         fps: parseInt(fpsNum, 10) / parseInt(fpsDen, 10),
