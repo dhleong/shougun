@@ -5,6 +5,7 @@ import sqlite from "better-sqlite3";
 
 import { ILoanCreate, ILoanData } from "../base";
 import { IStorage, IViewedInformation } from "../persistent";
+import { IMediaPrefs } from "../../model";
 
 const SchemaVersion = 2;
 
@@ -181,6 +182,44 @@ export class Sqlite3Storage implements IStorage {
         }
     }
 
+    public loadPrefsForSeries(seriesId: string): IMediaPrefs | null {
+        const result = this.prepare(`
+            SELECT prefs FROM SeriesPrefs
+            WHERE seriesId = ?
+        `).get(seriesId);
+
+        if (!result || !result.prefs) {
+            return null;
+        }
+
+        return JSON.parse(result.prefs);
+    }
+
+    public async updatePrefsForSeries(
+        seriesId: string,
+        prefs: IMediaPrefs,
+    ): Promise<IMediaPrefs | null> {
+        return this.db.transaction(() => {
+            const existing = this.loadPrefsForSeries(seriesId);
+            const updated = {
+                ...existing,
+                ...prefs,
+            };
+
+            this.prepare(`
+                INSERT OR REPLACE INTO SeriesPrefs (
+                    seriesId,
+                    prefs
+                ) VALUES (:seriesId, :prefs)
+            `).run({
+                seriesId,
+                prefs: JSON.stringify(updated),
+            });
+
+            return updated;
+        })();
+    }
+
     /**
      * Non-async version that can be used inside transactions
      */
@@ -227,9 +266,16 @@ export class Sqlite3Storage implements IStorage {
             break;
 
         case 1:
-            debug(`migrate from ${version} to ${SchemaVersion}`);
+            debug(`migrate from ${version} to 2`);
             this.createLoansTable();
-            break;
+
+            // fall through:
+
+        case 2:
+            debug(`migrate from ${version} to ${SchemaVersion}`);
+            this.createSeriesPrefsTable();
+
+            // fall through:
 
         case SchemaVersion:
             // up to date!
@@ -260,6 +306,7 @@ export class Sqlite3Storage implements IStorage {
             );
         `);
         this.createLoansTable();
+        this.createSeriesPrefsTable();
     }
 
     private createLoansTable() {
@@ -273,6 +320,15 @@ export class Sqlite3Storage implements IStorage {
             CREATE INDEX IF NOT EXISTS Loans_byCreatedTimestamp
             ON Loans (
                 createdTimestamp
+            );
+        `);
+    }
+
+    private createSeriesPrefsTable() {
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS SeriesPrefs (
+                seriesId STRING PRIMARY KEY NOT NULL,
+                prefs STRING
             );
         `);
     }

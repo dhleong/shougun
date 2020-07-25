@@ -232,6 +232,25 @@ describe("Sqlite3Storage", () => {
         }]);
         data.viewedInformation.should.be.empty;
     });
+
+    describe("SeriesPrefs", () => {
+        it("update with a partial is non-destructive", async () => {
+            await storage.updatePrefsForSeries("firefly", {
+                preferredAudioLanguage: "jp",
+                someOtherValue: "serenity",
+            } as any);
+
+            await storage.updatePrefsForSeries("firefly", {
+                preferredAudioLanguage: "en",
+            } as any);
+
+            const loaded = storage.loadPrefsForSeries("firefly");
+            expect(loaded).to.deep.equal({
+                preferredAudioLanguage: "en",
+                someOtherValue: "serenity",
+            });
+        });
+    });
 });
 
 function episodeWith(
