@@ -1,13 +1,18 @@
 
 import { Context } from "../context";
 import { IAudioTrack, IVideoAnalysis, IVideoTrack } from "../media/analyze";
-import { IMedia, IPlayable } from "../model";
+import { IMedia, IPlayable, IMediaPrefs } from "../model";
 
 export interface IPlaybackOptions {
     /**
      * In *seconds*
      */
     currentTime?: number;
+
+    /**
+     * If provided, gets merged onto any prefs set for the media
+     */
+    prefs?: IMediaPrefs;
 
     /**
      * Callback to be notified of the User's playback time,

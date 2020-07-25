@@ -203,6 +203,13 @@ export class Shougun {
         media: IMedia,
         options: IPlaybackOptions,
     ) {
+        if (options.prefs) {
+            media.prefs = {
+                ...media.prefs,
+                ...options.prefs,
+            };
+        }
+
         if (isPlayable(media)) {
             debug(`media is itself playable:`, media);
             await media.play(options);
@@ -211,7 +218,11 @@ export class Shougun {
 
         if (isSeries(media) || options.currentTime === undefined) {
             const track = await this.context.tracker.pickResumeForMedia(media);
-            track.media.prefs = track.media.prefs ?? media.prefs; // copy over prefs if missing?
+            track.media.prefs = {
+                ...media.prefs,
+                ...track.media.prefs,
+                ...options.prefs,  // provided prefs still override
+            }
             media = track.media;
             options.currentTime = track.resumeTimeSeconds;
             debug(`resuming ${media.title} (#${media.id}) @${options.currentTime} with`, media.prefs);
