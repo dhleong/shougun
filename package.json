@@ -1,6 +1,6 @@
 {
   "name": "shougun",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Take command of your media",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/dhleong/shougun#readme",
   "dependencies": {
-    "babbling": "^1.23.5",
+    "babbling": "^1.23.6",
     "better-sqlite3": "^7.1.0",
     "chai-as-promised": "^7.1.1",
     "chokidar": "^3.4.2",
