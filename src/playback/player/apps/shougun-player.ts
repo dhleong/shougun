@@ -1,4 +1,4 @@
-import { IDevice } from "babbling";
+import { ChromecastDevice } from "stratocaster";
 
 import { formatError } from "../../player";
 import { GenericMediaReceiverApp } from "./generic";
@@ -29,7 +29,7 @@ function shougunAppId() {
 }
 
 export class ShougunPlayerApp extends GenericMediaReceiverApp {
-    constructor(device: IDevice) {
+    constructor(device: ChromecastDevice) {
         super(device, {
             appId: shougunAppId(),
         });
@@ -44,7 +44,7 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
 
             recommendations,
         });
-        this.device.stop(); // don't hang around
+        this.device.close(); // don't hang around
     }
 
     public async showError(
@@ -57,7 +57,7 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
 
             error: formatError(error, details),
         });
-        this.device.stop(); // don't hang around
+        this.device.close(); // don't hang around
 
         return new Promise(resolve => {
             setTimeout(resolve, 1000);

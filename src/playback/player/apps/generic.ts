@@ -1,7 +1,8 @@
 import _debug from "debug";
 const debug = _debug("shougun:cast:generic");
 
-import { awaitMessageOfType, BaseApp, ICastSession, IDevice, PlaybackTracker } from "babbling";
+import { awaitMessageOfType, BaseApp, PlaybackTracker } from "babbling";
+import { ChromecastDevice, StratoChannel } from "stratocaster";
 
 import { IMedia, IMediaMetadata } from "../../../model";
 import { ShougunPlaybackTracker } from "./tracker";
@@ -145,7 +146,7 @@ function formatLoadRequest(
     return request;
 }
 
-async function awaitPlaybackStart(s: ICastSession) {
+async function awaitPlaybackStart(s: StratoChannel) {
     let ms: any;
     do {
         ms = await awaitMessageOfType(s, "MEDIA_STATUS");
@@ -161,7 +162,7 @@ async function awaitPlaybackStart(s: ICastSession) {
     return ms;
 }
 
-async function awaitLoadFailure(s: ICastSession) {
+async function awaitLoadFailure(s: StratoChannel) {
     debug("check for load");
     const m = await awaitMessageOfType(s, "LOAD_FAILED");
     debug("load failed:", m);
@@ -172,7 +173,7 @@ export class GenericMediaReceiverApp extends BaseApp {
 
     protected tracker: PlaybackTracker | undefined;
 
-    constructor(device: IDevice, opts: { appId: string }) {
+    constructor(device: ChromecastDevice, opts: { appId: string }) {
         super(device, {
             appId: opts.appId,
             sessionNs: "urn:x-cast:com.google.cast.media",
@@ -207,7 +208,7 @@ export class GenericMediaReceiverApp extends BaseApp {
     }
 
     public close() {
-        this.device.stop();
+        this.device.close();
     }
 
     protected formatLoadRequest(params: ILoadParams) {
