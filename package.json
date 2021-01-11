@@ -1,6 +1,6 @@
 {
   "name": "shougun",
-  "version": "1.5.7",
+  "version": "1.5.8",
   "description": "Take command of your media",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,7 +40,6 @@
     "msgpack-rpc-lite": "^1.0.2",
     "node-machine-id": "^1.1.12",
     "node-ssdp": "^4.0.1",
-    "nodecastor": "^0.1.9",
     "range-parser": "^1.2.1",
     "speakingurl": "^14.0.1",
     "talisman": "^1.1.3",
