@@ -81,6 +81,7 @@ export enum MediaType {
 
 export interface IMediaPrefs {
     preferredAudioLanguage?: string;
+    preferredSubtitleLanguage?: string;
 }
 
 export interface IMedia {

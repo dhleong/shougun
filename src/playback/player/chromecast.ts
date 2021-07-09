@@ -331,6 +331,7 @@ export class ChromecastPlayer implements IPlayer {
             media,
             queueAround,
             preferredAudioLanguage: playable.media.prefs?.preferredAudioLanguage,
+            preferredSubtitleLanguage: playable.media.prefs?.preferredSubtitleLanguage,
 
             onPlayerPaused: opts.onPlayerPaused,
             onPlayerStop() {
