@@ -4,13 +4,13 @@ const debug = _debug("shougun:player:chromecast");
 import { ChromecastDevice } from "babbling";
 
 import { Context } from "../../context";
-import { IAudioTrack, IVideoAnalysis, IVideoTrack } from "../../media/analyze";
+import { IAudioTrack, ITextTrack, IVideoAnalysis, IVideoTrack } from "../../media/analyze";
 import { getMetadata } from "../../media/metadata";
 import { IMedia, IPlayable, MediaType, supportsClients } from "../../model";
 import { withQuery } from "../../util/url";
 import { canPlayNatively, IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
 import { DefaultMediaReceiverApp } from "./apps/default";
-import { ICastInfo, ICustomCastData } from "./apps/generic";
+import { ICastInfo, ICastTrack, ICustomCastData } from "./apps/generic";
 import { IRecommendation, ShougunPlayerApp } from "./apps/shougun-player";
 
 const chromecastCapabilities = {
@@ -262,6 +262,15 @@ export class ChromecastPlayer implements IPlayer {
             preferredAudioLanguage: playable.media.prefs?.preferredAudioLanguage,
         };
 
+        // TODO: Support a preference for subtitles to be enabled by default?
+        let tracks: ICastTrack[] | undefined;
+        if (analysis != null) {
+            tracks = tracksFrom(url, analysis);
+            debug("Detected tracks:", tracks);
+        } else {
+            debug("No analysis -> no subtitles");
+        }
+
         const media: ICastInfo = {
             contentType: chromecastCapabilities.effectiveMime(contentType),
             currentTime,
@@ -274,6 +283,7 @@ export class ChromecastPlayer implements IPlayer {
             id: playable.id,
             metadata,
             source: playable.media,
+            tracks,
             url,
         };
 
@@ -291,6 +301,7 @@ export class ChromecastPlayer implements IPlayer {
                 ? url
                 : withQuery(url, { queueIndex: index });
 
+            // TODO Subtitle tracks
             return {
                 contentType: media.contentType, // guess?
                 customData: {
@@ -300,6 +311,7 @@ export class ChromecastPlayer implements IPlayer {
                 id: m.id,
                 metadata: myMetadata,
                 source: m,
+                tracks: indexOfMediaInQueue === index ? media.tracks : undefined,
                 url: myUrl,
             } as ICastInfo;
         });
@@ -388,4 +400,46 @@ function pickAppTypeFor(
 
     // use the default media receiver app, otherwise
     return DefaultMediaReceiverApp;
+}
+
+function formatLanguage(rawLanguage: string) {
+    if (rawLanguage.length > 2) {
+        return rawLanguage.substring(0, 2);
+    }
+
+    return rawLanguage;
+}
+
+function makeSubtitleUrl(mediaUrl: string, track: ITextTrack) {
+    // FIXME: This should probably be provided by the Playable
+    return `${mediaUrl}/subtitles/${track.index}`;
+}
+
+function tracksFrom(
+    mediaUrl: string,
+    analysis: IVideoAnalysis,
+): ICastTrack[] | undefined {
+    const tracks: ICastTrack[] = [];
+
+    for (const track of analysis.subtitles) {
+        if (!track.language) continue;
+
+        // TODO Chromecast does not support graphical subtitles, and we
+        // currently always transcode to webvtt (which is impossible to do if
+        // the source is graphical); we probably ought to filter out such tracks
+
+        tracks.push({
+            language: formatLanguage(track.language),
+            name: track.language,
+            trackContentId: makeSubtitleUrl(mediaUrl, track),
+            trackContentType: "text/vtt",
+            trackId: track.index,
+            subtype: "SUBTITLES", // TODO: we may be able to use "captions" for some
+            type: "TEXT",
+        });
+    }
+
+    if (tracks.length > 0) {
+        return tracks;
+    }
 }

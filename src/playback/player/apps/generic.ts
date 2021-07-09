@@ -14,6 +14,18 @@ export interface ICustomCastData {
     startTimeAbsolute?: number;
 }
 
+export interface ICastTrack {
+    /** RFC 5646; mandatory for SUBTITLES */
+    language?: string;
+    name?: string;
+    /** The URL */
+    trackContentId: string;
+    trackContentType?: "text/webvtt" | "text/vtt" | string; // shrug?
+    trackId: number;
+    type: "AUDIO" | "TEXT" | "VIDEO";
+    subtype?: "SUBTITLES" | "CAPTIONS";
+}
+
 export interface ICastInfo {
     contentType: any;
     currentTime?: number;
@@ -28,6 +40,7 @@ export interface ICastInfo {
     id: string;
     url: string;
     metadata?: IMediaMetadata;
+    tracks?: ICastTrack[];
 
     source: IMedia;
 }
@@ -108,12 +121,21 @@ function formatMetadata(
 }
 
 function formatCastInfo(info: ICastInfo) {
+    // TODO preferred track preference?
+    let activeTrackIds: number[] | undefined;
+    if (info.tracks && info.tracks.length) {
+        activeTrackIds = [info.tracks[0].trackId];
+    }
+
     return {
+        activeTrackIds,
         contentId: info.id,
         contentType: info.contentType,
         contentUrl: info.url,
         duration: info.duration,
         metadata: formatMetadata(info.metadata),
+        textTrackStyle: {},
+        tracks: info.tracks,
     };
 }
 
