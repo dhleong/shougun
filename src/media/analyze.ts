@@ -26,6 +26,7 @@ export interface IAudioTrack {
 }
 
 export interface ITextTrack {
+    codec: string;
     index: number;
     isDefault: boolean;
     isForced: boolean;
@@ -110,10 +111,6 @@ export async function analyzeFile(
                 subtitles.push(parsed);
             }
         }
-
-        // if (videoTrack && audioTrack) {
-        //     break;
-        // }
     }
 
     // couldn't find the requested track; fallback to the default
@@ -184,6 +181,7 @@ function parseTextTrack(s: FfprobeStream): ITextTrack | undefined {
     return {
         index: s.index,
         language,
+        codec: s.codec_name ?? '<unknown>',
         isDefault: !!s.disposition?.default,
         isForced: !!s.disposition?.forced,
     };

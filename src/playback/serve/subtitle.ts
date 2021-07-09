@@ -12,10 +12,12 @@ export async function extractSubtitlesTrack(
 ) {
     const pipe = new stream.PassThrough();
 
+    // NOTE: Using the .map() method causes the library to wrap our stream
+    // selection in [brackets] which apparently breaks it? Not sure what's
+    // the deal there....
     const command = ffmpeg(localPath)
-        .map("0:s:0")
+        .outputOption("-map", `0:${track.index}`)
         .outputFormat("webvtt");
-        // .map(`0:${track.index}`);
 
     pipe.once("close", () => {
         // the user stopped viewing the stream; stop transcoding
