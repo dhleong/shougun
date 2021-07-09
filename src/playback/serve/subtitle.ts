@@ -6,10 +6,11 @@ import stream = require("stream");
 
 import { ITextTrack } from "../../media/analyze";
 
-export async function extractSubtitlesTrack(
+export const extractSubtitlesTrack = (
     localPath: string,
     track: ITextTrack,
-) {
+    opts: { autoEnd?: boolean } = {},
+) => new Promise<stream.PassThrough>((resolve, reject) => {
     const pipe = new stream.PassThrough();
 
     // NOTE: Using the .map() method causes the library to wrap our stream
@@ -17,7 +18,15 @@ export async function extractSubtitlesTrack(
     // the deal there....
     const command = ffmpeg(localPath)
         .outputOption("-map", `0:${track.index}`)
-        .outputFormat("webvtt");
+        .outputFormat("webvtt")
+        .on("error", e => {
+            debug("error extracting subtitles", localPath, e);
+            reject(e);
+        })
+        .on("end", () => {
+            debug("done extracting subtitles @", localPath);
+            pipe.end();
+        });
 
     pipe.once("close", () => {
         // the user stopped viewing the stream; stop transcoding
@@ -25,7 +34,15 @@ export async function extractSubtitlesTrack(
         command.kill("SIGKILL");
     });
 
-    command.output(pipe).run();
+    // don't end it automatically (IE on error); we'll do it
+    // ourselves (see above)
+    const end = opts.autoEnd === true;
+    command.output(pipe, { end }).run();
 
-    return pipe;
-}
+    debug("end=", end);
+
+    // See HACKS in transcode.ts
+    setTimeout(() => {
+        resolve(pipe);
+    }, 1000);
+});
