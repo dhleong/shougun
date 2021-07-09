@@ -434,7 +434,7 @@ function tracksFrom(
             trackContentId: makeSubtitleUrl(mediaUrl, track),
             trackContentType: "text/vtt",
             trackId: track.index,
-            subtype: "SUBTITLES", // TODO: we may be able to use "captions" for some
+            subtype: "SUBTITLES", // TODO: we may be able to use "captions" for some dispositions
             type: "TEXT",
         });
     }

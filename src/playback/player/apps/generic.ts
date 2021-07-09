@@ -6,6 +6,7 @@ import { ChromecastDevice, StratoChannel } from "stratocaster";
 
 import { IMedia, IMediaMetadata } from "../../../model";
 import { ShougunPlaybackTracker } from "./tracker";
+import { languageCodeMatches } from "../../../util/language";
 
 export interface ICustomCastData {
     durationSeconds?: number;
@@ -56,6 +57,12 @@ export interface ILoadParams {
      * the default track (if possible)
      */
     preferredAudioLanguage?: string;
+
+    /**
+     * If present, the subtitle language to prefer instead of
+     * the default track (if possible)
+     */
+    preferredSubtitleLanguage?: string;
 
     /**
      * A list of ICastInfo objects around (and including)
@@ -121,14 +128,7 @@ function formatMetadata(
 }
 
 function formatCastInfo(info: ICastInfo) {
-    // TODO preferred track preference?
-    let activeTrackIds: number[] | undefined;
-    if (info.tracks && info.tracks.length) {
-        activeTrackIds = [info.tracks[0].trackId];
-    }
-
     return {
-        activeTrackIds,
         contentId: info.id,
         contentType: info.contentType,
         contentUrl: info.url,
@@ -144,7 +144,24 @@ function formatLoadRequest(
 ) {
     const media = formatCastInfo(params.media);
 
+    // TODO preferred track preference?
+    let activeTrackIds: number[] | undefined;
+    if (
+        params.media.tracks
+        && params.media.tracks.length
+        && params.preferredSubtitleLanguage != null
+    ) {
+        const preferred = params.media.tracks.find(track =>
+            track.language
+            && languageCodeMatches(track.language, params.preferredSubtitleLanguage!)
+        );
+        if (preferred) {
+            activeTrackIds = [preferred.trackId];
+        }
+    }
+
     const request = {
+        activeTrackIds,
         autoplay: true,
         currentTime: params.media.currentTime,
         customData: params.media.customData,
