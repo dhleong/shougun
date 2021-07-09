@@ -415,6 +415,10 @@ function makeSubtitleUrl(mediaUrl: string, track: ITextTrack) {
     return `${mediaUrl}/subtitles/${track.index}`;
 }
 
+const graphicalSubtitleCodecs = new Set<string>([
+    "hdmv_pgs_subtitle",
+]);
+
 function tracksFrom(
     mediaUrl: string,
     analysis: IVideoAnalysis,
@@ -424,9 +428,12 @@ function tracksFrom(
     for (const track of analysis.subtitles) {
         if (!track.language) continue;
 
-        // TODO Chromecast does not support graphical subtitles, and we
-        // currently always transcode to webvtt (which is impossible to do if
-        // the source is graphical); we probably ought to filter out such tracks
+        if (graphicalSubtitleCodecs.has(track.codec)) {
+            // NOTE: Chromecast does not support graphical subtitles, and we
+            // currently always transcode to webvtt (which is impossible to do
+            // if the source is graphical) so graphical subtitles are filtered out
+            continue;
+        }
 
         tracks.push({
             language: formatLanguage(track.language),
@@ -434,7 +441,7 @@ function tracksFrom(
             trackContentId: makeSubtitleUrl(mediaUrl, track),
             trackContentType: "text/vtt",
             trackId: track.index,
-            subtype: "SUBTITLES", // TODO: we may be able to use "captions" for some dispositions
+            subtype: track.isHearingImpared ? "CAPTIONS" : "SUBTITLES",
             type: "TEXT",
         });
     }

@@ -30,6 +30,7 @@ export interface ITextTrack {
     index: number;
     isDefault: boolean;
     isForced: boolean;
+    isHearingImpared: boolean;
     language?: string;
 }
 
@@ -184,5 +185,6 @@ function parseTextTrack(s: FfprobeStream): ITextTrack | undefined {
         codec: s.codec_name ?? '<unknown>',
         isDefault: !!s.disposition?.default,
         isForced: !!s.disposition?.forced,
+        isHearingImpared: !!s.disposition?.hearing_impaired,
     };
 }
