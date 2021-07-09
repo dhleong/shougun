@@ -6,7 +6,8 @@ import { ChromecastDevice, StratoChannel } from "stratocaster";
 
 import { IMedia, IMediaMetadata } from "../../../model";
 import { ShougunPlaybackTracker } from "./tracker";
-import { languageCodeMatches } from "../../../util/language";
+import { pickDefaultTrackIds } from "../track-selection";
+import { IAudioTrack, ITextTrack } from "../../../media/analyze";
 
 export interface ICustomCastData {
     durationSeconds?: number;
@@ -15,17 +16,34 @@ export interface ICustomCastData {
     startTimeAbsolute?: number;
 }
 
-export interface ICastTrack {
-    /** RFC 5646; mandatory for SUBTITLES */
-    language?: string;
+interface IBaseCastTrack {
     name?: string;
     /** The URL */
     trackContentId: string;
-    trackContentType?: "text/webvtt" | "text/vtt" | string; // shrug?
     trackId: number;
     type: "AUDIO" | "TEXT" | "VIDEO";
-    subtype?: "SUBTITLES" | "CAPTIONS";
 }
+
+export interface ITextCastTrack extends IBaseCastTrack {
+    type: "TEXT";
+    subtype: "SUBTITLES" | "CAPTIONS";
+
+    customData: ITextTrack;
+    trackContentType: "text/vtt";
+
+    /** RFC 5646; mandatory for SUBTITLES */
+    language: string;
+}
+
+export interface IAudioCastTrack extends IBaseCastTrack {
+    customData: IAudioTrack;
+    /** RFC 5646; not (apparently) mandatory for audio */
+    language?: string;
+    trackContentType: string;
+    type: "AUDIO";
+}
+
+export type ICastTrack = ITextCastTrack | IAudioCastTrack;
 
 export interface ICastInfo {
     contentType: any;
@@ -143,22 +161,7 @@ function formatLoadRequest(
     params: ILoadParams,
 ) {
     const media = formatCastInfo(params.media);
-
-    // TODO preferred track preference?
-    let activeTrackIds: number[] | undefined;
-    if (
-        params.media.tracks
-        && params.media.tracks.length
-        && params.preferredSubtitleLanguage != null
-    ) {
-        const preferred = params.media.tracks.find(track =>
-            track.language
-            && languageCodeMatches(track.language, params.preferredSubtitleLanguage!)
-        );
-        if (preferred) {
-            activeTrackIds = [preferred.trackId];
-        }
-    }
+    const activeTrackIds = pickDefaultTrackIds(params);
 
     const request = {
         activeTrackIds,

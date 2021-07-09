@@ -426,6 +426,16 @@ function tracksFrom(
 ): ICastTrack[] | undefined {
     const tracks: ICastTrack[] = [];
 
+    tracks.push({
+        customData: analysis.audio,
+        language: formatLanguage(analysis.audio.language ?? "en"),
+        name: "Audio Track",
+        trackContentId: "trk0001",
+        trackContentType: "audio/" + analysis.audio.codec,
+        trackId: analysis.audio.index,
+        type: "AUDIO",
+    });
+
     for (const track of analysis.subtitles) {
         if (!track.language) continue;
 
@@ -437,6 +447,7 @@ function tracksFrom(
         }
 
         tracks.push({
+            customData: track,
             language: formatLanguage(track.language),
             name: track.language,
             trackContentId: makeSubtitleUrl(mediaUrl, track),
