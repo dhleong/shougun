@@ -1,4 +1,5 @@
 import fastify from "fastify";
+import cors from "fastify-cors";
 import internalIp = require("internal-ip");
 import mime from "mime";
 import url from "url";
@@ -95,6 +96,10 @@ export class Server implements IServer {
             // NOTE: some IDs may be arbitrarily long file paths;
             // let's support that
             maxParamLength: 512,
+        });
+
+        server.register(cors as any, {
+            origin: true,
         });
 
         server.get("/playable/id/:id/subtitles/:track", async (req, reply) => {
@@ -231,6 +236,10 @@ export class Server implements IServer {
         const stream = await extractSubtitlesTrack(localPath, track);
 
         debug("got stream @", req.headers.range);
+        reply.headers({
+            "Content-Type": "text/vtt",
+            "Accept-Encoding": "*",
+        });
         reply.status(200);
 
         stream.once("close", () => {
