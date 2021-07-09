@@ -162,6 +162,7 @@ function formatLoadRequest(
 ) {
     const media = formatCastInfo(params.media);
     const activeTrackIds = pickDefaultTrackIds(params);
+    debug("Picked active tracks:", activeTrackIds);
 
     const request = {
         activeTrackIds,

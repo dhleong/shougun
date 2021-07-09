@@ -403,14 +403,6 @@ function pickAppTypeFor(
     return DefaultMediaReceiverApp;
 }
 
-function formatLanguage(rawLanguage: string) {
-    if (rawLanguage.length > 2) {
-        return rawLanguage.substring(0, 2);
-    }
-
-    return rawLanguage;
-}
-
 function makeSubtitleUrl(mediaUrl: string, track: ITextTrack) {
     // FIXME: This should probably be provided by the Playable
     return `${mediaUrl}/subtitles/${track.index}`;
@@ -428,7 +420,7 @@ function tracksFrom(
 
     tracks.push({
         customData: analysis.audio,
-        language: formatLanguage(analysis.audio.language ?? "en"),
+        language: analysis.audio.language,
         name: "Audio Track",
         trackContentId: "trk0001",
         trackContentType: "audio/" + analysis.audio.codec,
@@ -448,7 +440,7 @@ function tracksFrom(
 
         tracks.push({
             customData: track,
-            language: formatLanguage(track.language),
+            language: track.language,
             name: track.language,
             trackContentId: makeSubtitleUrl(mediaUrl, track),
             trackContentType: "text/vtt",
