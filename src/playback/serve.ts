@@ -1,4 +1,5 @@
 import fastify from "fastify";
+import cors from "fastify-cors";
 import internalIp = require("internal-ip");
 import mime from "mime";
 import url from "url";
@@ -14,6 +15,7 @@ import { ILocalMedia, IMedia, IPlayableWithClients } from "../model";
 import { withQuery } from "../util/url";
 import { IPlaybackOptions } from "./player";
 import { serveForPlayer } from "./serve/player-based";
+import { extractSubtitlesTrack } from "./serve/subtitle";
 
 export interface IServer {
     addActiveClient(client: string): void;
@@ -95,6 +97,22 @@ export class Server implements IServer {
             // let's support that
             maxParamLength: 512,
         });
+
+        server.register(cors as any, {
+            origin: true,
+        });
+
+        server.get("/playable/id/:id/subtitles/:track", async (req, reply) => {
+            try {
+                debug(">> active subtitle request!");
+                ++this.activeRequests;
+                return await this.handleSubtitleRequest(context, req, reply);
+            } finally {
+                debug("<< end subtitle request");
+                --this.activeRequests;
+                this.deferCheckStreamsForShutdown();
+            }
+        });
         server.get("/playable/id/:id", async (req, reply) => {
             try {
                 debug(">> active request!");
@@ -122,10 +140,10 @@ export class Server implements IServer {
         return actual;
     }
 
-    private async handlePlayableRequest(
+    // FIXME: This ought to be some sort of middleware, probably
+    private async resolvePlayable(
         context: Context,
         req: fastify.FastifyRequest<any>,
-        reply: fastify.FastifyReply<any>,
     ) {
         const id = req.params.id;
         debug("request playable @", id);
@@ -165,16 +183,65 @@ export class Server implements IServer {
             this.onStreamEnded(media);
         };
 
+        return { media, playable: toPlay, onStreamEnded };
+    }
+
+    private async handlePlayableRequest(
+        context: Context,
+        req: fastify.FastifyRequest<any>,
+        reply: fastify.FastifyReply<any>,
+    ) {
+        const { media, playable, onStreamEnded } = await this.resolvePlayable(context, req);
+
         const { player } = context;
-        const { contentType, localPath } = toPlay;
+        const { contentType, localPath } = playable;
 
         const stream = await serveForPlayer(
             player,
             req, reply,
-            contentType, localPath, toPlay.media?.prefs,
+            contentType, localPath, playable.media?.prefs,
         );
 
         debug("got stream @", req.headers.range);
+        stream.once("close", () => {
+            debug("end stream @", req.headers.range);
+            onStreamEnded();
+        });
+
+        // if we get here, the stream was created without error
+        this.onStreamStarted(media);
+
+        // serve!
+        return stream;
+    }
+
+    private async handleSubtitleRequest(
+        context: Context,
+        req: fastify.FastifyRequest<any>,
+        reply: fastify.FastifyReply<any>,
+    ) {
+        const trackId = parseInt(req.params.track, 10);
+        debug("Received request for subtitle track with id #", trackId);
+
+        const { playable, media, onStreamEnded } = await this.resolvePlayable(context, req);
+
+        const { localPath } = playable;
+        const analysis = await analyzeFile(localPath);
+        const track = analysis.subtitles.find(it => it.index === trackId);
+        if (!track) {
+            throw new Error("No such subtitle track");
+        }
+
+        debug("Extracting subtitle track", track);
+        const stream = await extractSubtitlesTrack(localPath, track);
+
+        debug("got stream @", req.headers.range);
+        reply.headers({
+            "Content-Type": "text/vtt",
+            "Accept-Encoding": "*",
+        });
+        reply.status(200);
+
         stream.once("close", () => {
             debug("end stream @", req.headers.range);
             onStreamEnded();

@@ -6,6 +6,8 @@ import { ChromecastDevice, StratoChannel } from "stratocaster";
 
 import { IMedia, IMediaMetadata } from "../../../model";
 import { ShougunPlaybackTracker } from "./tracker";
+import { pickDefaultTrackIds } from "../track-selection";
+import { IAudioTrack, ITextTrack } from "../../../media/analyze";
 
 export interface ICustomCastData {
     durationSeconds?: number;
@@ -13,6 +15,35 @@ export interface ICustomCastData {
     queueIndex?: number;
     startTimeAbsolute?: number;
 }
+
+interface IBaseCastTrack {
+    name?: string;
+    /** The URL */
+    trackContentId: string;
+    trackId: number;
+    type: "AUDIO" | "TEXT" | "VIDEO";
+}
+
+export interface ITextCastTrack extends IBaseCastTrack {
+    type: "TEXT";
+    subtype: "SUBTITLES" | "CAPTIONS";
+
+    customData: ITextTrack;
+    trackContentType: "text/vtt";
+
+    /** RFC 5646; mandatory for SUBTITLES */
+    language: string;
+}
+
+export interface IAudioCastTrack extends IBaseCastTrack {
+    customData: IAudioTrack;
+    /** RFC 5646; not (apparently) mandatory for audio */
+    language?: string;
+    trackContentType: string;
+    type: "AUDIO";
+}
+
+export type ICastTrack = ITextCastTrack | IAudioCastTrack;
 
 export interface ICastInfo {
     contentType: any;
@@ -28,6 +59,7 @@ export interface ICastInfo {
     id: string;
     url: string;
     metadata?: IMediaMetadata;
+    tracks?: ICastTrack[];
 
     source: IMedia;
 }
@@ -43,6 +75,12 @@ export interface ILoadParams {
      * the default track (if possible)
      */
     preferredAudioLanguage?: string;
+
+    /**
+     * If present, the subtitle language to prefer instead of
+     * the default track (if possible)
+     */
+    preferredSubtitleLanguage?: string;
 
     /**
      * A list of ICastInfo objects around (and including)
@@ -114,6 +152,8 @@ function formatCastInfo(info: ICastInfo) {
         contentUrl: info.url,
         duration: info.duration,
         metadata: formatMetadata(info.metadata),
+        textTrackStyle: {},
+        tracks: info.tracks,
     };
 }
 
@@ -121,8 +161,11 @@ function formatLoadRequest(
     params: ILoadParams,
 ) {
     const media = formatCastInfo(params.media);
+    const activeTrackIds = pickDefaultTrackIds(params);
+    debug("Picked active tracks:", activeTrackIds);
 
     const request = {
+        activeTrackIds,
         autoplay: true,
         currentTime: params.media.currentTime,
         customData: params.media.customData,

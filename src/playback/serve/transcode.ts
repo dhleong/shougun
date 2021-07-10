@@ -7,66 +7,25 @@ import stream = require("stream");
 
 import { IVideoAnalysis } from "../../media/analyze";
 import { IPlayerCapabilities } from "../player";
+import { ffmpegAsPromise, IFfmpegOpts } from "./ffmpeg";
 
-const transcodeWithOptions = (
+function transcodeWithOptions(
     pipe: stream.PassThrough,
     localPath: string,
     startTimeSeconds: number | undefined,
-    opts: {
-        autoEnd?: boolean,
-        config?: (cmd: ffmpeg.FfmpegCommand) => void,
-    },
+    opts: IFfmpegOpts,
     ...ffmpegOptions: string[]  // tslint:disable-line
-) => new Promise<stream.PassThrough>((resolve, reject) => {
+) {
     const command = ffmpeg(localPath)
         .outputFormat("mp4")
 
         .withOptions(ffmpegOptions)
-
-        .on("start", cmd => {
-            debug("start:", cmd);
-        })
-        .once("progress", data => {
-            debug("progress @", localPath);
-            resolve(pipe);
-        })
-        .on("error", e => {
-            debug("error transcoding", localPath, e);
-            reject(e);
-        })
-        .on("end", () => {
-            debug("done transcoding", localPath);
-            pipe.end();
-        });
-
     if (startTimeSeconds) {
         command.setStartTime(startTimeSeconds);
     }
 
-    if (opts.config) {
-        opts.config(command);
-    }
-
-    pipe.once("close", () => {
-        // the user stopped viewing the stream; stop transcoding
-        debug("pipe closed; shut down transcode");
-        command.kill("SIGKILL");
-    });
-
-    // don't end it automatically (IE on error); we'll do it
-    // ourselves (see above)
-    const end = opts.autoEnd === true;
-    command.output(pipe, { end }).run();
-
-    // HACKS: if we don't get an error *or* otherwise resolve in 1s,
-    // just resolve so we can *try* to read from the pipe.
-    // TODO: Perhaps if `pipe` read from the command output but stored
-    // it in a buffer until downstream was ready to consume, it'd work
-    // without this hack?
-    setTimeout(() => {
-        resolve(pipe);
-    }, 1000);
-});
+    return ffmpegAsPromise(`transcode ${localPath}`, command, opts, pipe);
+}
 
 export async function transcodeForAnalysis(
     analysis: IVideoAnalysis,

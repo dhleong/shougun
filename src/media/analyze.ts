@@ -1,3 +1,6 @@
+import _debug from "debug";
+const debug = _debug("shougun:analyze");
+
 import {
     ffprobe as ffprobeCallback,
     FfprobeData,
@@ -20,6 +23,15 @@ export interface IAudioTrack {
     isDefault: boolean;
     language?: string;
     profile?: string;
+}
+
+export interface ITextTrack {
+    codec: string;
+    index: number;
+    isDefault: boolean;
+    isForced: boolean;
+    isHearingImpared: boolean;
+    language?: string;
 }
 
 export interface IVideoTrack {
@@ -50,6 +62,7 @@ export interface IVideoTrack {
 export interface IVideoAnalysis {
     audio: IAudioTrack;
     video: IVideoTrack;
+    subtitles: ITextTrack[];
 
     container: string[];
     duration: number;
@@ -66,6 +79,8 @@ export async function analyzeFile(
     let videoTrack: IVideoTrack | undefined;
     let audioTrack: IAudioTrack | undefined;
     let defaultAudioTrack: IAudioTrack | undefined;
+    const subtitles: ITextTrack[] = [];
+
     for (const s of data.streams) {
         if (!videoTrack && s.codec_type === "video") {
             videoTrack = parseVideoTrack(s);
@@ -90,8 +105,12 @@ export async function analyzeFile(
             }
         }
 
-        if (videoTrack && audioTrack) {
-            break;
+        if (s.codec_type === "subtitle") {
+            const parsed = parseTextTrack(s);
+            if (parsed) {
+                debug("found subtitle", parsed);
+                subtitles.push(parsed);
+            }
         }
     }
 
@@ -101,6 +120,7 @@ export async function analyzeFile(
     return {
         audio: audioTrack!,
         video: videoTrack!,
+        subtitles,
 
         container: data.format.format_name!.split(","),
         duration: data.format.duration,
@@ -152,4 +172,19 @@ function parseVideoTrack(s: FfprobeStream): IVideoTrack {
     }
 
     return base;
+}
+
+function parseTextTrack(s: FfprobeStream): ITextTrack | undefined {
+    const language = s.tags?.language;
+    if (!language) return;
+
+    debug("parse text track", s);
+    return {
+        index: s.index,
+        language,
+        codec: s.codec_name ?? '<unknown>',
+        isDefault: !!s.disposition?.default,
+        isForced: !!s.disposition?.forced,
+        isHearingImpared: !!s.disposition?.hearing_impaired,
+    };
 }
