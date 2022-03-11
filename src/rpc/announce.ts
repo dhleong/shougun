@@ -59,7 +59,7 @@ export class RpcAnnouncer {
             await server.start();
             this.server = server;
             return;
-        } catch (e) {
+        } catch (e: any) {
             if (!e.message.includes("No sockets available")) {
                 throw e;
             }

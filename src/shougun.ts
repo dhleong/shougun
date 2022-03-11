@@ -295,7 +295,7 @@ export class Shougun {
     ): Promise<R> {
         try {
             return await block();
-        } catch (e) {
+        } catch (e: any) {
             if (this.context.player.showError) {
                 await this.context.player.showError(e);
             }

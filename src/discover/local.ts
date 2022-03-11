@@ -66,7 +66,7 @@ class LocalFileHierarchy implements IHierarchy<string> {
             ).map(fileName =>
                 path.join(file, fileName),
             );
-        } catch (e) {
+        } catch (e: any) {
             if (e.code === "ENOTDIR") {
                 // file is not a directory
                 return null;
@@ -243,7 +243,7 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
                     type: ChangeType.MEDIA_CHANGED,
                 });
             }
-        } catch (e) {
+        } catch (e: any) {
             if (!e.message.includes("ENOENT")) {
                 // if ENOENT we're probably trying to scan a directory
                 // that was just recursively deleted
