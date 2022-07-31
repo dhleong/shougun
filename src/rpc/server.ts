@@ -19,11 +19,17 @@ function on(
 ) {
     server.on(event, ([params]: any[], callback: any) => {
         debug("received:", event, "with", params);
-        handler(...params).then(result => {
-            callback(null, result);
-        }, error => {
-            callback(error);
-        });
+        try {
+            handler(...params).then(result => {
+                callback(null, result);
+            }, error => {
+                callback(error);
+            });
+        } catch (e) {
+            // NOTE: This is a sanity check to make sure that errors in a handler
+            // don't crash the RPC server
+            callback(e);
+        }
     });
 }
 
