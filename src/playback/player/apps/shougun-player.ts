@@ -1,4 +1,7 @@
-import { ChromecastDevice } from "stratocaster";
+import _debug from "debug";
+const debug = _debug("shougun:player:chromecast:app");
+
+import type { ChromecastDevice, StratoChannel } from "stratocaster";
 
 import { formatError } from "../../player";
 import { GenericMediaReceiverApp } from "./generic";
@@ -28,6 +31,16 @@ function shougunAppId() {
     return PROD_ID
 }
 
+/**
+ * Safely sends the [message] on the given channel without waiting on any response
+ */
+async function dispatch(s: StratoChannel, message: Record<string, unknown>) {
+  // NOTE: This function is async to allow for a more intuitive API (and in case
+  // we ever need to wait for *something* but we intentionally do not actually
+  // await the result of the send() here:
+  s.send(message).catch(e => debug("Error dispatching message", message));
+}
+
 export class ShougunPlayerApp extends GenericMediaReceiverApp {
     constructor(device: ChromecastDevice) {
         super(device, {
@@ -39,7 +52,7 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
         recommendations: IRecommendation[],
     ) {
         const s = await this.joinOrRunNamespace(CUSTOM_NS);
-        s.send({
+        await dispatch(s, {
             type: "RECOMMEND",
 
             recommendations,
@@ -52,7 +65,7 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
         details?: string,
     ) {
         const s = await this.joinOrRunNamespace(CUSTOM_NS);
-        s.send({
+        await dispatch(s, {
             type: "ERROR",
 
             error: formatError(error, details),

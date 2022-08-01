@@ -296,8 +296,14 @@ export class Shougun {
         try {
             return await block();
         } catch (e: any) {
+            debug("captured error: ", e);
             if (this.context.player.showError) {
-                await this.context.player.showError(e);
+                debug("showing captured error", e);
+                try {
+                    await this.context.player.showError(e);
+                } catch (e) {
+                    debug("encountered error trying to display error:", e);
+                }
             }
             throw e;
         }
