@@ -22,7 +22,7 @@ interface IQueryOpts {
 }
 
 function formatMediaResults(shougun: Shougun, results: IMedia[]) {
-    return Promise.all(results.map(async (media) => {
+    return Promise.all(results.map(async media => {
         if (isLocalDiscoveryId(media.discovery)) {
             debug("Preparing cover art for", media.id);
             try {
