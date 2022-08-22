@@ -228,14 +228,19 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         if (this.hierarchy.equals(this.root, grandParent)) {
             debug("grand @", candidate);
 
+            const coverImageCandidatesDir = await this.hierarchy.childrenOf(parent);
+            const {
+                image: coverImageCandidates,
+            } = groupBy(coverImageCandidatesDir ?? [], it => fileType(
+                this.hierarchy.nameOf(it),
+            ));
+
             // EG: /Korra/Book 1; Korra/Book 2
             // if the grandparent is the root, then this
             // must be a season
             const series: IHierarchicalMedia<TEntity> & ISeries =
             discovered[parentId] as IHierarchicalMedia<TEntity> & ISeries || {
-                coverEntity: this.pickCoverImage(
-                    await this.hierarchy.childrenOf(parent),
-                ),
+                coverEntity: this.pickCoverImage(coverImageCandidates),
                 discovery: this.id,
                 entity: parent,
                 id: parentId,
