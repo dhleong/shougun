@@ -1,3 +1,5 @@
+import _debug from "debug";
+
 import { IEpisodeQuery } from "babbling/dist/app";
 
 import { borrow } from "../borrow/borrow";
@@ -9,6 +11,9 @@ import { IViewedInformation } from "../track/persistent";
 import { generateMachineUuid } from "./id";
 import { IRemoteConfig } from "./server";
 import { IPlaybackOptions } from "../playback/player";
+import { isLocalDiscoveryId } from "../discover/local";
+
+const debug = _debug("shougun:rpc");
 
 const MAX_RESULTS = 50; // don't try to send more than this over the wire
 
@@ -16,7 +21,31 @@ interface IQueryOpts {
     maxResults: number;
 }
 
+function formatMediaResults(shougun: Shougun, results: IMedia[]) {
+    return Promise.all(results.map(async (media) => {
+        if (isLocalDiscoveryId(media.discovery)) {
+            debug("Preparing cover art for", media.id);
+            try {
+                const playable = await shougun.getPlayable(media);
+                const cover = await playable?.getCoverUrl?.(shougun.context);
+                if (cover != null) {
+                    debug("Got cover:", cover);
+                    return {
+                        ...media,
+                        cover,
+                    };
+                }
+            } catch (e) {
+                debug("Failed to load cover art for ", media.id, e);
+            }
+        }
+
+        return media;
+    }));
+}
+
 async function queryVia(
+    shougun: Shougun,
     options: Partial<IQueryOpts>,
     iterableResults: AsyncIterable<IMedia>,
 ) {
@@ -37,7 +66,7 @@ async function queryVia(
         }
     }
 
-    return selectedResults;
+    return formatMediaResults(shougun, selectedResults);
 }
 
 export class RpcHandler {
@@ -86,13 +115,13 @@ export class RpcHandler {
     public async queryRecent(options: {
         onlyLocal?: boolean,
     } & Partial<IQueryOpts>) {
-        return queryVia(options, this.shougun.queryRecent(options));
+        return queryVia(this.shougun, options, this.shougun.queryRecent(options));
     }
 
     public async queryRecommended(options: {
         onlyLocal?: boolean,
     } & Partial<IQueryOpts>) {
-        return queryVia(options, this.shougun.queryRecommended(options));
+        return queryVia(this.shougun, options, this.shougun.queryRecommended(options));
     }
 
     public async retrieveBorrowed() {
@@ -130,7 +159,7 @@ export class RpcHandler {
 
         // return a subset; results after this point are
         // usually garbage anyway
-        return sorted.slice(0, 20);
+        return formatMediaResults(this.shougun, sorted.slice(0, 20));
     }
 
     public async showRecommendations() {

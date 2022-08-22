@@ -97,6 +97,10 @@ class LocalFileHierarchy implements IHierarchy<string> {
     }
 }
 
+export function isLocalDiscoveryId(id: DiscoveryId) {
+    return id.startsWith("local:");
+}
+
 export class LocalDiscovery extends HierarchicalDiscovery<string> {
 
     public readonly id: DiscoveryId;

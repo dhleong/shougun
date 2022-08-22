@@ -92,6 +92,11 @@ export class Shougun {
         );
     }
 
+    public async getPlayable(media: IMedia) {
+        const { playable } = await this.resolvePlayableMedia(media, {});
+        return playable;
+    }
+
     /**
      * Get a map whose keys are a discovery type and whose values
      * are AsyncIterables of recently watched media
@@ -207,6 +212,30 @@ export class Shougun {
         media: IMedia,
         options: IPlaybackOptions,
     ) {
+        const { media: resolvedMedia, playable } = await this.resolvePlayableMedia(media, options);
+
+        if (playable == null) {
+            // media itself must be a PlayableMedia
+            await resolvedMedia.play(options);
+            return resolvedMedia;
+        }
+
+        debug(`playing ${media.id} as ${playable.id} with ${JSON.stringify(options)}...`);
+        await this.context.player.play(this.context, playable, Object.assign({
+            onPlayerPaused: async (pausedMedia: IMedia, currentTimeSeconds: number) => {
+                debug(`record playerPaused of ${pausedMedia.id} @ ${currentTimeSeconds}`);
+                return this.context.tracker.saveTrack(
+                    pausedMedia,
+                    currentTimeSeconds,
+                    playable.durationSeconds,
+                );
+            },
+        }, options));
+
+        return media;
+    }
+
+    private async resolvePlayableMedia(media: IMedia, options: IPlaybackOptions) {
         if (!media.prefs) {
             // try to fetch stored prefs
             const stored = await this.context.tracker.loadPrefsForSeries(media.id);
@@ -224,8 +253,7 @@ export class Shougun {
 
         if (isPlayable(media)) {
             debug(`media is itself playable:`, media);
-            await media.play(options);
-            return media;
+            return { media, playable: null };
         }
 
         if (isSeries(media) || options.currentTime === undefined) {
@@ -235,9 +263,15 @@ export class Shougun {
                 ...track.media.prefs,
                 ...options.prefs,  // provided prefs still override
             }
+            track.media = {
+                // Ensure any discovery-specific extra props are carried over
+                // (eg: series cover data, if the media itself does not have cover data)
+                ...media,
+                ...track.media,
+            };
             media = track.media;
             options.currentTime = track.resumeTimeSeconds;
-            debug(`resuming ${media.title} (#${media.id}) @${options.currentTime} with`, media.prefs);
+            debug(`create resume for ${media.title} (#${media.id}) @${options.currentTime} with`, media.prefs);
         }
 
         debug(`create playable for ${media.id}...`);
@@ -246,19 +280,7 @@ export class Shougun {
             media,
         );
 
-        debug(`playing ${media.id} as ${playable.id} with ${JSON.stringify(options)}...`);
-        await this.context.player.play(this.context, playable, Object.assign({
-            onPlayerPaused: async (pausedMedia: IMedia, currentTimeSeconds: number) => {
-                debug(`record playerPaused of ${pausedMedia.id} @ ${currentTimeSeconds}`);
-                return this.context.tracker.saveTrack(
-                    pausedMedia,
-                    currentTimeSeconds,
-                    playable.durationSeconds,
-                );
-            },
-        }, options));
-
-        return media;
+        return { media, playable };
     }
 
     private async getQueryableMap(

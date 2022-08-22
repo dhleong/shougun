@@ -112,6 +112,19 @@ export class RpcServer {
             throw e;
         }
 
+        // Track active connections so we can keep the server alive if they want to
+        // fetch local cover art
+        server.on("connection", socket => {
+            const id = JSON.stringify(socket.address());
+            this.shougun.context.server.addActiveClient(id);
+            debug("new client:", id);
+
+            socket.once('close', () => {
+                debug("lost client:", id);
+                this.shougun.context.server.removeActiveClient(id);
+            });
+        });
+
         this.server = server;
     }
 
