@@ -112,6 +112,10 @@ export class RpcServer {
             throw e;
         }
 
+        server.on("error", error => {
+            debug("Unexpected error:", error);
+        });
+
         // Track active connections so we can keep the server alive if they want to
         // fetch local cover art
         server.on("connection", socket => {
@@ -119,7 +123,11 @@ export class RpcServer {
             this.shougun.context.server.addActiveClient(id);
             debug("new client:", id);
 
-            socket.once('close', () => {
+            socket.on("error", error => {
+                debug("Error from client", id, error);
+            });
+
+            socket.once("close", () => {
                 debug("lost client:", id);
                 this.shougun.context.server.removeActiveClient(id);
             });
