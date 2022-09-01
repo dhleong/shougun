@@ -71,6 +71,22 @@ export function formatError(error: Error, details?: string) {
     return errorJson;
 }
 
+function canPlayNonDefaultAudioTrack(
+    capabilities: IPlayerCapabilities,
+    analysis: IVideoAnalysis,
+) {
+    if (!capabilities.supportsNonDefaultAudioTrackForContainer) {
+        // it doesn't support for any container
+        return false;
+    }
+
+    return !!analysis.container.find(
+        capabilities.supportsNonDefaultAudioTrackForContainer.bind(
+            capabilities,
+        ),
+    );
+}
+
 export function canPlayNatively(
     capabilities: IPlayerCapabilities,
     analysis: IVideoAnalysis | null,
@@ -94,20 +110,4 @@ export function canPlayNatively(
     }
 
     return videoSupported && audioSupported && containerSupported;
-}
-
-function canPlayNonDefaultAudioTrack(
-    capabilities: IPlayerCapabilities,
-    analysis: IVideoAnalysis,
-) {
-    if (!capabilities.supportsNonDefaultAudioTrackForContainer) {
-        // it doesn't support for any container
-        return false;
-    }
-
-    return !!analysis.container.find(
-        capabilities.supportsNonDefaultAudioTrackForContainer.bind(
-            capabilities,
-        ),
-    );
 }

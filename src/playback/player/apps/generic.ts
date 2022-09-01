@@ -1,7 +1,7 @@
 import _debug from "debug";
 
 import { awaitMessageOfType, BaseApp, PlaybackTracker } from "babbling";
-import { ChromecastDevice, StratoChannel } from "stratocaster";
+import type { ChromecastDevice, StratoChannel } from "stratocaster";
 
 import { IMedia, IMediaMetadata } from "../../../model";
 import { ShougunPlaybackTracker } from "./tracker";

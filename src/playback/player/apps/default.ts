@@ -1,4 +1,4 @@
-import { ChromecastDevice } from "stratocaster";
+import type { ChromecastDevice } from "stratocaster";
 
 import { GenericMediaReceiverApp } from "./generic";
 
