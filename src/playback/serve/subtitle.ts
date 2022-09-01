@@ -1,5 +1,3 @@
-import _debug from "debug";
-
 import ffmpeg from "fluent-ffmpeg";
 
 import { ITextTrack } from "../../media/analyze";

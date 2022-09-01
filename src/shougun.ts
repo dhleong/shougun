@@ -251,11 +251,13 @@ export class Shougun {
                 media.id,
             );
             if (stored) {
+                // eslint-disable-next-line no-param-reassign
                 media.prefs = stored;
             }
         }
 
         if (options.prefs) {
+            // eslint-disable-next-line no-param-reassign
             media.prefs = {
                 ...media.prefs,
                 ...options.prefs,
@@ -280,7 +282,9 @@ export class Shougun {
                 ...media,
                 ...track.media,
             };
+            // eslint-disable-next-line no-param-reassign
             media = track.media;
+            // eslint-disable-next-line no-param-reassign
             options.currentTime = track.resumeTimeSeconds;
             debug(
                 `create resume for ${media.title} (#${media.id}) @${options.currentTime} with`,
@@ -337,8 +341,11 @@ export class Shougun {
                 debug("showing captured error", e);
                 try {
                     await this.context.player.showError(e);
-                } catch (e) {
-                    debug("encountered error trying to display error:", e);
+                } catch (innerError) {
+                    debug(
+                        "encountered error trying to display error:",
+                        innerError,
+                    );
                 }
             }
             throw e;

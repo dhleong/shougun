@@ -17,11 +17,11 @@ class QueuedState<T> {
     public valueAvailable = new Deferred<null>();
     public isClosed = false;
 
-    constructor(readonly cleanup?: () => void) {}
+    constructor(public readonly cleanup?: () => void) {}
 }
 
 class Iterator<T> implements AsyncIterator<T> {
-    constructor(readonly state: QueuedState<T>) {}
+    constructor(private readonly state: QueuedState<T>) {}
 
     public async next(): Promise<IteratorResult<T>> {
         if (this.state.queue.length) {

@@ -1,5 +1,5 @@
 import { IMedia, IMediaPrefs } from "../model";
-import { IViewedInformation } from "./persistent";
+import type { IViewedInformation } from "./persistent";
 
 export interface ITrack {
     media: IMedia;

@@ -15,12 +15,14 @@ type IEntry = string | DirEntry;
 
 function dir(...fileNames: IEntry[]) {
     return fileNames.reduce((m, entry) => {
+        /* eslint-disable no-param-reassign */
         if (typeof entry === "string") {
             m[entry] = "";
         } else {
             const [fileName, contents] = entry as DirEntry;
             m[fileName] = contents;
         }
+        /* eslint-enable no-param-reassign */
         return m;
     }, {} as { [n: string]: any });
 }

@@ -1,6 +1,6 @@
 import _debug from "debug";
 
-import sqlite from "better-sqlite3";
+import Sqlite from "better-sqlite3";
 
 import { ILoanCreate, ILoanData } from "../base";
 import { IStorage, IViewedInformation } from "../persistent";
@@ -10,28 +10,32 @@ const debug = _debug("shougun:sqlite");
 
 const SchemaVersion = 3;
 
-function unpackInfo(result: any): IViewedInformation | null {
-    if (result === undefined) return null;
+function unpackInfo(info: any): IViewedInformation | null {
+    if (info === undefined) return null;
+
+    let result = info;
 
     if (result.seriesId === null) {
+        result = { ...result };
         delete result.seriesId;
     }
+
     return result;
 }
 
 export class Sqlite3Storage implements IStorage {
     public static forFile(filePath: string) {
-        return new Sqlite3Storage(new sqlite(filePath));
+        return new Sqlite3Storage(new Sqlite(filePath));
     }
 
     public static inMemory() {
-        return new Sqlite3Storage(new sqlite(":memory:"));
+        return new Sqlite3Storage(new Sqlite(":memory:"));
     }
 
     private hasPrepared = false;
-    private statementsCache: { [key: string]: sqlite.Statement } = {};
+    private statementsCache: { [key: string]: Sqlite.Statement } = {};
 
-    constructor(private db: sqlite.Database) {}
+    constructor(private db: Sqlite.Database) {}
 
     public close() {
         this.db.close();

@@ -94,13 +94,14 @@ export class PersistentTracker implements ITracker {
                 // unwatched? also start at beginning
                 return this.trackForEpisode(media, lastWatched);
 
-            case WatchState.InProgress:
+            case WatchState.InProgress: {
                 // resume in-progress episode
                 const track = await this.trackForEpisode(media, lastWatched);
                 return {
                     resumeTimeSeconds: lastWatched.resumeTimeSeconds,
                     ...track,
                 };
+            }
 
             case WatchState.Watched:
                 // watch "next" episode of the series!
