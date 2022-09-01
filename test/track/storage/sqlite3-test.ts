@@ -15,6 +15,20 @@ const { expect } = chai;
 
 const seriesId = "firefly";
 
+function episodeWith(extra: Partial<IViewedInformation> = {}) {
+    return {
+        id: "id",
+        seriesId,
+        title: "Mighty fine Shindig",
+
+        lastViewedTimestamp: 9001,
+        resumeTimeSeconds: 0,
+        videoDurationSeconds: 0,
+
+        ...extra,
+    };
+}
+
 describe("Sqlite3Storage", () => {
     let storage: Sqlite3Storage;
 
@@ -263,17 +277,3 @@ describe("Sqlite3Storage", () => {
         });
     });
 });
-
-function episodeWith(extra: Partial<IViewedInformation> = {}) {
-    return {
-        id: "id",
-        seriesId,
-        title: "Mighty fine Shindig",
-
-        lastViewedTimestamp: 9001,
-        resumeTimeSeconds: 0,
-        videoDurationSeconds: 0,
-
-        ...extra,
-    };
-}

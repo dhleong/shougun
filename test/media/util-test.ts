@@ -10,6 +10,16 @@ import { IEpisode, MediaType } from "../../src/model";
 
 chai.should();
 
+function namedEpisode(title: string): IEpisode {
+    return {
+        discovery: "test",
+        id: titleToId(title),
+        seriesId: "series",
+        title,
+        type: MediaType.Episode,
+    };
+}
+
 describe("fileNameToTitle", () => {
     it("tries to strip codec and format info", () => {
         fileNameToTitle("Hana yori dango ep08 (704x396 DivX).avi").should.equal(
@@ -100,13 +110,3 @@ describe("sortEpisodes", () => {
             ]);
     });
 });
-
-function namedEpisode(title: string): IEpisode {
-    return {
-        discovery: "test",
-        id: titleToId(title),
-        seriesId: "series",
-        title,
-        type: MediaType.Episode,
-    };
-}
