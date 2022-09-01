@@ -74,7 +74,7 @@
     "@typescript-eslint/parser": "^4.23.0",
     "chai": "^4.3.6",
     "chai-subset": "^1.6.0",
-    "eslint": "^7.26.0",
+    "eslint": "^7.32.0",
     "eslint_d": "^12.1.0",
     "eslint-config-airbnb-typescript": "^12.3.1",
     "eslint-config-prettier": "^8.5.0",
