@@ -218,13 +218,13 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
         iterable: QueuedIterable<IDiscoveredChange>,
         changedFile: string,
     ) {
-        const relative = changedFile.substr(this.root.length);
+        const relative = changedFile.substring(this.root.length);
         let offset = 0;
         if (relative[0] === path.sep) {
             offset = 1;
         }
         const dirEnd = relative.indexOf(path.sep, offset);
-        const rootDir = relative.substr(0, dirEnd);
+        const rootDir = relative.substring(0, dirEnd);
         const fullPath = path.join(this.root, rootDir);
 
         if (rootDir === "") {
@@ -240,6 +240,7 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
         try {
             for await (const m of this.discoverFromRoot(lastMap, fullPath)) {
                 debug("media changed", m);
+                // eslint-disable-next-line no-param-reassign
                 lastMap[m.id] = m;
                 iterable.notify({
                     media: m,

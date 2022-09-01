@@ -3,7 +3,7 @@ export enum ScoreMode {
     Lowest,
 }
 
-type Comparable = number | object | undefined;
+type Comparable = number | Record<string, unknown> | undefined;
 
 function compareHighest(
     [, scoreA]: [any, Comparable],

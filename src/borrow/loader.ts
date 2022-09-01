@@ -10,55 +10,6 @@ import { ILoanInstruction, ILoanInstructions } from "./model";
 
 const debug = _debug("shougun:borrow:loader");
 
-/**
- * Load information about media that was loaned to us/that we borrowed
- */
-export async function loadLoans(shougun: Shougun) {
-    const borrowDir = pathlib.join(
-        os.homedir(),
-        ".config",
-        "shougun",
-        "borrow",
-    );
-    if (!(await fs.pathExists(borrowDir))) {
-        debug("no borrow dir");
-        return;
-    }
-
-    const borrowFiles = await Promise.all(
-        (
-            await fs.readdir(borrowDir)
-        ).map(async (file) => {
-            const fullPath = pathlib.join(borrowDir, file);
-            return [fullPath, (await fs.stat(fullPath)).ctime.getTime()] as [
-                string,
-                number,
-            ];
-        }),
-    );
-    borrowFiles.sort(([_, a], [__, b]) => {
-        return b - a;
-    });
-    debug("load borrow files:", borrowFiles);
-
-    const saveInstruction = saveMediaBorrowInstruction.bind(null, shougun);
-    for (const [f] of borrowFiles) {
-        debug("loading borrow @", f);
-
-        const instructions: ILoanInstructions = await fs.readJson(f);
-        await Promise.all(instructions.nextMedia.map(saveInstruction));
-
-        // save the token and serverId for "returning" the loan later
-        await shougun.context.tracker.createLoan({
-            serverId: instructions.serverId,
-            token: instructions.token,
-        });
-
-        debug("finished loading borrow @", f, "; delete it");
-        await fs.remove(f);
-    }
-}
-
 async function saveMediaBorrowInstruction(
     shougun: Shougun,
     instruction: ILoanInstruction,
@@ -85,4 +36,53 @@ async function saveMediaBorrowInstruction(
         instruction.resumeTimeSeconds || 0,
         videoDurationSeconds,
     );
+}
+
+/**
+ * Load information about media that was loaned to us/that we borrowed
+ */
+export async function loadLoans(shougun: Shougun) {
+    const borrowDir = pathlib.join(
+        os.homedir(),
+        ".config",
+        "shougun",
+        "borrow",
+    );
+    if (!(await fs.pathExists(borrowDir))) {
+        debug("no borrow dir");
+        return;
+    }
+
+    const borrowFiles = await Promise.all(
+        (
+            await fs.readdir(borrowDir)
+        ).map(async (file) => {
+            const fullPath = pathlib.join(borrowDir, file);
+            return [fullPath, (await fs.stat(fullPath)).ctime.getTime()] as [
+                string,
+                number,
+            ];
+        }),
+    );
+    borrowFiles.sort(([, a], [, b]) => {
+        return b - a;
+    });
+    debug("load borrow files:", borrowFiles);
+
+    const saveInstruction = saveMediaBorrowInstruction.bind(null, shougun);
+    for (const [f] of borrowFiles) {
+        debug("loading borrow @", f);
+
+        const instructions: ILoanInstructions = await fs.readJson(f);
+        await Promise.all(instructions.nextMedia.map(saveInstruction));
+
+        // save the token and serverId for "returning" the loan later
+        await shougun.context.tracker.createLoan({
+            serverId: instructions.serverId,
+            token: instructions.token,
+        });
+
+        debug("finished loading borrow @", f, "; delete it");
+        await fs.remove(f);
+    }
 }

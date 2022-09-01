@@ -60,7 +60,7 @@ interface IMatchBuilderConfig {
 // remote config:
 
 export type OptionalExtraRemoteBuilder<T> = T extends { borrowing: BorrowMode }
-    ? {}
+    ? Record<string, never>
     : IExtraRemoteBuilderConfig;
 
 interface IRemoteBuilderConfig {
