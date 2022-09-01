@@ -48,6 +48,10 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
                 if ((status as any).idleReason === "CANCELLED") {
                     this.handleClose();
                 }
+                break;
+
+            default:
+            // ignore
         }
     }
 

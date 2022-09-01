@@ -21,6 +21,40 @@ function queryErrorHandler(app: string, error: unknown) {
     debug("error querying", app, error);
 }
 
+function resultToMedia(
+    player: Player,
+    result: IQueryResult,
+): IPlayableMedia & { cover?: string } {
+    return {
+        cover: (result as any).cover,
+        discovery: `babbling:${result.appName}`,
+        id: result.url || `${result.appName}:${result.title}`,
+        title: result.title,
+        type: MediaType.ExternalPlayable,
+
+        async play(_opts) {
+            // TODO: Can we interop the opts?
+            await player.play(result);
+        },
+
+        async findEpisode(context, query) {
+            const episode = await player.findEpisodeFor(result, query);
+            if (episode) {
+                return resultToMedia(player, episode);
+            }
+        },
+    };
+}
+
+async function* transformQueryResultsToPlayableMedia(
+    player: Player,
+    results: AsyncIterable<IQueryResult>,
+) {
+    for await (const result of results) {
+        yield resultToMedia(player, result);
+    }
+}
+
 export class BabblingQueryable implements IQueryable {
     constructor(
         private readonly configPath?: string,
@@ -58,8 +92,10 @@ export class BabblingQueryable implements IQueryable {
         const player = await this.getPlayer();
         const map = predicate(player);
         return Object.keys(map).reduce((m, k) => {
+            /* eslint-disable no-param-reassign */
             const results = map[k];
             m[k] = transformQueryResultsToPlayableMedia(player, results);
+            /* eslint-enable no-param-reassign */
             return m;
         }, {} as IMediaResultsMap);
     }
@@ -73,38 +109,4 @@ export class BabblingQueryable implements IQueryable {
 
         return builder.build();
     }
-}
-
-async function* transformQueryResultsToPlayableMedia(
-    player: Player,
-    results: AsyncIterable<IQueryResult>,
-) {
-    for await (const result of results) {
-        yield resultToMedia(player, result);
-    }
-}
-
-function resultToMedia(
-    player: Player,
-    result: IQueryResult,
-): IPlayableMedia & { cover?: string } {
-    return {
-        cover: (result as any).cover,
-        discovery: `babbling:${result.appName}`,
-        id: result.url || `${result.appName}:${result.title}`,
-        title: result.title,
-        type: MediaType.ExternalPlayable,
-
-        async play(_opts) {
-            // TODO: Can we interop the opts?
-            await player.play(result);
-        },
-
-        async findEpisode(context, query) {
-            const episode = await player.findEpisodeFor(result, query);
-            if (episode) {
-                return resultToMedia(player, episode);
-            }
-        },
-    };
 }

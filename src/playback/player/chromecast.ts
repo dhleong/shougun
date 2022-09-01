@@ -191,6 +191,74 @@ const ultraCapabilities = {
     },
 };
 
+function pickAppTypeFor(
+    capabilities: IPlayerCapabilities,
+    analysis: IVideoAnalysis | null,
+    _playable: IPlayable,
+) {
+    if (!canPlayNatively(capabilities, analysis)) {
+        // use Shougun app to support seeking within transcoded videos
+        return ShougunPlayerApp;
+    }
+
+    // NOTE: in theory CAF supports "tracks" and selecting different
+    // tracks, but in practice when we stream things to the chromecast
+    // it just returns an empty array for the available audio tracks...
+
+    // use the default media receiver app, otherwise
+    return DefaultMediaReceiverApp;
+}
+
+function makeSubtitleUrl(mediaUrl: string, track: ITextTrack) {
+    // FIXME: This should probably be provided by the Playable
+    return `${mediaUrl}/subtitles/${track.index}`;
+}
+
+const graphicalSubtitleCodecs = new Set<string>(["hdmv_pgs_subtitle"]);
+
+function tracksFrom(
+    mediaUrl: string,
+    analysis: IVideoAnalysis,
+): ICastTrack[] | undefined {
+    const tracks: ICastTrack[] = [];
+
+    tracks.push({
+        customData: analysis.audio,
+        language: analysis.audio.language,
+        name: "Audio Track",
+        trackContentId: "trk0001",
+        trackContentType: `audio/${analysis.audio.codec}`,
+        trackId: analysis.audio.index,
+        type: "AUDIO",
+    });
+
+    for (const track of analysis.subtitles) {
+        if (!track.language) continue;
+
+        if (graphicalSubtitleCodecs.has(track.codec)) {
+            // NOTE: Chromecast does not support graphical subtitles, and we
+            // currently always transcode to webvtt (which is impossible to do
+            // if the source is graphical) so graphical subtitles are filtered out
+            continue;
+        }
+
+        tracks.push({
+            customData: track,
+            language: track.language,
+            name: track.language,
+            trackContentId: makeSubtitleUrl(mediaUrl, track),
+            trackContentType: "text/vtt",
+            trackId: track.index,
+            subtype: track.isHearingImpared ? "CAPTIONS" : "SUBTITLES",
+            type: "TEXT",
+        });
+    }
+
+    if (tracks.length > 0) {
+        return tracks;
+    }
+}
+
 export class ChromecastPlayer implements IPlayer {
     public static forNamedDevice(deviceName: string) {
         return new ChromecastPlayer(new ChromecastDevice(deviceName));
@@ -400,73 +468,5 @@ export class ChromecastPlayer implements IPlayer {
         );
 
         return app.showRecommendations(formattedRecommendations);
-    }
-}
-
-function pickAppTypeFor(
-    capabilities: IPlayerCapabilities,
-    analysis: IVideoAnalysis | null,
-    _playable: IPlayable,
-) {
-    if (!canPlayNatively(capabilities, analysis)) {
-        // use Shougun app to support seeking within transcoded videos
-        return ShougunPlayerApp;
-    }
-
-    // NOTE: in theory CAF supports "tracks" and selecting different
-    // tracks, but in practice when we stream things to the chromecast
-    // it just returns an empty array for the available audio tracks...
-
-    // use the default media receiver app, otherwise
-    return DefaultMediaReceiverApp;
-}
-
-function makeSubtitleUrl(mediaUrl: string, track: ITextTrack) {
-    // FIXME: This should probably be provided by the Playable
-    return `${mediaUrl}/subtitles/${track.index}`;
-}
-
-const graphicalSubtitleCodecs = new Set<string>(["hdmv_pgs_subtitle"]);
-
-function tracksFrom(
-    mediaUrl: string,
-    analysis: IVideoAnalysis,
-): ICastTrack[] | undefined {
-    const tracks: ICastTrack[] = [];
-
-    tracks.push({
-        customData: analysis.audio,
-        language: analysis.audio.language,
-        name: "Audio Track",
-        trackContentId: "trk0001",
-        trackContentType: `audio/${analysis.audio.codec}`,
-        trackId: analysis.audio.index,
-        type: "AUDIO",
-    });
-
-    for (const track of analysis.subtitles) {
-        if (!track.language) continue;
-
-        if (graphicalSubtitleCodecs.has(track.codec)) {
-            // NOTE: Chromecast does not support graphical subtitles, and we
-            // currently always transcode to webvtt (which is impossible to do
-            // if the source is graphical) so graphical subtitles are filtered out
-            continue;
-        }
-
-        tracks.push({
-            customData: track,
-            language: track.language,
-            name: track.language,
-            trackContentId: makeSubtitleUrl(mediaUrl, track),
-            trackContentType: "text/vtt",
-            trackId: track.index,
-            subtype: track.isHearingImpared ? "CAPTIONS" : "SUBTITLES",
-            type: "TEXT",
-        });
-    }
-
-    if (tracks.length > 0) {
-        return tracks;
     }
 }
