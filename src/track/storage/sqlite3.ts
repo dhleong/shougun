@@ -256,7 +256,7 @@ export class Sqlite3Storage implements IStorage {
             return;
         }
 
-        const params = tokens.map((it) => "?").join(", ");
+        const params = tokens.map(() => "?").join(", ");
         this.db.transaction(() => {
             const result = this.prepare(
                 `

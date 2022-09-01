@@ -39,7 +39,9 @@ async function dispatch(s: StratoChannel, message: Record<string, unknown>) {
     // NOTE: This function is async to allow for a more intuitive API (and in case
     // we ever need to wait for *something* but we intentionally do not actually
     // await the result of the send() here:
-    s.send(message).catch((e) => debug("Error dispatching message", message));
+    s.send(message).catch((e) =>
+        debug("Error dispatching message", message, e),
+    );
 }
 
 export class ShougunPlayerApp extends GenericMediaReceiverApp {

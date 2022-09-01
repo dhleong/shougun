@@ -319,12 +319,12 @@ export class Shougun {
                 (it) => it instanceof ContextQueryable,
             );
             if (!local) return;
-            const recommended = await local.queryRecommended(this.context);
+            const recommended = await map;
             yield* recommended.Shougun;
             return;
         }
 
-        const resultsBySource = await this.getRecommendationsMap();
+        const resultsBySource = await map;
         yield* interleaveAsyncIterables(Object.values(resultsBySource));
     }
 

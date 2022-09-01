@@ -21,7 +21,7 @@ export const ffmpegAsPromise = (
             .on("start", (cmd) => {
                 debug("start", logContext, ":", cmd);
             })
-            .once("progress", (data) => {
+            .once("progress", (_data) => {
                 debug("progress @", logContext);
                 resolve(pipe);
             })

@@ -12,9 +12,9 @@ const debug = _debug("shougun:player:vlc");
 export class VlcPlayer implements IPlayer {
     public async getCapabilities(): Promise<IPlayerCapabilities> {
         return {
-            supportsAudioTrack: (track: IAudioTrack) => true,
-            supportsContainer: (container: string) => true,
-            supportsVideoTrack: (track: IVideoTrack) => true,
+            supportsAudioTrack: (_track: IAudioTrack) => true,
+            supportsContainer: (_container: string) => true,
+            supportsVideoTrack: (_track: IVideoTrack) => true,
 
             supportsLocalPlayback: true,
         };
@@ -53,6 +53,7 @@ export class VlcPlayer implements IPlayer {
 
                 // HACKS: the library does not clean this up :/
                 // At some point maybe we just write our own
+                // eslint-disable-next-line no-underscore-dangle
                 clearInterval(vlc._interval);
                 tryReportProgress();
             });

@@ -37,7 +37,7 @@ export class BabblingQueryable implements IQueryable {
         yield* transformQueryResultsToPlayableMedia(player, iterable);
     }
 
-    public async queryRecent(context: Context): Promise<IMediaResultsMap> {
+    public async queryRecent(_context: Context): Promise<IMediaResultsMap> {
         // NOTE: babbling doesn't technically support recents yet, but actually
         // all the implementations return that, so just do it for now
         // TODO: whenever babbling adds getRecentsMap, use that
@@ -46,7 +46,9 @@ export class BabblingQueryable implements IQueryable {
         );
     }
 
-    public async queryRecommended(context: Context): Promise<IMediaResultsMap> {
+    public async queryRecommended(
+        _context: Context,
+    ): Promise<IMediaResultsMap> {
         return this.getMediaMapBy((p) =>
             p.getRecommendationsMap(queryErrorHandler),
         );
@@ -54,7 +56,7 @@ export class BabblingQueryable implements IQueryable {
 
     private async getMediaMapBy(predicate: (player: Player) => any) {
         const player = await this.getPlayer();
-        const map = player.getRecommendationsMap(queryErrorHandler);
+        const map = predicate(player);
         return Object.keys(map).reduce((m, k) => {
             const results = map[k];
             m[k] = transformQueryResultsToPlayableMedia(player, results);
@@ -93,7 +95,8 @@ function resultToMedia(
         title: result.title,
         type: MediaType.ExternalPlayable,
 
-        async play(opts) {
+        async play(_opts) {
+            // TODO: Can we interop the opts?
             await player.play(result);
         },
 

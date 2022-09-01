@@ -406,7 +406,7 @@ export class ChromecastPlayer implements IPlayer {
 function pickAppTypeFor(
     capabilities: IPlayerCapabilities,
     analysis: IVideoAnalysis | null,
-    playable: IPlayable,
+    _playable: IPlayable,
 ) {
     if (!canPlayNatively(capabilities, analysis)) {
         // use Shougun app to support seeking within transcoded videos

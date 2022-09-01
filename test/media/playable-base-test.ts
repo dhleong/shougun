@@ -30,8 +30,8 @@ class TestPlayable extends BasePlayable {
     }
 
     public getUrl(
-        context: Context,
-        opts?: IPlaybackOptions | undefined,
+        _context: Context,
+        _opts?: IPlaybackOptions | undefined,
     ): Promise<string> {
         throw new Error("Method not implemented.");
     }
