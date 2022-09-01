@@ -7,6 +7,7 @@ import { IMedia, IMediaMetadata } from "../../../model";
 import { ShougunPlaybackTracker } from "./tracker";
 import { pickDefaultTrackIds } from "../track-selection";
 import { IAudioTrack, ITextTrack } from "../../../media/analyze";
+import { ICloseableApp } from "./model";
 
 const debug = _debug("shougun:cast:generic");
 
@@ -209,7 +210,7 @@ async function awaitLoadFailure(s: StratoChannel) {
     throw new Error("Load failed");
 }
 
-export class GenericMediaReceiverApp extends BaseApp {
+export class GenericMediaReceiverApp extends BaseApp implements ICloseableApp {
     protected tracker: PlaybackTracker | undefined;
 
     constructor(device: ChromecastDevice, opts: { appId: string }) {

@@ -9,7 +9,7 @@ import { IMedia, IMediaPrefs } from "../model";
 import { Shougun } from "../shougun";
 import { IViewedInformation } from "../track/persistent";
 import { generateMachineUuid } from "./id";
-import { IRemoteConfig } from "./server";
+import type { IRemoteConfig } from "./server";
 import { IPlaybackOptions } from "../playback/player";
 import { isLocalDiscoveryId } from "../discover/local";
 

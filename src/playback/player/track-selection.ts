@@ -1,5 +1,5 @@
 import { languageCodeMatches } from "../../util/language";
-import { ICastTrack, ILoadParams } from "./apps/generic";
+import type { ICastTrack, ILoadParams } from "./apps/generic";
 
 export function findDefaultAudio(tracks: ICastTrack[]) {
     for (const track of tracks) {
@@ -15,15 +15,13 @@ export function pickDefaultTrackIds(params: ILoadParams) {
         return;
     }
 
-    if (params.preferredSubtitleLanguage != null) {
+    const { preferredSubtitleLanguage } = params;
+    if (preferredSubtitleLanguage != null) {
         // If we have a preferred subtitle language, try to honor it
         const preferred = params.media.tracks.find(
             (track) =>
                 track.language &&
-                languageCodeMatches(
-                    track.language,
-                    params.preferredSubtitleLanguage!,
-                ),
+                languageCodeMatches(track.language, preferredSubtitleLanguage),
         );
         if (preferred) {
             return [preferred.trackId];

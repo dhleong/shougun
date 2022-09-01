@@ -2,9 +2,10 @@ import _debug from "debug";
 
 import { BaseApp, IMediaStatus, PlaybackTracker } from "babbling";
 
-import { GenericMediaReceiverApp, ILoadParams } from "./generic";
+import type { ILoadParams } from "./generic";
 
 import { IMedia } from "../../../model";
+import { isCloseable } from "./model";
 
 const debug = _debug("shougun:chromecast:tracker");
 
@@ -26,7 +27,7 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
 
     protected async handleClose() {
         await super.handleClose();
-        if (this.appInstance instanceof GenericMediaReceiverApp) {
+        if (isCloseable(this.appInstance)) {
             this.appInstance.close();
         }
         if (this.params.onPlayerStop) {
