@@ -1,6 +1,6 @@
 import { IEpisodeQuery } from "babbling/dist/app";
 
-import { Context } from "../context";
+import type { Context } from "../context";
 import { IMedia, IPlayable } from "../model";
 
 export type DiscoveryId = string;

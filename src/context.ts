@@ -2,15 +2,51 @@ import _debug from "debug";
 
 import { ChangeType, IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
-import { IMedia, IMediaMap, IQueryable, ISeries, isSeries } from "./model";
-import { IPlayer } from "./playback/player";
-import { IServer } from "./playback/serve";
-import { ITracker } from "./track/base";
+import type { IMedia, IMediaMap, IQueryable, ISeries } from "./model";
+import { isSeries } from "./model";
+import type { IPlayer } from "./playback/player";
+import type { IServer } from "./playback/serve";
+import type { ITracker } from "./track/base";
 
 const debug = _debug("shougun:context");
 
 export interface IShougunOpts {
     allowProcessKeepalive?: boolean;
+}
+
+function findEpisodeById(series: ISeries, id: string) {
+    for (const s of series.seasons) {
+        for (const e of s.episodes) {
+            if (e.id === id) {
+                return e;
+            }
+        }
+    }
+}
+
+function trackMediaChanges(
+    context: Context,
+    discovery: IDiscovery,
+    knownMedia: IMediaMap,
+) {
+    (async () => {
+        debug("tracking changes to", discovery);
+        for await (const change of discovery.changes(context)) {
+            debug("received change", change);
+
+            /* eslint-disable no-param-reassign */
+            if (change.type === ChangeType.MEDIA_REMOVED) {
+                delete knownMedia[change.media.id];
+            } else {
+                knownMedia[change.media.id] = change.media;
+            }
+            /* eslint-enable no-param-reassign */
+        }
+    })().catch((e) => {
+        throw new Error(
+            `Error encountered tracking media changes:\nCaused by:${e.stack}`,
+        );
+    });
 }
 
 export class Context {
@@ -83,37 +119,4 @@ export class Context {
 
         return media;
     }
-}
-
-function findEpisodeById(series: ISeries, id: string) {
-    for (const s of series.seasons) {
-        for (const e of s.episodes) {
-            if (e.id === id) {
-                return e;
-            }
-        }
-    }
-}
-
-function trackMediaChanges(
-    context: Context,
-    discovery: IDiscovery,
-    knownMedia: IMediaMap,
-) {
-    (async () => {
-        debug("tracking changes to", discovery);
-        for await (const change of discovery.changes(context)) {
-            debug("received change", change);
-
-            if (change.type === ChangeType.MEDIA_REMOVED) {
-                delete knownMedia[change.media.id];
-            } else {
-                knownMedia[change.media.id] = change.media;
-            }
-        }
-    })().catch((e) => {
-        throw new Error(
-            `Error encountered tracking media changes:\nCaused by:${e.stack}`,
-        );
-    });
 }

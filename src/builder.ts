@@ -50,8 +50,6 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
 
     private chromecastDeviceName: string | undefined;
 
-    private constructor() {}
-
     /*
      * Discovery
      */

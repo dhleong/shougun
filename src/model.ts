@@ -1,9 +1,9 @@
 import { IEpisodeQuery } from "babbling/dist/app";
 
-import { Context } from "./context";
-import { DiscoveryId } from "./discover/base";
-import { IVideoAnalysis } from "./media/analyze";
-import { IPlaybackOptions } from "./playback/player";
+import type { Context } from "./context";
+import type { DiscoveryId } from "./discover/base";
+import type { IVideoAnalysis } from "./media/analyze";
+import type { IPlaybackOptions } from "./playback/player";
 
 export interface ILocalMedia {
     id: string;
