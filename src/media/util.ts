@@ -4,12 +4,12 @@ import path from "path";
 import slug from "speakingurl";
 import { IEpisode, ISeason } from "../model";
 
-let toLaxTitleCase: (s: string) => string;
-
-// tslint:disable no-var-requires
+// NOTE: This is a bit hacky because titlecase doesn't have typings...
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const titlecase = require("titlecase");
 
-toLaxTitleCase = titlecase.toLaxTitleCase;
+// eslint-disable-next-line prefer-destructuring
+const toLaxTitleCase: (s: string) => string = titlecase.toLaxTitleCase;
 
 export function nestId(parentId: string, childId: string) {
     return `${parentId}:${childId}`;
@@ -17,11 +17,28 @@ export function nestId(parentId: string, childId: string) {
 
 export const titleToId = slug;
 
-export function fileNameToId(name: string) {
-    return titleToId(fileNameToTitle(name));
+export function fileType(fileName: string) {
+    const type = mime.getType(fileName);
+    if (!type) return "other";
+    if (type.startsWith("image")) {
+        return "image";
+    }
+    if (type.startsWith("video")) {
+        return "video";
+    }
+    return "other";
 }
 
-export function fileNameToTitle(name: string) {
+export function isImage(fileName: string) {
+    return fileType(fileName) === "image";
+}
+
+export function isVideo(fileName: string) {
+    return fileType(fileName) === "video";
+}
+
+export function fileNameToTitle(fileName: string) {
+    let name = fileName;
     if (isVideo(name)) {
         // strip extension
         name = name.substring(0, name.lastIndexOf("."));
@@ -45,7 +62,7 @@ export function fileNameToTitle(name: string) {
         .replace(/\[.*?\]/g, "")
 
         // trailing garbage
-        .replace(/[(\[{]$/, "")
+        .replace(/[([{]$/, "")
         .replace(/-[A-Z][A-Z0-9]*$/, "")
         .replace(/[^a-zA-Z0-9()]+$/, "")
 
@@ -59,26 +76,6 @@ export function fileNameToTitle(name: string) {
     return toLaxTitleCase(fixed);
 }
 
-export function fileType(fileName: string) {
-    const type = mime.getType(fileName);
-    if (!type) return "other";
-    if (type.startsWith("image")) {
-        return "image";
-    }
-    if (type.startsWith("video")) {
-        return "video";
-    }
-    return "other";
-}
-
-export function isImage(fileName: string) {
-    return fileType(fileName) === "image";
-}
-
-export function isVideo(fileName: string) {
-    return fileType(fileName) === "video";
-}
-
 export function resolvePath(original: string) {
     return path.resolve(original.replace("~", os.homedir()));
 }
@@ -87,7 +84,7 @@ export function sortKey(title: string) {
     const regex = /(\d+)/g;
     const key = [];
 
-    while (true) {
+    for (;;) {
         const matches = regex.exec(title);
         if (!matches) break;
 
@@ -125,4 +122,8 @@ export function sortSeasons(seasons: ISeason[]) {
         const bKey = sortKey(b.title || "");
         return compareSortKeys(aKey, bKey);
     });
+}
+
+export function fileNameToId(name: string) {
+    return titleToId(fileNameToTitle(name));
 }
