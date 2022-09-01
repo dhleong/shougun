@@ -11,7 +11,6 @@ export async function serveRanged(
     contentType: string,
     localPath: string,
 ) {
-
     const stat = await fs.stat(localPath);
     const length = stat.size;
 

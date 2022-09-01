@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:player:vlc");
 
 import Vlc from "vlc-simple-player";
 
@@ -7,6 +6,8 @@ import { Context } from "../../context";
 import { IAudioTrack, IVideoTrack } from "../../media/analyze";
 import { IPlayable } from "../../model";
 import { IPlaybackOptions, IPlayer, IPlayerCapabilities } from "../player";
+
+const debug = _debug("shougun:player:vlc");
 
 export class VlcPlayer implements IPlayer {
     public async getCapabilities(): Promise<IPlayerCapabilities> {
@@ -26,23 +27,18 @@ export class VlcPlayer implements IPlayer {
     ) {
         const path = await playable.getUrl(context, options);
 
-        const args: string[] = [
-            "--fullscreen", "--no-video-title",
-        ];
+        const args: string[] = ["--fullscreen", "--no-video-title"];
         if (options.currentTime !== undefined) {
-            args.push("--start-time", "" + options.currentTime);
+            args.push("--start-time", `${options.currentTime}`);
         }
 
         const vlc = new Vlc(path, {
             arguments: args,
         });
 
-        let lastTimestamp: number = -1;
+        let lastTimestamp = -1;
         function tryReportProgress() {
-            if (
-                options.onPlayerPaused
-                && lastTimestamp >= 0
-            ) {
+            if (options.onPlayerPaused && lastTimestamp >= 0) {
                 options.onPlayerPaused(playable.media, lastTimestamp);
             }
         }
@@ -79,5 +75,4 @@ export class VlcPlayer implements IPlayer {
             }
         });
     }
-
 }

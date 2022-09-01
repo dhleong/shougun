@@ -1,12 +1,13 @@
 import _debug from "debug";
-const debug = _debug("shougun:context");
 
 import { ChangeType, IDiscovery } from "./discover/base";
 import { IMatcher } from "./match";
 import { IMedia, IMediaMap, IQueryable, ISeries, isSeries } from "./model";
 import { IPlayer } from "./playback/player";
 import { IServer } from "./playback/serve";
-import { ITracker} from "./track/base";
+import { ITracker } from "./track/base";
+
+const debug = _debug("shougun:context");
 
 export interface IShougunOpts {
     allowProcessKeepalive?: boolean;
@@ -35,9 +36,7 @@ export class Context {
         return map;
     }
 
-    public withPlayer(
-        newPlayer: IPlayer,
-    ) {
+    public withPlayer(newPlayer: IPlayer) {
         return new Context(
             this.queryables,
             this.discovery,
@@ -112,7 +111,9 @@ function trackMediaChanges(
                 knownMedia[change.media.id] = change.media;
             }
         }
-    })().catch(e => {
-        throw new Error("Error encountered tracking media changes:\nCaused by:" + e.stack);
+    })().catch((e) => {
+        throw new Error(
+            `Error encountered tracking media changes:\nCaused by:${e.stack}`,
+        );
     });
 }

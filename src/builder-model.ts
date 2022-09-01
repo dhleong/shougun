@@ -25,7 +25,9 @@ export interface IBabblingConfig {
 }
 
 export interface IBuilderWithChromecast extends IBuilderWithPlayer {
-    includeBabblingMedia(config?: IBabblingConfig): IBuilderWithPlayer & IBuilderWithDiscovery;
+    includeBabblingMedia(
+        config?: IBabblingConfig,
+    ): IBuilderWithPlayer & IBuilderWithDiscovery;
 }
 
 /*
@@ -57,24 +59,19 @@ interface IMatchBuilderConfig {
 //
 // remote config:
 
-export type OptionalExtraRemoteBuilder<T> =
-    T extends { borrowing: BorrowMode } ? {} :
-    IExtraRemoteBuilderConfig;
+export type OptionalExtraRemoteBuilder<T> = T extends { borrowing: BorrowMode }
+    ? {}
+    : IExtraRemoteBuilderConfig;
 
 interface IRemoteBuilderConfig {
     enableRemote(
         config?: Omit<IRemoteConfig, "borrowing">,
-    ): Omit<
-        this,
-        keyof IRemoteBuilderConfig
-    > & OptionalExtraRemoteBuilder<typeof config>;
+    ): Omit<this, keyof IRemoteBuilderConfig> &
+        OptionalExtraRemoteBuilder<typeof config>;
 
     enableRemote(
         config: IRemoteConfig & { borrowing: BorrowMode },
-    ): Omit<
-        this,
-        keyof IRemoteBuilderConfig
-    >;
+    ): Omit<this, keyof IRemoteBuilderConfig>;
 }
 
 export interface IExtraRemoteBuilderConfig {
@@ -99,10 +96,7 @@ export interface IMiscConfig {
 //
 // composite of all optionals:
 
-type OptionalConfig =
-    IMatchBuilderConfig
-    & IRemoteBuilderConfig
-    & IMiscConfig;
+type OptionalConfig = IMatchBuilderConfig & IRemoteBuilderConfig & IMiscConfig;
 
 //
 // configured:

@@ -7,12 +7,18 @@ import { IMedia, IQueryable } from "../model";
  * will not get any results from local Discovery.
  */
 export class ContextQueryable implements IQueryable {
-
-    public async *findMedia(context: Context, query: string): AsyncIterable<IMedia> {
+    public async *findMedia(
+        context: Context,
+        query: string,
+    ): AsyncIterable<IMedia> {
         const candidates = await context.allTitles();
-        const best = context.matcher.findBest(query, candidates, (media: IMedia) => {
-            return media.title;
-        });
+        const best = context.matcher.findBest(
+            query,
+            candidates,
+            (media: IMedia) => {
+                return media.title;
+            },
+        );
 
         if (best) {
             yield best;
@@ -40,5 +46,4 @@ export class ContextQueryable implements IQueryable {
             }
         }
     }
-
 }

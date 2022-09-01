@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:core");
 
 import { IEpisodeQuery } from "babbling/dist/app";
 import {
@@ -23,6 +22,8 @@ import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
 import { ContextQueryable } from "./queryables/context";
 import { ITracker, IPrefsTracker } from "./track/base";
+
+const debug = _debug("shougun:core");
 
 export interface IQueryOpts {
     onlyLocal?: boolean;
@@ -57,9 +58,7 @@ export class Shougun {
         return new Shougun(context);
     }
 
-    constructor(
-        public readonly context: Context,
-    ) {}
+    constructor(public readonly context: Context) {}
 
     public get prefs(): IPrefsTracker {
         return this.context.tracker;
@@ -74,11 +73,13 @@ export class Shougun {
     }
 
     public async search(query: string) {
-        return toArray(mergeAsyncIterables(
-            this.context.queryables.map(q =>
-                q.findMedia(this.context, query),
+        return toArray(
+            mergeAsyncIterables(
+                this.context.queryables.map((q) =>
+                    q.findMedia(this.context, query),
+                ),
             ),
-        ));
+        );
     }
 
     public async getLocalPath(media: IMedia) {
@@ -86,10 +87,7 @@ export class Shougun {
             return;
         }
 
-        return this.context.discovery.getLocalPath(
-            this.context,
-            media,
-        );
+        return this.context.discovery.getLocalPath(this.context, media);
     }
 
     public async getPlayable(media: IMedia) {
@@ -102,7 +100,7 @@ export class Shougun {
      * are AsyncIterables of recently watched media
      */
     public async getRecentsMap() {
-        return this.getQueryableMap(q => q.queryRecent(this.context));
+        return this.getQueryableMap((q) => q.queryRecent(this.context));
     }
 
     /**
@@ -110,7 +108,7 @@ export class Shougun {
      * are AsyncIterables of recommended media
      */
     public async getRecommendationsMap() {
-        return this.getQueryableMap(q => q.queryRecommended(this.context));
+        return this.getQueryableMap((q) => q.queryRecommended(this.context));
     }
 
     /**
@@ -118,7 +116,7 @@ export class Shougun {
      * each discovery type
      */
     public async *queryRecent(options: IQueryOpts = {}) {
-        yield *this.queryFromMap(options, this.getRecentsMap());
+        yield* this.queryFromMap(options, this.getRecentsMap());
     }
 
     /**
@@ -126,7 +124,7 @@ export class Shougun {
      * each discovery type
      */
     public async *queryRecommended(options: IQueryOpts = {}) {
-        yield *this.queryFromMap(options, this.getRecommendationsMap());
+        yield* this.queryFromMap(options, this.getRecommendationsMap());
     }
 
     /**
@@ -135,15 +133,18 @@ export class Shougun {
      */
     public async findEpisodeFor(media: IMedia, query: IEpisodeQuery) {
         if (
-            media.type === MediaType.Episode
-                || media.type === MediaType.Movie
+            media.type === MediaType.Episode ||
+            media.type === MediaType.Movie
         ) {
             throw new Error(`Media type ${media.type} cannot have episodes`);
         }
 
         if (isPlayable(media)) {
             if (media.findEpisode) {
-                const epFromMedia = await media.findEpisode(this.context, query);
+                const epFromMedia = await media.findEpisode(
+                    this.context,
+                    query,
+                );
                 if (epFromMedia) {
                     epFromMedia.prefs = epFromMedia.prefs ?? media.prefs;
                 }
@@ -173,33 +174,30 @@ export class Shougun {
         return this.withErrorsDisplayed(async () => {
             const titles = await this.search(query);
 
-            return this.context.matcher.findBest(query, titles, (media: IMedia) =>
-                media.title,
+            return this.context.matcher.findBest(
+                query,
+                titles,
+                (media: IMedia) => media.title,
             );
         });
     }
 
     public async findMediaByPath(path: string) {
         return this.withErrorsDisplayed(async () =>
-            this.context.discovery.findByPath(
-                this.context, path,
-            ),
+            this.context.discovery.findByPath(this.context, path),
         );
     }
 
-    public async play(
-        media: IMedia,
-        options: IPlaybackOptions = {},
-    ) {
-        return this.withErrorsDisplayed(() =>
-            this.playUnsafe(media, options),
-        );
+    public async play(media: IMedia, options: IPlaybackOptions = {}) {
+        return this.withErrorsDisplayed(() => this.playUnsafe(media, options));
     }
 
     public async showRecommendations() {
         if (!this.context.player.showRecommendations) {
             const playerName = this.context.player.constructor.name;
-            throw new Error(`Configured Player (${playerName}) does not support showing recommendations`);
+            throw new Error(
+                `Configured Player (${playerName}) does not support showing recommendations`,
+            );
         }
 
         return this.context.player.showRecommendations(
@@ -208,11 +206,9 @@ export class Shougun {
         );
     }
 
-    private async playUnsafe(
-        media: IMedia,
-        options: IPlaybackOptions,
-    ) {
-        const { media: resolvedMedia, playable } = await this.resolvePlayableMedia(media, options);
+    private async playUnsafe(media: IMedia, options: IPlaybackOptions) {
+        const { media: resolvedMedia, playable } =
+            await this.resolvePlayableMedia(media, options);
 
         if (playable == null) {
             // media itself must be a PlayableMedia
@@ -220,25 +216,40 @@ export class Shougun {
             return resolvedMedia;
         }
 
-        debug(`playing ${media.id} as ${playable.id} with ${JSON.stringify(options)}...`);
-        await this.context.player.play(this.context, playable, Object.assign({
-            onPlayerPaused: async (pausedMedia: IMedia, currentTimeSeconds: number) => {
-                debug(`record playerPaused of ${pausedMedia.id} @ ${currentTimeSeconds}`);
+        debug(
+            `playing ${media.id} as ${playable.id} with ${JSON.stringify(
+                options,
+            )}...`,
+        );
+        await this.context.player.play(this.context, playable, {
+            onPlayerPaused: async (
+                pausedMedia: IMedia,
+                currentTimeSeconds: number,
+            ) => {
+                debug(
+                    `record playerPaused of ${pausedMedia.id} @ ${currentTimeSeconds}`,
+                );
                 return this.context.tracker.saveTrack(
                     pausedMedia,
                     currentTimeSeconds,
                     playable.durationSeconds,
                 );
             },
-        }, options));
+            ...options,
+        });
 
         return media;
     }
 
-    private async resolvePlayableMedia(media: IMedia, options: IPlaybackOptions) {
+    private async resolvePlayableMedia(
+        media: IMedia,
+        options: IPlaybackOptions,
+    ) {
         if (!media.prefs) {
             // try to fetch stored prefs
-            const stored = await this.context.tracker.loadPrefsForSeries(media.id);
+            const stored = await this.context.tracker.loadPrefsForSeries(
+                media.id,
+            );
             if (stored) {
                 media.prefs = stored;
             }
@@ -252,7 +263,7 @@ export class Shougun {
         }
 
         if (isPlayable(media)) {
-            debug(`media is itself playable:`, media);
+            debug("media is itself playable:", media);
             return { media, playable: null };
         }
 
@@ -261,8 +272,8 @@ export class Shougun {
             track.media.prefs = {
                 ...media.prefs,
                 ...track.media.prefs,
-                ...options.prefs,  // provided prefs still override
-            }
+                ...options.prefs, // provided prefs still override
+            };
             track.media = {
                 // Ensure any discovery-specific extra props are carried over
                 // (eg: series cover data, if the media itself does not have cover data)
@@ -271,7 +282,10 @@ export class Shougun {
             };
             media = track.media;
             options.currentTime = track.resumeTimeSeconds;
-            debug(`create resume for ${media.title} (#${media.id}) @${options.currentTime} with`, media.prefs);
+            debug(
+                `create resume for ${media.title} (#${media.id}) @${options.currentTime} with`,
+                media.prefs,
+            );
         }
 
         debug(`create playable for ${media.id}...`);
@@ -301,20 +315,20 @@ export class Shougun {
         map: Promise<IMediaResultsMap>,
     ) {
         if (options.onlyLocal === true) {
-            const local = this.context.queryables.find(it => it instanceof ContextQueryable);
+            const local = this.context.queryables.find(
+                (it) => it instanceof ContextQueryable,
+            );
             if (!local) return;
             const recommended = await local.queryRecommended(this.context);
-            yield *recommended.Shougun;
+            yield* recommended.Shougun;
             return;
         }
 
         const resultsBySource = await this.getRecommendationsMap();
-        yield *interleaveAsyncIterables(Object.values(resultsBySource));
+        yield* interleaveAsyncIterables(Object.values(resultsBySource));
     }
 
-    private async withErrorsDisplayed<R>(
-        block: () => Promise<R>,
-    ): Promise<R> {
+    private async withErrorsDisplayed<R>(block: () => Promise<R>): Promise<R> {
         try {
             return await block();
         } catch (e: any) {

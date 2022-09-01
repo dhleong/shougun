@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:analyze");
 
 import {
     ffprobe as ffprobeCallback,
@@ -8,12 +7,15 @@ import {
 } from "fluent-ffmpeg";
 import { languageCodeMatches } from "../util/language";
 
-const ffprobe = (localPath: string) => new Promise<FfprobeData>((resolve, reject) => {
-    ffprobeCallback(localPath, (err, data) => {
-        if (err) reject(err);
-        else resolve(data);
+const debug = _debug("shougun:analyze");
+
+const ffprobe = (localPath: string) =>
+    new Promise<FfprobeData>((resolve, reject) => {
+        ffprobeCallback(localPath, (err, data) => {
+            if (err) reject(err);
+            else resolve(data);
+        });
     });
-});
 
 export interface IAudioTrack {
     id?: string;
@@ -71,8 +73,8 @@ export interface IVideoAnalysis {
 export async function analyzeFile(
     localPath: string,
     opts?: {
-        preferredAudioLanguage?: string,
-    }
+        preferredAudioLanguage?: string;
+    },
 ) {
     const data = await ffprobe(localPath);
 
@@ -95,10 +97,10 @@ export async function analyzeFile(
 
             // is this "the one"?
             if (
-                !opts?.preferredAudioLanguage
-                || languageCodeMatches(
+                !opts?.preferredAudioLanguage ||
+                languageCodeMatches(
                     parsed.language ?? "",
-                    opts.preferredAudioLanguage
+                    opts.preferredAudioLanguage,
                 )
             ) {
                 audioTrack = parsed;
@@ -140,7 +142,7 @@ function parseAudioTrack(s: FfprobeStream): IAudioTrack {
 }
 
 function parseVideoTrack(s: FfprobeStream): IVideoTrack {
-    const [ fpsNum, fpsDen ] = (s.avg_frame_rate || "0/1").split("/");
+    const [fpsNum, fpsDen] = (s.avg_frame_rate || "0/1").split("/");
     const base: IVideoTrack = {
         index: s.index,
 
@@ -159,15 +161,15 @@ function parseVideoTrack(s: FfprobeStream): IVideoTrack {
 
     if (base.level) {
         switch (base.codec) {
-        case "h264":
-            base.levelNormalized = base.level;
-            break;
+            case "h264":
+                base.levelNormalized = base.level;
+                break;
 
-        case "hevc":
-            // general_level_idc: level is actually `level * 30` for hevc
-            // we divide by 3 to get eg 51 for simpler comparisons
-            base.levelNormalized = base.level / 3;
-            break;
+            case "hevc":
+                // general_level_idc: level is actually `level * 30` for hevc
+                // we divide by 3 to get eg 51 for simpler comparisons
+                base.levelNormalized = base.level / 3;
+                break;
         }
     }
 
@@ -182,7 +184,7 @@ function parseTextTrack(s: FfprobeStream): ITextTrack | undefined {
     return {
         index: s.index,
         language,
-        codec: s.codec_name ?? '<unknown>',
+        codec: s.codec_name ?? "<unknown>",
         isDefault: !!s.disposition?.default,
         isForced: !!s.disposition?.forced,
         isHearingImpared: !!s.disposition?.hearing_impaired,

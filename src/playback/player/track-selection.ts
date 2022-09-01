@@ -9,9 +9,7 @@ export function findDefaultAudio(tracks: ICastTrack[]) {
     }
 }
 
-export function pickDefaultTrackIds(
-    params: ILoadParams,
-) {
+export function pickDefaultTrackIds(params: ILoadParams) {
     if (!params.media.tracks || !params.media.tracks.length) {
         // No tracks; don't bother
         return;
@@ -19,9 +17,13 @@ export function pickDefaultTrackIds(
 
     if (params.preferredSubtitleLanguage != null) {
         // If we have a preferred subtitle language, try to honor it
-        const preferred = params.media.tracks.find(track =>
-            track.language
-            && languageCodeMatches(track.language, params.preferredSubtitleLanguage!)
+        const preferred = params.media.tracks.find(
+            (track) =>
+                track.language &&
+                languageCodeMatches(
+                    track.language,
+                    params.preferredSubtitleLanguage!,
+                ),
         );
         if (preferred) {
             return [preferred.trackId];

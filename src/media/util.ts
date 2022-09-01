@@ -8,6 +8,7 @@ let toLaxTitleCase: (s: string) => string;
 
 // tslint:disable no-var-requires
 const titlecase = require("titlecase");
+
 toLaxTitleCase = titlecase.toLaxTitleCase;
 
 export function nestId(parentId: string, childId: string) {
@@ -26,11 +27,15 @@ export function fileNameToTitle(name: string) {
         name = name.substring(0, name.lastIndexOf("."));
     }
 
-    const fixed = name.replace(/[_.]/g, " ")
+    const fixed = name
+        .replace(/[_.]/g, " ")
 
         // strip format/codec info
         // tslint:disable-next-line max-line-length
-        .replace(/((720|1080)p|[0-9]{3,4}x[0-9]{3,4}|(x|h)[ ]?264|ogg|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?)(.(?!\b[sep]+\d))*/gi, "")
+        .replace(
+            /((720|1080)p|[0-9]{3,4}x[0-9]{3,4}|(x|h)[ ]?264|ogg|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?)(.(?!\b[sep]+\d))*/gi,
+            "",
+        )
         .replace(/\b(web|hdtv|tv|br|bd|bluray)\b[-]?(rip|dl)?/gi, "")
 
         // this strips parenthesis with irrelevent stuff inside
@@ -59,11 +64,11 @@ export function fileType(fileName: string) {
     if (!type) return "other";
     if (type.startsWith("image")) {
         return "image";
-    } else if (type.startsWith("video")) {
-        return "video";
-    } else {
-        return "other";
     }
+    if (type.startsWith("video")) {
+        return "video";
+    }
+    return "other";
 }
 
 export function isImage(fileName: string) {
@@ -75,9 +80,7 @@ export function isVideo(fileName: string) {
 }
 
 export function resolvePath(original: string) {
-    return path.resolve(
-        original.replace("~", os.homedir()),
-    );
+    return path.resolve(original.replace("~", os.homedir()));
 }
 
 export function sortKey(title: string) {
@@ -94,10 +97,7 @@ export function sortKey(title: string) {
     return key;
 }
 
-export function compareSortKeys(
-    a: number[],
-    b: number[],
-) {
+export function compareSortKeys(a: number[], b: number[]) {
     const end = Math.min(a.length, b.length);
     for (let i = 0; i < end; ++i) {
         const fromA = a[i];

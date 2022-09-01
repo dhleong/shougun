@@ -5,7 +5,11 @@ declare module "talisman/metrics/jaro-winkler" {
         boostThreshold?: number;
         scalingFactor?: number;
     }
-    export function custom(params: IJaroWinklerParams, a: string, b: string): number;
+    export function custom(
+        params: IJaroWinklerParams,
+        a: string,
+        b: string,
+    ): number;
 }
 
 declare module "talisman/phonetics/double-metaphone" {

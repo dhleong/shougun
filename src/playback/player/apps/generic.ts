@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:cast:generic");
 
 import { awaitMessageOfType, BaseApp, PlaybackTracker } from "babbling";
 import { ChromecastDevice, StratoChannel } from "stratocaster";
@@ -8,6 +7,8 @@ import { IMedia, IMediaMetadata } from "../../../model";
 import { ShougunPlaybackTracker } from "./tracker";
 import { pickDefaultTrackIds } from "../track-selection";
 import { IAudioTrack, ITextTrack } from "../../../media/analyze";
+
+const debug = _debug("shougun:cast:generic");
 
 export interface ICustomCastData {
     durationSeconds?: number;
@@ -108,10 +109,10 @@ export interface ILoadParams {
 export interface IQueueData {
     items: Array<{
         media: {
-            contentId: string,
-            contentType: string,
-        },
-        customData?: ICustomCastData,
+            contentId: string;
+            contentType: string;
+        };
+        customData?: ICustomCastData;
     }>;
     startIndex: number;
 }
@@ -122,9 +123,7 @@ export enum MetadataType {
     TvShow,
 }
 
-function formatMetadata(
-    metadata?: IMediaMetadata,
-) {
+function formatMetadata(metadata?: IMediaMetadata) {
     if (!metadata) return;
 
     const formatted: any = {
@@ -139,7 +138,7 @@ function formatMetadata(
 
     if (metadata.coverUrl) {
         formatted.posterUrl = metadata.coverUrl;
-        formatted.images = [ { url: metadata.coverUrl } ];
+        formatted.images = [{ url: metadata.coverUrl }];
     }
 
     return formatted;
@@ -157,9 +156,7 @@ function formatCastInfo(info: ICastInfo) {
     };
 }
 
-function formatLoadRequest(
-    params: ILoadParams,
-) {
+function formatLoadRequest(params: ILoadParams) {
     const media = formatCastInfo(params.media);
     const activeTrackIds = pickDefaultTrackIds(params);
     debug("Picked active tracks:", activeTrackIds);
@@ -176,12 +173,12 @@ function formatLoadRequest(
 
     if (params.queueAround && params.queueAround.length) {
         request.queueData = {
-            items: params.queueAround.map(item => ({
+            items: params.queueAround.map((item) => ({
                 customData: item.customData,
                 media: formatCastInfo(item),
             })),
             startIndex: params.queueAround.findIndex(
-                item => item.url === params.media.url,
+                (item) => item.url === params.media.url,
             ),
         };
     }
@@ -195,10 +192,10 @@ async function awaitPlaybackStart(s: StratoChannel) {
         ms = await awaitMessageOfType(s, "MEDIA_STATUS");
         debug("received", ms);
     } while (
-        !ms.status.length
-        || !(
-            ms.status[0].playerState === "BUFFERING"
-                || ms.status[0].playerState === "PLAYING"
+        !ms.status.length ||
+        !(
+            ms.status[0].playerState === "BUFFERING" ||
+            ms.status[0].playerState === "PLAYING"
         )
     );
     debug("found!", ms);
@@ -213,7 +210,6 @@ async function awaitLoadFailure(s: StratoChannel) {
 }
 
 export class GenericMediaReceiverApp extends BaseApp {
-
     protected tracker: PlaybackTracker | undefined;
 
     constructor(device: ChromecastDevice, opts: { appId: string }) {
@@ -224,7 +220,6 @@ export class GenericMediaReceiverApp extends BaseApp {
     }
 
     public async load(params: ILoadParams) {
-
         if (params.onPlayerPaused) {
             if (this.tracker) this.tracker.stop();
 
@@ -257,5 +252,4 @@ export class GenericMediaReceiverApp extends BaseApp {
     protected formatLoadRequest(params: ILoadParams) {
         return formatLoadRequest(params);
     }
-
 }

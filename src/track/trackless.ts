@@ -3,13 +3,15 @@ import { ILoanCreate, ILoanData, ITrack, ITracker } from "./base";
 import { IViewedInformation } from "./persistent";
 
 export class TracklessTracker implements ITracker {
-
-    private prefs: {[key: string]: IMediaPrefs} = {};
+    private prefs: { [key: string]: IMediaPrefs } = {};
 
     public markBorrowReturned(tokens: string[]): Promise<void> {
         throw new Error("Loans not supported");
     }
-    public returnBorrowed(tokens: string[], viewedInformation: IViewedInformation[]): Promise<void> {
+    public returnBorrowed(
+        tokens: string[],
+        viewedInformation: IViewedInformation[],
+    ): Promise<void> {
         throw new Error("Loans not supported");
     }
     public createLoan(track: ILoanCreate): Promise<void> {
@@ -59,5 +61,4 @@ export class TracklessTracker implements ITracker {
         this.prefs[seriesId] = updated;
         return updated;
     }
-
 }

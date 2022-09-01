@@ -1,4 +1,3 @@
-
 import { Context } from "../context";
 import { IAudioTrack, IVideoAnalysis, IVideoTrack } from "../media/analyze";
 import { IMedia, IPlayable, IMediaPrefs } from "../model";
@@ -43,10 +42,7 @@ export interface IPlayer {
         options?: IPlaybackOptions,
     ): Promise<void>;
 
-    showError?(
-        error: Error,
-        details?: string,
-    ): Promise<void>;
+    showError?(error: Error, details?: string): Promise<void>;
 
     showRecommendations?(
         context: Context,
@@ -54,16 +50,13 @@ export interface IPlayer {
     ): Promise<void>;
 }
 
-export function formatError(
-    error: Error,
-    details?: string,
-) {
+export function formatError(error: Error, details?: string) {
     const messageParts = (error.stack || error.message).split("\n");
 
     const errorJson: {
-        details?: string,
+        details?: string;
         message: string;
-        stack?: string[]
+        stack?: string[];
     } = {
         details,
         message: messageParts[0],
@@ -86,12 +79,14 @@ export function canPlayNatively(
 
     const videoSupported = capabilities.supportsVideoTrack(analysis.video);
     const audioSupported = capabilities.supportsAudioTrack(analysis.audio);
-    const containerSupported = !!analysis.container.find(capabilities.supportsContainer.bind(capabilities));
+    const containerSupported = !!analysis.container.find(
+        capabilities.supportsContainer.bind(capabilities),
+    );
 
     if (
-        audioSupported
-        && !analysis.audio.isDefault
-        && !canPlayNonDefaultAudioTrack(capabilities, analysis)
+        audioSupported &&
+        !analysis.audio.isDefault &&
+        !canPlayNonDefaultAudioTrack(capabilities, analysis)
     ) {
         // we've selected a non-default audio track, but the player
         // doesn't support doing that with this container natively
@@ -111,6 +106,8 @@ function canPlayNonDefaultAudioTrack(
     }
 
     return !!analysis.container.find(
-        capabilities.supportsNonDefaultAudioTrackForContainer.bind(capabilities)
+        capabilities.supportsNonDefaultAudioTrackForContainer.bind(
+            capabilities,
+        ),
     );
 }

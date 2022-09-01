@@ -7,7 +7,6 @@ import { Sqlite3Storage } from "../../src/track/storage/sqlite3";
 chai.should();
 
 describe("PersistentTracker", () => {
-
     let storage: IStorage;
 
     // just use sqlite3 for now...
@@ -69,25 +68,26 @@ describe("PersistentTracker", () => {
     });
 });
 
-const seriesWithId = (id: string) => ({
-    id,
+const seriesWithId = (id: string) =>
+    ({
+        id,
 
-    discovery: "discovered",
-    title: "title",
-    type: MediaType.Series,
+        discovery: "discovered",
+        title: "title",
+        type: MediaType.Series,
 
-    seasons: [
-        {
-            id: `${id}:s1`,
+        seasons: [
+            {
+                id: `${id}:s1`,
 
-            episodes: [
-                episodeFor(id, 0),
-                episodeFor(id, 1),
-                episodeFor(id, 2),
-            ],
-        },
-    ],
-} as ISeries);
+                episodes: [
+                    episodeFor(id, 0),
+                    episodeFor(id, 1),
+                    episodeFor(id, 2),
+                ],
+            },
+        ],
+    } as ISeries);
 
 const episodeFor = (seriesId: string, index: number) => ({
     id: `episode-${index}`,

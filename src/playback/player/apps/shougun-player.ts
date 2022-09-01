@@ -1,10 +1,11 @@
 import _debug from "debug";
-const debug = _debug("shougun:player:chromecast:app");
 
 import type { ChromecastDevice, StratoChannel } from "stratocaster";
 
 import { formatError } from "../../player";
 import { GenericMediaReceiverApp } from "./generic";
+
+const debug = _debug("shougun:player:chromecast:app");
 
 const DEV_ID = "81066132";
 const PROD_ID = "D85F931E";
@@ -28,17 +29,17 @@ function shougunAppId() {
         return DEV_ID;
     }
 
-    return PROD_ID
+    return PROD_ID;
 }
 
 /**
  * Safely sends the [message] on the given channel without waiting on any response
  */
 async function dispatch(s: StratoChannel, message: Record<string, unknown>) {
-  // NOTE: This function is async to allow for a more intuitive API (and in case
-  // we ever need to wait for *something* but we intentionally do not actually
-  // await the result of the send() here:
-  s.send(message).catch(e => debug("Error dispatching message", message));
+    // NOTE: This function is async to allow for a more intuitive API (and in case
+    // we ever need to wait for *something* but we intentionally do not actually
+    // await the result of the send() here:
+    s.send(message).catch((e) => debug("Error dispatching message", message));
 }
 
 export class ShougunPlayerApp extends GenericMediaReceiverApp {
@@ -48,9 +49,7 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
         });
     }
 
-    public async showRecommendations(
-        recommendations: IRecommendation[],
-    ) {
+    public async showRecommendations(recommendations: IRecommendation[]) {
         const s = await this.joinOrRunNamespace(CUSTOM_NS);
         await dispatch(s, {
             type: "RECOMMEND",
@@ -60,10 +59,7 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
         this.device.close(); // don't hang around
     }
 
-    public async showError(
-        error: Error,
-        details?: string,
-    ) {
+    public async showError(error: Error, details?: string) {
         const s = await this.joinOrRunNamespace(CUSTOM_NS);
         await dispatch(s, {
             type: "ERROR",
@@ -72,7 +68,7 @@ export class ShougunPlayerApp extends GenericMediaReceiverApp {
         });
         this.device.close(); // don't hang around
 
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             setTimeout(resolve, 1000);
         });
     }

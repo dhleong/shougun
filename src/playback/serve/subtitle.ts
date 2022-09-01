@@ -17,5 +17,9 @@ export function extractSubtitlesTrack(
         .outputOption("-map", `0:${track.index}`)
         .outputFormat("webvtt");
 
-    return ffmpegAsPromise(`extract subtitles from ${localPath}`, command, opts);
+    return ffmpegAsPromise(
+        `extract subtitles from ${localPath}`,
+        command,
+        opts,
+    );
 }

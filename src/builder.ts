@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:builder");
 
 import fs from "fs-extra";
 import path from "path";
@@ -32,6 +31,8 @@ import { IStorage, PersistentTracker } from "./track/persistent";
 import { Sqlite3Storage } from "./track/storage/sqlite3";
 import { TracklessTracker } from "./track/trackless";
 
+const debug = _debug("shougun:builder");
+
 export class ShougunBuilder implements IExtraRemoteBuilderConfig {
     public static create(): IEmptyBuilder {
         return new ShougunBuilder();
@@ -56,9 +57,7 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
      */
 
     public scanFolder(folderPath: string): this {
-        this.discoveries.push(
-            new LocalDiscovery(resolvePath(folderPath)),
-        );
+        this.discoveries.push(new LocalDiscovery(resolvePath(folderPath)));
         return this;
     }
 
@@ -86,9 +85,7 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
 
     public playOnNamedChromecast(deviceName: string) {
         this.chromecastDeviceName = deviceName;
-        return this.playOn(
-            ChromecastPlayer.forNamedDevice(deviceName),
-        );
+        return this.playOn(ChromecastPlayer.forNamedDevice(deviceName));
     }
 
     public playOnVlc() {
@@ -118,9 +115,7 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
         const resolved = resolvePath(databasePath);
         this.verifyWritePaths.push(path.dirname(resolved));
 
-        return this.trackWithStorage(
-            Sqlite3Storage.forFile(resolved),
-        );
+        return this.trackWithStorage(Sqlite3Storage.forFile(resolved));
     }
 
     public trackWithStorage(storage: IStorage) {
@@ -188,13 +183,14 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
         }
 
         // ensure all the writePath dirs exist
-        await Promise.all(this.verifyWritePaths.map(async p =>
-            fs.ensureDir(p),
-        ));
+        await Promise.all(
+            this.verifyWritePaths.map(async (p) => fs.ensureDir(p)),
+        );
 
-        const discovery = this.discoveries.length === 1
-            ? this.discoveries[0]
-            : CompositeDiscovery.create(...this.discoveries);
+        const discovery =
+            this.discoveries.length === 1
+                ? this.discoveries[0]
+                : CompositeDiscovery.create(...this.discoveries);
 
         const matcher = this.matcher || new DefaultMatcher();
 
@@ -232,10 +228,12 @@ export class ShougunBuilder implements IExtraRemoteBuilderConfig {
     private createBabblingQueryable(): IQueryable {
         if (!this.babblingConfig) throw new Error();
 
-        const deviceName = this.babblingConfig.deviceName
-            || this.chromecastDeviceName;
+        const deviceName =
+            this.babblingConfig.deviceName || this.chromecastDeviceName;
         if (!deviceName) {
-            throw new Error("If not normally playing on a chromecast device, you must explicitly specify the deviceName to use with Babbling");
+            throw new Error(
+                "If not normally playing on a chromecast device, you must explicitly specify the deviceName to use with Babbling",
+            );
         }
 
         return new BabblingQueryable(

@@ -14,7 +14,6 @@ chai.use(chaiSubset);
 chai.should();
 
 describe("ChromecastPlayer", () => {
-
     let appMock: DefaultMediaReceiverApp;
     let app: DefaultMediaReceiverApp;
 
@@ -32,8 +31,7 @@ describe("ChromecastPlayer", () => {
 
         deviceMock = mock(ChromecastDevice);
         device = instance(deviceMock);
-        when(deviceMock.openApp(DefaultMediaReceiverApp))
-            .thenResolve(app);
+        when(deviceMock.openApp(DefaultMediaReceiverApp)).thenResolve(app);
 
         contextMock = mock(Context);
         context = instance(contextMock);
@@ -57,12 +55,9 @@ describe("ChromecastPlayer", () => {
 
         const playable = instance(playableMock);
 
-        await player.play(
-            context,
-            playable,
-        );
+        await player.play(context, playable);
 
-        const [ params ] = capture(appMock.load).last();
+        const [params] = capture(appMock.load).last();
         params.should.containSubset({
             queueAround: [
                 { url: "URL?queueIndex=0" },

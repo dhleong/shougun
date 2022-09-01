@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:discovery:local");
 
 import chokidar from "chokidar";
 import fs from "fs-extra";
@@ -11,7 +10,13 @@ import { IMedia, IMediaMap } from "../model";
 import { ServedPlayable } from "../playback/serve";
 import { QueuedIterable } from "../util/queued-iterable";
 import { ChangeType, DiscoveryId, IDiscoveredChange } from "./base";
-import { HierarchicalDiscovery, IHierarchicalMedia, IHierarchy } from "./hierarchical";
+import {
+    HierarchicalDiscovery,
+    IHierarchicalMedia,
+    IHierarchy,
+} from "./hierarchical";
+
+const debug = _debug("shougun:discovery:local");
 
 // file/folder names that are never relevant
 const relevantFileBlacklist = [
@@ -19,9 +24,7 @@ const relevantFileBlacklist = [
     "iMovie Theater.theater",
 ];
 
-export function isRelevantFile(
-    fileName: string,
-) {
+export function isRelevantFile(fileName: string) {
     // ignore "hidden" directories
     if (fileName.startsWith(".")) return false;
 
@@ -33,12 +36,9 @@ export interface ILocalFileOptions {
 }
 
 class LocalFileHierarchy implements IHierarchy<string> {
-
     private filesBlacklist: Set<string>;
 
-    constructor(
-        options: ILocalFileOptions,
-    ) {
+    constructor(options: ILocalFileOptions) {
         this.filesBlacklist = new Set([
             ...relevantFileBlacklist,
             ...(options.filesBlacklist || []),
@@ -60,17 +60,19 @@ class LocalFileHierarchy implements IHierarchy<string> {
     public async childrenOf(file: string) {
         try {
             const contents = await fs.readdir(file);
-            return contents.filter(fileName =>
-                !this.filesBlacklist.has(fileName)
-                    && isRelevantFile(fileName),
-            ).map(fileName =>
-                path.join(file, fileName),
-            );
+            return contents
+                .filter(
+                    (fileName) =>
+                        !this.filesBlacklist.has(fileName) &&
+                        isRelevantFile(fileName),
+                )
+                .map((fileName) => path.join(file, fileName));
         } catch (e: any) {
             if (e.code === "ENOTDIR") {
                 // file is not a directory
                 return null;
-            } else if (e.code === "ENOENT") {
+            }
+            if (e.code === "ENOENT") {
                 // directory doesn't exist? since we found it, it *ought*
                 // to exist, but this can happen sometimes with network
                 // mounted directories; just ignore it
@@ -102,13 +104,9 @@ export function isLocalDiscoveryId(id: DiscoveryId) {
 }
 
 export class LocalDiscovery extends HierarchicalDiscovery<string> {
-
     public readonly id: DiscoveryId;
 
-    constructor(
-        rootPath: string,
-        options: ILocalFileOptions = {},
-    ) {
+    constructor(rootPath: string, options: ILocalFileOptions = {}) {
         super(new LocalFileHierarchy(options), resolvePath(rootPath));
 
         this.id = `local:${rootPath}`;
@@ -119,12 +117,13 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
         // simply use the default "persistent" mode; otherwise, we have
         // to disable persistent mode AND fsevents, since otherwise it
         // will NOT fall back to polling
-        const chokidarOpts: chokidar.WatchOptions = context.opts.allowProcessKeepalive
+        const chokidarOpts: chokidar.WatchOptions = context.opts
+            .allowProcessKeepalive
             ? { persistent: true }
             : {
-                persistent: false,
-                useFsEvents: false,
-            };
+                  persistent: false,
+                  useFsEvents: false,
+              };
         const events = chokidar.watch(this.root, chokidarOpts);
 
         debug("watching ", this.root);
@@ -139,7 +138,7 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
             lastMap[m.id] = m;
         }
 
-        events.on("addDir", async newDir => {
+        events.on("addDir", async (newDir) => {
             debug("new dir:", newDir);
             for await (const m of this.discoverFromRoot(lastMap, newDir)) {
                 debug("Discovered", m);
@@ -151,7 +150,7 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
             }
         });
 
-        events.on("unlinkDir", async dir => {
+        events.on("unlinkDir", async (dir) => {
             debug("removed dir:", dir);
             for (const m of Object.values(lastMap)) {
                 const mediaPath = (m as IHierarchicalMedia<string>).entity;
@@ -166,7 +165,7 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
             }
         });
 
-        events.on("add", async newFile => {
+        events.on("add", async (newFile) => {
             debug("file added:", newFile);
             await this.scanForChanges(
                 ChangeType.MEDIA_ADDED,
@@ -175,7 +174,7 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
                 newFile,
             );
         });
-        events.on("unlink", async removedFile => {
+        events.on("unlink", async (removedFile) => {
             debug("file removed:", removedFile);
             await this.scanForChanges(
                 ChangeType.MEDIA_REMOVED,
@@ -185,7 +184,7 @@ export class LocalDiscovery extends HierarchicalDiscovery<string> {
             );
         });
 
-        yield *iterable;
+        yield* iterable;
     }
 
     public async findByPath(

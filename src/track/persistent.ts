@@ -1,4 +1,11 @@
-import { IEpisode, IMedia, isEpisode, ISeries, isSeries, IMediaPrefs } from "../model";
+import {
+    IEpisode,
+    IMedia,
+    isEpisode,
+    ISeries,
+    isSeries,
+    IMediaPrefs,
+} from "../model";
 import {
     ILoanCreate,
     ILoanData,
@@ -24,7 +31,9 @@ export interface IViewedInformation {
 export interface IStorage extends ILoanTracker, IPrefsTracker {
     close(): void;
     loadById(id: string): Promise<IViewedInformation | null>;
-    loadLastViewedForSeries(seriesId: string): Promise<IViewedInformation | null>;
+    loadLastViewedForSeries(
+        seriesId: string,
+    ): Promise<IViewedInformation | null>;
     queryRecent(): AsyncIterable<IViewedInformation>;
     save(info: IViewedInformation): Promise<void>;
 }
@@ -37,18 +46,13 @@ export function watchStateOf(viewedInfo: IViewedInformation) {
 }
 
 export class PersistentTracker implements ITracker {
-
-    constructor(
-        private readonly storage: IStorage,
-    ) {}
+    constructor(private readonly storage: IStorage) {}
 
     public createLoan(track: ILoanCreate): Promise<void> {
         return this.storage.createLoan(track);
     }
 
-    public markBorrowReturned(
-        tokens: string[],
-    ): Promise<void> {
+    public markBorrowReturned(tokens: string[]): Promise<void> {
         return this.storage.markBorrowReturned(tokens);
     }
 
@@ -86,25 +90,26 @@ export class PersistentTracker implements ITracker {
 
         const state = watchStateOf(lastWatched);
         switch (state) {
-        case WatchState.Unwatched:
-            // unwatched? also start at beginning
-            return this.trackForEpisode(media, lastWatched);
+            case WatchState.Unwatched:
+                // unwatched? also start at beginning
+                return this.trackForEpisode(media, lastWatched);
 
-        case WatchState.InProgress:
-            // resume in-progress episode
-            const track = await this.trackForEpisode(media, lastWatched);
-            return Object.assign({
-                resumeTimeSeconds: lastWatched.resumeTimeSeconds,
-            }, track);
+            case WatchState.InProgress:
+                // resume in-progress episode
+                const track = await this.trackForEpisode(media, lastWatched);
+                return {
+                    resumeTimeSeconds: lastWatched.resumeTimeSeconds,
+                    ...track,
+                };
 
-        case WatchState.Watched:
-            // watch "next" episode of the series!
-            return this.trackForNextEpisodeAfter(media, lastWatched);
+            case WatchState.Watched:
+                // watch "next" episode of the series!
+                return this.trackForNextEpisodeAfter(media, lastWatched);
         }
     }
 
     public async *queryRecent() {
-        yield *this.storage.queryRecent();
+        yield* this.storage.queryRecent();
     }
 
     public async saveTrack(
@@ -112,9 +117,7 @@ export class PersistentTracker implements ITracker {
         resumeTimeSeconds: number,
         videoDurationSeconds: number,
     ): Promise<void> {
-        const seriesId = isEpisode(media)
-            ? media.seriesId
-            : undefined;
+        const seriesId = isEpisode(media) ? media.seriesId : undefined;
         const { title } = media;
 
         await this.storage.save({
@@ -182,9 +185,11 @@ export class PersistentTracker implements ITracker {
             return result;
         }, [] as IEpisode[]);
 
-        const idx = episodes.findIndex(ep => ep.id === lastWatched.id);
+        const idx = episodes.findIndex((ep) => ep.id === lastWatched.id);
         if (idx === -1) {
-            throw new Error(`Couldn't find last-watched episode ${lastWatched.title}`);
+            throw new Error(
+                `Couldn't find last-watched episode ${lastWatched.title}`,
+            );
         }
 
         const interestedIndex = idx + delta;
@@ -196,10 +201,7 @@ export class PersistentTracker implements ITracker {
         return { media: episodes[interestedIndex] };
     }
 
-    private trackOf(
-        media: IMedia,
-        info: IViewedInformation,
-    ) {
+    private trackOf(media: IMedia, info: IViewedInformation) {
         return {
             media,
             resumeTimeSeconds: info.resumeTimeSeconds,

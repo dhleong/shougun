@@ -7,12 +7,16 @@ chai.should();
 describe("PhoneticMatcher", () => {
     it("scores by sound similarity", () => {
         const matcher = new PhoneticMatcher();
-        const sorted = matcher.sort("Malcolm Reynolds", [
-            "Reynolds Malcolm",
-            "Markum Ranhords",
-            "Malcore Reynorts",
-            "Malcom Reynolds",
-        ], item => item);
+        const sorted = matcher.sort(
+            "Malcolm Reynolds",
+            [
+                "Reynolds Malcolm",
+                "Markum Ranhords",
+                "Malcore Reynorts",
+                "Malcom Reynolds",
+            ],
+            (item) => item,
+        );
 
         sorted.should.contain.ordered.members([
             "Malcom Reynolds",
@@ -24,14 +28,12 @@ describe("PhoneticMatcher", () => {
 
     it("prefers exact matches", () => {
         const matcher = new PhoneticMatcher();
-        const sorted = matcher.sort("brave", [
-            "Brave 10",
-            "Brave",
-        ], item => item);
+        const sorted = matcher.sort(
+            "brave",
+            ["Brave 10", "Brave"],
+            (item) => item,
+        );
 
-        sorted.should.contain.ordered.members([
-            "Brave",
-            "Brave 10",
-        ]);
+        sorted.should.contain.ordered.members(["Brave", "Brave 10"]);
     });
 });

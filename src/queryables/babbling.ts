@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:queryable:babbling");
 
 import { ChromecastDevice, PlayerBuilder } from "babbling";
 import { IQueryResult } from "babbling/dist/app";
@@ -13,19 +12,20 @@ import {
     MediaType,
 } from "../model";
 
+const debug = _debug("shougun:queryable:babbling");
+
 type PromiseType<T> = T extends Promise<infer P> ? P : never;
 type Player = PromiseType<ReturnType<BabblingQueryable["getPlayer"]>>;
 
 function queryErrorHandler(app: string, error: unknown) {
-  debug("error querying", app, error);
+    debug("error querying", app, error);
 }
 
 export class BabblingQueryable implements IQueryable {
-
     constructor(
         private readonly configPath?: string,
         private readonly chromecastDeviceName?: string,
-    ) { }
+    ) {}
 
     public async *findMedia(
         context: Context,
@@ -34,22 +34,22 @@ export class BabblingQueryable implements IQueryable {
         const player = await this.getPlayer();
         const iterable = player.queryByTitle(query, queryErrorHandler);
 
-        yield *transformQueryResultsToPlayableMedia(player, iterable);
+        yield* transformQueryResultsToPlayableMedia(player, iterable);
     }
 
-    public async queryRecent(
-        context: Context,
-    ): Promise<IMediaResultsMap> {
+    public async queryRecent(context: Context): Promise<IMediaResultsMap> {
         // NOTE: babbling doesn't technically support recents yet, but actually
         // all the implementations return that, so just do it for now
         // TODO: whenever babbling adds getRecentsMap, use that
-        return this.getMediaMapBy(p => p.getRecommendationsMap(queryErrorHandler));
+        return this.getMediaMapBy((p) =>
+            p.getRecommendationsMap(queryErrorHandler),
+        );
     }
 
-    public async queryRecommended(
-        context: Context,
-    ): Promise<IMediaResultsMap> {
-        return this.getMediaMapBy(p => p.getRecommendationsMap(queryErrorHandler));
+    public async queryRecommended(context: Context): Promise<IMediaResultsMap> {
+        return this.getMediaMapBy((p) =>
+            p.getRecommendationsMap(queryErrorHandler),
+        );
     }
 
     private async getMediaMapBy(predicate: (player: Player) => any) {
@@ -71,10 +71,9 @@ export class BabblingQueryable implements IQueryable {
 
         return builder.build();
     }
-
 }
 
-async function *transformQueryResultsToPlayableMedia(
+async function* transformQueryResultsToPlayableMedia(
     player: Player,
     results: AsyncIterable<IQueryResult>,
 ) {
@@ -88,7 +87,6 @@ function resultToMedia(
     result: IQueryResult,
 ): IPlayableMedia & { cover?: string } {
     return {
-
         cover: (result as any).cover,
         discovery: `babbling:${result.appName}`,
         id: result.url || `${result.appName}:${result.title}`,
@@ -105,6 +103,5 @@ function resultToMedia(
                 return resultToMedia(player, episode);
             }
         },
-
     };
 }

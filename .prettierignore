@@ -2,4 +2,7 @@
 *.cjs
 .vercel
 /.*.ts
-
+*.md
+package-lock.json
+tsconfig.json
+.eslintrc

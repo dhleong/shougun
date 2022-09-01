@@ -14,8 +14,11 @@ export class DummyPlayer implements IPlayer {
         };
     }
 
-    public async play(context: Context, playable: IPlayable, options?: IPlaybackOptions): Promise<void> {
+    public async play(
+        context: Context,
+        playable: IPlayable,
+        options?: IPlaybackOptions,
+    ): Promise<void> {
         throw new Error("Method not implemented.");
     }
-
 }

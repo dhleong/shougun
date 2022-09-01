@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:borrow:loader");
 
 import fs from "fs-extra";
 import os from "os";
@@ -9,28 +8,32 @@ import { extractDuration } from "../media/duration";
 import { Shougun } from "../shougun";
 import { ILoanInstruction, ILoanInstructions } from "./model";
 
+const debug = _debug("shougun:borrow:loader");
+
 /**
  * Load information about media that was loaned to us/that we borrowed
  */
-export async function loadLoans(
-    shougun: Shougun,
-) {
+export async function loadLoans(shougun: Shougun) {
     const borrowDir = pathlib.join(
         os.homedir(),
-        ".config", "shougun", "borrow",
+        ".config",
+        "shougun",
+        "borrow",
     );
-    if (!await fs.pathExists(borrowDir)) {
+    if (!(await fs.pathExists(borrowDir))) {
         debug("no borrow dir");
         return;
     }
 
     const borrowFiles = await Promise.all(
-        (await fs.readdir(borrowDir)).map(async file => {
+        (
+            await fs.readdir(borrowDir)
+        ).map(async (file) => {
             const fullPath = pathlib.join(borrowDir, file);
-            return [
-                fullPath,
-                (await fs.stat(fullPath)).ctime.getTime(),
-            ] as [string, number];
+            return [fullPath, (await fs.stat(fullPath)).ctime.getTime()] as [
+                string,
+                number,
+            ];
         }),
     );
     borrowFiles.sort(([_, a], [__, b]) => {
@@ -74,7 +77,9 @@ async function saveMediaBorrowInstruction(
 
     const { tracker } = shougun.context;
     const videoDurationSeconds = await extractDuration(localPath);
-    debug(`saveTrack(${media.id}, ${instruction.resumeTimeSeconds}, ${videoDurationSeconds})`);
+    debug(
+        `saveTrack(${media.id}, ${instruction.resumeTimeSeconds}, ${videoDurationSeconds})`,
+    );
     return tracker.saveTrack(
         media,
         instruction.resumeTimeSeconds || 0,

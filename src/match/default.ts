@@ -10,25 +10,19 @@ import { Scorer } from "./scorer";
  * search query.
  */
 export class DefaultMatcher extends ScoreBasedMatcher {
-
     protected scorer<T>(input: string, keyFn: (item: T) => string) {
         const target = input.toLowerCase();
-        const parts = target
-            .split(/[ ]+/)
-            .filter(part => part.length > 3);
+        const parts = target.split(/[ ]+/).filter((part) => part.length > 3);
 
-        return new Scorer<T>(item => {
+        return new Scorer<T>((item) => {
             const key = keyFn(item);
             const candidate = key.toLowerCase();
-            if (!parts.some(p => candidate.includes(p))) {
+            if (!parts.some((p) => candidate.includes(p))) {
                 // definitely not a match
                 return;
             }
 
-            const distance = leven(
-                candidate,
-                target,
-            );
+            const distance = leven(candidate, target);
             if (distance === 0) {
                 // probably a safe bet?
                 return item;

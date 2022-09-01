@@ -13,7 +13,7 @@ export interface IRecentMedia {
 }
 
 export interface ILoanData {
-    tokens: Array<{ serverId: string, token: string }>;
+    tokens: Array<{ serverId: string; token: string }>;
     viewedInformation: IViewedInformation[];
 }
 
@@ -27,7 +27,6 @@ export interface ILoan extends ILoanCreate {
 }
 
 export interface ILoanTracker {
-
     createLoan(track: ILoanCreate): Promise<void>;
     markBorrowReturned(tokens: string[]): Promise<void>;
     retrieveBorrowed(): Promise<ILoanData>;
@@ -35,26 +34,23 @@ export interface ILoanTracker {
         tokens: string[],
         viewedInformation: IViewedInformation[],
     ): Promise<void>;
-
 }
 
 export interface IPrefsTracker {
-
-    deletePrefsForSeries(
-        seriesId: string,
-    ): Promise<void>;
+    deletePrefsForSeries(seriesId: string): Promise<void>;
 
     loadPrefsForSeries(seriesId: string): Promise<IMediaPrefs | null>;
 
     /**
      * @return the updated Prefs object
      */
-    updatePrefsForSeries(seriesId: string, prefs: IMediaPrefs): Promise<IMediaPrefs>;
-
+    updatePrefsForSeries(
+        seriesId: string,
+        prefs: IMediaPrefs,
+    ): Promise<IMediaPrefs>;
 }
 
 export interface ITracker extends ILoanTracker, IPrefsTracker {
-
     /**
      * Figure out what to actually play when the User requests the
      * given media.
@@ -89,5 +85,4 @@ export interface ITracker extends ILoanTracker, IPrefsTracker {
      * Load recently watched media
      */
     queryRecent(): AsyncIterable<IRecentMedia>;
-
 }

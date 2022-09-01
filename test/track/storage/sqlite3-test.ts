@@ -16,7 +16,6 @@ const { expect } = chai;
 const seriesId = "firefly";
 
 describe("Sqlite3Storage", () => {
-
     let storage: Sqlite3Storage;
 
     beforeEach(() => {
@@ -58,9 +57,7 @@ describe("Sqlite3Storage", () => {
 
         storage.save(original);
 
-        const updated = Object.assign({}, original, {
-            resumeTimeSeconds: 42,
-        });
+        const updated = { ...original, resumeTimeSeconds: 42 };
         storage.save(updated);
 
         const result = await storage.loadById("my-id");
@@ -140,15 +137,19 @@ describe("Sqlite3Storage", () => {
 
         const borrowedData = await storage.retrieveBorrowed();
         borrowedData.should.containSubset({
-            tokens: [{
-                serverId: "serenity",
-                token: "firefly",
-            }],
-            viewedInformation: [{
-                id: "after-borrow",
-                lastViewedTimestamp: 500,
-                seriesId: "good-place",
-            }],
+            tokens: [
+                {
+                    serverId: "serenity",
+                    token: "firefly",
+                },
+            ],
+            viewedInformation: [
+                {
+                    id: "after-borrow",
+                    lastViewedTimestamp: 500,
+                    seriesId: "good-place",
+                },
+            ],
         });
     });
 
@@ -159,17 +160,20 @@ describe("Sqlite3Storage", () => {
             token: "firefly",
         } as ILoanCreate);
 
-        await storage.returnBorrowed(["firefly"], [
-            {
-                id: "after-borrow",
-                seriesId: "good-place",
-                title: "After Borrow",
+        await storage.returnBorrowed(
+            ["firefly"],
+            [
+                {
+                    id: "after-borrow",
+                    seriesId: "good-place",
+                    title: "After Borrow",
 
-                lastViewedTimestamp: 500,
-                resumeTimeSeconds: 0,
-                videoDurationSeconds: 500,
-            },
-        ]);
+                    lastViewedTimestamp: 500,
+                    resumeTimeSeconds: 0,
+                    videoDurationSeconds: 500,
+                },
+            ],
+        );
 
         const data = await storage.retrieveBorrowed();
         data.tokens.should.be.empty;
@@ -192,24 +196,29 @@ describe("Sqlite3Storage", () => {
         } as ILoanCreate);
 
         await (async () => {
-            return storage.returnBorrowed(["firefly", "alliance"], [
-                {
-                    id: "after-borrow",
-                    seriesId: "good-place",
-                    title: "After Borrow",
+            return storage.returnBorrowed(
+                ["firefly", "alliance"],
+                [
+                    {
+                        id: "after-borrow",
+                        seriesId: "good-place",
+                        title: "After Borrow",
 
-                    lastViewedTimestamp: 500,
-                    resumeTimeSeconds: 0,
-                    videoDurationSeconds: 500,
-                },
-            ]);
+                        lastViewedTimestamp: 500,
+                        resumeTimeSeconds: 0,
+                        videoDurationSeconds: 500,
+                    },
+                ],
+            );
         })().should.be.rejectedWith(/Invalid tokens/);
 
         const data = await storage.retrieveBorrowed();
-        data.tokens.should.deep.equal([{
-            serverId: "serenity",
-            token: "firefly",
-        }]);
+        data.tokens.should.deep.equal([
+            {
+                serverId: "serenity",
+                token: "firefly",
+            },
+        ]);
         data.viewedInformation.should.be.empty;
 
         const info = await storage.loadLastViewedForSeries("good-place");
@@ -226,10 +235,12 @@ describe("Sqlite3Storage", () => {
         await storage.returnBorrowed([], []);
 
         const data = await storage.retrieveBorrowed();
-        data.tokens.should.deep.equal([{
-            serverId: "serenity",
-            token: "firefly",
-        }]);
+        data.tokens.should.deep.equal([
+            {
+                serverId: "serenity",
+                token: "firefly",
+            },
+        ]);
         data.viewedInformation.should.be.empty;
     });
 
@@ -253,9 +264,7 @@ describe("Sqlite3Storage", () => {
     });
 });
 
-function episodeWith(
-    extra: Partial<IViewedInformation> = {},
-) {
+function episodeWith(extra: Partial<IViewedInformation> = {}) {
     return {
         id: "id",
         seriesId,

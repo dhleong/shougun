@@ -7,18 +7,15 @@ export abstract class ScoreBasedMatcher implements IMatcher {
         items: Iterable<T>,
         keyFn: (item: T) => string,
     ): T | undefined {
-        return this.scorer(input, keyFn)
-            .findBest(items);
+        return this.scorer(input, keyFn).findBest(items);
     }
 
-    public sort<T>(
+    public sort<T>(input: string, items: T[], keyFn: (item: T) => string): T[] {
+        return this.scorer(input, keyFn).sort(items);
+    }
+
+    protected abstract scorer<T>(
         input: string,
-        items: T[],
         keyFn: (item: T) => string,
-    ): T[] {
-        return this.scorer(input, keyFn)
-            .sort(items);
-    }
-
-    protected abstract scorer<T>(input: string, keyFn: (item: T) => string): Scorer<T>;
+    ): Scorer<T>;
 }

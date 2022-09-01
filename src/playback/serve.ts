@@ -5,7 +5,6 @@ import mime from "mime";
 import url from "url";
 
 import _debug from "debug";
-const debug = _debug("shougun:serve");
 
 import { Context } from "../context";
 import { analyzeFile } from "../media/analyze";
@@ -16,6 +15,8 @@ import { withQuery } from "../util/url";
 import { IPlaybackOptions } from "./player";
 import { serveForPlayer } from "./serve/player-based";
 import { extractSubtitlesTrack } from "./serve/subtitle";
+
+const debug = _debug("shougun:serve");
 
 export interface IServer {
     addActiveClient(client: string): void;
@@ -36,12 +37,11 @@ export interface IServer {
 // tslint:disable max-classes-per-file
 
 export class Server implements IServer {
-
     private server: fastify.FastifyInstance | undefined;
     private address: string | undefined;
 
-    private media: {[id: string]: ILocalMedia} = {};
-    private activeStreams: {[id: string]: number} = {};
+    private media: { [id: string]: ILocalMedia } = {};
+    private activeStreams: { [id: string]: number } = {};
     private activeRequests = 0;
 
     private activeClients = new Set<string>();
@@ -131,9 +131,7 @@ export class Server implements IServer {
         const { port } = url.parse(servingOn);
 
         const internal = await internalIp.v4();
-        const actual = internal
-            ? internal + ":" + port
-            : servingOn;
+        const actual = internal ? `${internal}:${port}` : servingOn;
 
         debug("serving on", actual);
         this.address = actual;
@@ -145,7 +143,7 @@ export class Server implements IServer {
         context: Context,
         req: fastify.FastifyRequest<any>,
     ) {
-        const id = req.params.id;
+        const { id } = req.params;
         debug("request playable @", id);
         debug(" - headers:", req.headers);
 
@@ -161,10 +159,10 @@ export class Server implements IServer {
             // HAX: there's probably a better way to do this...
             const playable = media as ServedPlayable;
             const queue = await playable.loadQueueAround(context);
-            toPlay = await context.discovery.createPlayable(
+            toPlay = (await context.discovery.createPlayable(
                 context,
                 queue[queueIndex],
-            ) as ServedPlayable;
+            )) as ServedPlayable;
 
             // MORE HAX: this startTime is from the original media, probably
             delete req.query.startTime;
@@ -191,15 +189,21 @@ export class Server implements IServer {
         req: fastify.FastifyRequest<any>,
         reply: fastify.FastifyReply<any>,
     ) {
-        const { media, playable, onStreamEnded } = await this.resolvePlayable(context, req);
+        const { media, playable, onStreamEnded } = await this.resolvePlayable(
+            context,
+            req,
+        );
 
         const { player } = context;
         const { contentType, localPath } = playable;
 
         const stream = await serveForPlayer(
             player,
-            req, reply,
-            contentType, localPath, playable.media?.prefs,
+            req,
+            reply,
+            contentType,
+            localPath,
+            playable.media?.prefs,
         );
 
         debug("got stream @", req.headers.range);
@@ -223,11 +227,14 @@ export class Server implements IServer {
         const trackId = parseInt(req.params.track, 10);
         debug("Received request for subtitle track with id #", trackId);
 
-        const { playable, media, onStreamEnded } = await this.resolvePlayable(context, req);
+        const { playable, media, onStreamEnded } = await this.resolvePlayable(
+            context,
+            req,
+        );
 
         const { localPath } = playable;
         const analysis = await analyzeFile(localPath);
-        const track = analysis.subtitles.find(it => it.index === trackId);
+        const track = analysis.subtitles.find((it) => it.index === trackId);
         if (!track) {
             throw new Error("No such subtitle track");
         }
@@ -279,17 +286,20 @@ export class Server implements IServer {
         if (this.checkStreamsForShutdownRequest) {
             clearTimeout(this.checkStreamsForShutdownRequest);
         }
-        this.checkStreamsForShutdownRequest = setTimeout(() => this.checkStreamsForShutdown(), 2000);
+        this.checkStreamsForShutdownRequest = setTimeout(
+            () => this.checkStreamsForShutdown(),
+            2000,
+        );
     }
 
     private checkStreamsForShutdown() {
         if (this.activeRequests) {
-            debug(`found active requests; stay alive`);
+            debug("found active requests; stay alive");
             return;
         }
 
         if (this.activeClients.size) {
-            debug(`found active clients; stay alive`);
+            debug("found active clients; stay alive");
             return;
         }
 
@@ -298,10 +308,9 @@ export class Server implements IServer {
                 // still active streams
                 debug(`found active stream (${id}); stay alive`);
                 return;
-            } else {
-                // delete the media reference; nobody is watching
-                delete this.media[id];
             }
+            // delete the media reference; nobody is watching
+            delete this.media[id];
         }
 
         debug("no remaining active streams or clients; shut down server");
@@ -309,7 +318,10 @@ export class Server implements IServer {
     }
 }
 
-export class ServedPlayable extends BasePlayable implements IPlayableWithClients {
+export class ServedPlayable
+    extends BasePlayable
+    implements IPlayableWithClients
+{
     public static async createFromPath(
         server: IServer,
         media: IMedia,
@@ -368,7 +380,7 @@ export class ServedPlayable extends BasePlayable implements IPlayableWithClients
         const extension = coverPath.substring(coverPath.lastIndexOf("."));
         const serveUrl = await this.server.serve(context, {
             contentType: mime.getType(coverPath) || "image/jpg",
-            id: this.id + "/cover" + extension,
+            id: `${this.id}/cover${extension}`,
             localPath: coverPath,
         });
         debug("computed URL for cover", coverPath, " -> ", serveUrl);
@@ -378,11 +390,18 @@ export class ServedPlayable extends BasePlayable implements IPlayableWithClients
     public async getUrl(context: Context, opts?: IPlaybackOptions) {
         const capabilities = await context.player.getCapabilities();
         if (capabilities.supportsLocalPlayback) {
-            return "file://" + this.localPath;
+            return `file://${this.localPath}`;
         }
 
         const serveUrl = await this.server.serve(context, this, opts);
-        debug("computed URL for", this.localPath, "with", opts, " -> ", serveUrl);
+        debug(
+            "computed URL for",
+            this.localPath,
+            "with",
+            opts,
+            " -> ",
+            serveUrl,
+        );
         return serveUrl;
     }
 }

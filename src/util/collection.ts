@@ -2,7 +2,7 @@ export function groupBy<T, TKey extends string>(
     iterable: T[],
     keyFn: (item: T) => TKey,
 ) {
-    const grouped: {[key in TKey]?: T[]} = {};
+    const grouped: { [key in TKey]?: T[] } = {};
     for (const item of iterable) {
         const key = keyFn(item);
         const existing = grouped[key];
