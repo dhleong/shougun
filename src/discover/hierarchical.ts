@@ -333,13 +333,13 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
         };
     }
 
-    private createMedia<T extends {}>(
+    private createMedia<T extends Record<string, unknown>>(
         parentId: string | null,
         type: MediaType,
         entity: TEntity,
         extra?: T,
-    ) {
-        return {
+    ): IHierarchicalMedia<TEntity> & T {
+        const media: IHierarchicalMedia<TEntity> = {
             discovery: this.id,
             id: parentId
                 ? nestId(parentId, this.idOf(entity))
@@ -350,6 +350,7 @@ export abstract class HierarchicalDiscovery<TEntity> implements IDiscovery {
             entity,
             ...extra,
         };
+        return media as unknown as IHierarchicalMedia<TEntity> & T;
     }
 
     private idOf(entry: TEntity) {
