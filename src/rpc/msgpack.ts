@@ -15,6 +15,8 @@ export interface EventHandler {
     onNotify(method: string, params: unknown[]): void;
 }
 
+type EventHandlerFactory = (connection: Connection) => EventHandler;
+
 type RequestMessage = [type: 0, id: number, method: string, params: unknown[]];
 type ResponseMessage = [
     type: 1,
@@ -83,9 +85,7 @@ class SocketConnection extends EventEmitter implements Connection {
     }
 }
 
-export function createConnectionHandler(
-    handlerFactory: (connection: Connection) => EventHandler,
-) {
+export function createConnectionHandler(handlerFactory: EventHandlerFactory) {
     const encoder = msgpack.createCodec();
     const decoder = msgpack.createCodec();
     return (socket: Socket) => {
@@ -121,10 +121,13 @@ export function createConnectionHandler(
     };
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
+type PublishedMethodsReceiverFactory = (connection: Connection) => object;
+
 export function createPublishedMethodsHandler(
-    receiverFactory: (connection: Connection) => Record<string, unknown>,
-) {
-    return createConnectionHandler((connection) => {
+    receiverFactory: PublishedMethodsReceiverFactory,
+): EventHandlerFactory {
+    return (connection: Connection) => {
         const receiver = receiverFactory(connection);
 
         const invoke = (method: string, params: unknown[]) =>
@@ -132,7 +135,7 @@ export function createPublishedMethodsHandler(
 
         return {
             onNotify(method: string, params: unknown[]) {
-                if (typeof receiver[method] === "function") {
+                if (typeof (receiver as any)[method] === "function") {
                     invoke(method, params).catch((e) => {
                         debug(`Error handling ${method}`, e);
                     });
@@ -140,12 +143,20 @@ export function createPublishedMethodsHandler(
             },
 
             onRequest(method, params: unknown[]) {
-                if (typeof receiver[method] === "function") {
+                if (typeof (receiver as any)[method] === "function") {
                     return invoke(method, params);
                 }
 
                 throw new Error(`Not Implemented: ${method}`);
             },
         };
-    });
+    };
+}
+
+export function createPublishedMethodsConnectionHandler(
+    receiverFactory: PublishedMethodsReceiverFactory,
+) {
+    return createConnectionHandler(
+        createPublishedMethodsHandler(receiverFactory),
+    );
 }

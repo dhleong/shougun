@@ -1,6 +1,5 @@
 import _debug from "debug";
 
-import { createServer } from "msgpack-rpc-lite";
 import net from "net";
 
 import { Shougun } from "../shougun";
@@ -10,48 +9,9 @@ import { RpcHandler } from "./handler";
 
 import { loadLoans } from "../borrow/loader";
 import { BorrowMode } from "../borrow/model";
+import { createPublishedMethodsConnectionHandler } from "./msgpack";
 
 const debug = _debug("shougun:rpc:server");
-
-function on(
-    server: net.Server,
-    event: string,
-    handler: (...params: any[]) => Promise<any>,
-) {
-    server.on(event, ([params]: any[], callback: any) => {
-        debug("received:", event, "with", params);
-        try {
-            handler(...params).then(
-                (result) => {
-                    callback(null, result);
-                },
-                (error) => {
-                    callback(error);
-                },
-            );
-        } catch (e) {
-            // NOTE: This is a sanity check to make sure that errors in a handler
-            // don't crash the RPC server
-            callback(e);
-        }
-    });
-}
-
-function registerRpcHandler(server: net.Server, handler: any) {
-    const prototype = Object.getPrototypeOf(handler);
-    for (const eventName of Object.getOwnPropertyNames(prototype)) {
-        if (eventName === "constructor") continue;
-
-        const fn = prototype[eventName] as () => Promise<any>;
-        if (typeof fn !== "function") {
-            continue;
-        }
-
-        const m = fn.bind(handler);
-        on(server, eventName, m);
-        debug("registered event:", eventName);
-    }
-}
 
 export interface IRemoteConfig {
     port?: number;
@@ -76,13 +36,11 @@ export class RpcServer {
     }
 
     public async start() {
-        const server = createServer();
+        const server = net.createServer();
 
         if (this.config.borrowing === BorrowMode.BORROWER) {
             await loadLoans(this.shougun);
         }
-
-        registerRpcHandler(server, this.handler);
 
         debug("start listening on", this.config.port);
         const address = await new Promise<string | net.AddressInfo | null>(
@@ -119,9 +77,15 @@ export class RpcServer {
             debug("Unexpected error:", error);
         });
 
-        // Track active connections so we can keep the server alive if they want to
-        // fetch local cover art
+        const handleSocket = createPublishedMethodsConnectionHandler(
+            () => this.handler,
+        );
+
         server.on("connection", (socket) => {
+            handleSocket(socket);
+
+            // Track active connections so we can keep the server alive if they want to
+            // fetch local cover art
             const id = JSON.stringify(socket.address());
             this.shougun.context.server.addActiveClient(id);
             debug("new client:", id);
