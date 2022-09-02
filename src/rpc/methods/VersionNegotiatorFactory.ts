@@ -3,7 +3,7 @@ import type { IRemoteConfig } from "../server";
 import type { Shougun } from "../../shougun";
 import type { Connection } from "../msgpack";
 
-const versionFactories: {
+export const DEFAULT_VERSION_FACTORIES: {
     [version: number]: (
         connection: Connection,
         shougun: Shougun,
@@ -18,16 +18,17 @@ class VersionNegotiator {
     public currentDelegate: unknown;
 
     constructor(
-        private readonly connection: Connection,
+        private readonly versionFactories: typeof DEFAULT_VERSION_FACTORIES,
         private readonly shougun: Shougun,
         private readonly config: IRemoteConfig,
+        private readonly connection: Connection,
         private readonly defaultVersion: number,
     ) {
         this.version(this.defaultVersion);
     }
 
     public version(requestedVersion: number) {
-        const factory = versionFactories[requestedVersion];
+        const factory = this.versionFactories[requestedVersion];
         if (factory == null) {
             throw new Error(
                 `Requested unsupported version: ${requestedVersion}`,
@@ -49,8 +50,9 @@ export default class VersionNegotiatorFactory {
     constructor(
         private readonly shougun: Shougun,
         private readonly config: IRemoteConfig,
+        private readonly versionFactories: typeof DEFAULT_VERSION_FACTORIES = DEFAULT_VERSION_FACTORIES,
     ) {
-        const allVersions = Object.keys(versionFactories)
+        const allVersions = Object.keys(this.versionFactories)
             .map((v) => parseInt(v, 10))
             .sort();
         this.versionRange = [
@@ -61,9 +63,10 @@ export default class VersionNegotiatorFactory {
 
     public create(connection: Connection) {
         const versionNegotiator = new VersionNegotiator(
-            connection,
+            this.versionFactories,
             this.shougun,
             this.config,
+            connection,
             this.versionRange[0],
         );
 
