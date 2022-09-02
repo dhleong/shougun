@@ -97,8 +97,12 @@ export function createConnectionHandler(handlerFactory: EventHandlerFactory) {
             .on("data", (message: Message) => {
                 switch (message[0]) {
                     case 0:
-                        handler
-                            .onRequest(message[2], message[3])
+                        // NOTE: We wrap the onRequest handler *just in case*
+                        // it throws something before returning a Promise, to ensure
+                        // our .catch handles all errors
+                        (async () => {
+                            return handler.onRequest(message[2], message[3]);
+                        })()
                             .then((response) =>
                                 connection.respond(message[1], null, response),
                             )
@@ -114,7 +118,11 @@ export function createConnectionHandler(handlerFactory: EventHandlerFactory) {
                     }
 
                     case 2:
-                        handler.onNotify(message[1], message[2]);
+                        (async () => {
+                            return handler.onNotify(message[1], message[2]);
+                        })().catch((e) =>
+                            debug(`Error handling notify ${message[1]}`, e),
+                        );
                         break;
                 }
             });
@@ -136,7 +144,7 @@ export function createPublishedMethodsHandler(
         return {
             onNotify(method: string, params: unknown[]) {
                 if (typeof (receiver as any)[method] === "function") {
-                    invoke(method, params).catch((e) => {
+                    return invoke(method, params).catch((e) => {
                         debug(`Error handling ${method}`, e);
                     });
                 }
