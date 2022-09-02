@@ -12,15 +12,12 @@ chai.use(chaiSubset);
 chai.should();
 
 class TestPlayable extends BasePlayable {
-
     public id: string;
     public contentType = "video/mp4";
     public durationSeconds = 42;
     public media: IEpisode;
 
-    constructor(
-        id: string,
-    ) {
+    constructor(id: string) {
         super();
         this.id = id;
         this.media = {
@@ -33,17 +30,15 @@ class TestPlayable extends BasePlayable {
     }
 
     public getUrl(
-        context: Context,
-        opts?: IPlaybackOptions | undefined,
+        _context: Context,
+        _opts?: IPlaybackOptions | undefined,
     ): Promise<string> {
         throw new Error("Method not implemented.");
     }
-
 }
 
 describe("BasePlayable", () => {
     describe("queue loading", () => {
-
         const series: ISeries = {
             discovery: "test",
             id: "series",
@@ -52,7 +47,7 @@ describe("BasePlayable", () => {
 
             seasons: [
                 {
-                    episodes: [ ],
+                    episodes: [],
                     id: "1",
                 },
             ],
@@ -72,16 +67,10 @@ describe("BasePlayable", () => {
         it("works for the first episode", async () => {
             playable = new TestPlayable("0");
 
-            series.seasons[0].episodes = [
-                fakeEpisode("0"),
-                fakeEpisode("1"),
-            ];
+            series.seasons[0].episodes = [fakeEpisode("0"), fakeEpisode("1")];
 
             const q = await playable.loadQueueAround(context);
-            q.should.containSubset([
-                { id: "0" },
-                { id: "1" },
-            ]);
+            q.should.containSubset([{ id: "0" }, { id: "1" }]);
         });
 
         it("works for a middle episode", async () => {
@@ -94,11 +83,7 @@ describe("BasePlayable", () => {
             ];
 
             const q = await playable.loadQueueAround(context);
-            q.should.containSubset([
-                { id: "0" },
-                { id: "1" },
-                { id: "2" },
-            ]);
+            q.should.containSubset([{ id: "0" }, { id: "1" }, { id: "2" }]);
         });
 
         it("works across seasons", async () => {
@@ -138,11 +123,7 @@ describe("BasePlayable", () => {
             ];
 
             const q = await playable.loadQueueAround(context);
-            q.should.containSubset([
-                { id: "0" },
-                { id: "1" },
-                { id: "2" },
-            ]);
+            q.should.containSubset([{ id: "0" }, { id: "1" }, { id: "2" }]);
         });
     });
 });

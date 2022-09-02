@@ -1,42 +1,41 @@
 import _debug from "debug";
-const debug = _debug("shougun:sqlite");
 
-import sqlite from "better-sqlite3";
+import Sqlite from "better-sqlite3";
 
 import { ILoanCreate, ILoanData } from "../base";
 import { IStorage, IViewedInformation } from "../persistent";
 import { IMediaPrefs } from "../../model";
 
+const debug = _debug("shougun:sqlite");
+
 const SchemaVersion = 3;
 
-function unpackInfo(result: any): IViewedInformation | null {
-    if (result === undefined) return null;
+function unpackInfo(info: any): IViewedInformation | null {
+    if (info === undefined) return null;
+
+    let result = info;
 
     if (result.seriesId === null) {
+        result = { ...result };
         delete result.seriesId;
     }
+
     return result;
 }
 
 export class Sqlite3Storage implements IStorage {
     public static forFile(filePath: string) {
-        return new Sqlite3Storage(
-            new sqlite(filePath),
-        );
+        return new Sqlite3Storage(new Sqlite(filePath));
     }
 
     public static inMemory() {
-        return new Sqlite3Storage(
-            new sqlite(":memory:"),
-        );
+        return new Sqlite3Storage(new Sqlite(":memory:"));
     }
 
     private hasPrepared = false;
-    private statementsCache: {[key: string]: sqlite.Statement} = {};
+    private statementsCache: { [key: string]: Sqlite.Statement } = {};
 
-    constructor(
-        private db: sqlite.Database,
-    ) { }
+    constructor(private db: Sqlite.Database) {}
 
     public close() {
         this.db.close();
@@ -44,7 +43,8 @@ export class Sqlite3Storage implements IStorage {
     }
 
     public async createLoan(track: ILoanCreate) {
-        this.prepare(`
+        this.prepare(
+            `
             INSERT OR IGNORE INTO Loans (
                 token,
                 serverId,
@@ -54,35 +54,40 @@ export class Sqlite3Storage implements IStorage {
                 :serverId,
                 :createdTimestamp
             )
-        `).run({
+        `,
+        ).run({
             createdTimestamp: new Date().getTime(),
             ...track,
         });
     }
 
-    public async loadLastViewedForSeries(seriesId: string): Promise<IViewedInformation | null> {
-        const result = this.prepare(`
+    public async loadLastViewedForSeries(
+        seriesId: string,
+    ): Promise<IViewedInformation | null> {
+        const result = this.prepare(
+            `
             SELECT * FROM ViewedInformation
             WHERE seriesId = ?
             ORDER BY lastViewedTimestamp DESC
-        `).get(seriesId);
+        `,
+        ).get(seriesId);
 
         return unpackInfo(result);
     }
 
-    public async markBorrowReturned(
-        tokens: string[],
-    ): Promise<void> {
+    public async markBorrowReturned(tokens: string[]): Promise<void> {
         this.markBorrowReturnedBlocking(tokens);
     }
 
     public async retrieveBorrowed(): Promise<ILoanData> {
-        const loanRows = this.prepare(`
+        const loanRows = this.prepare(
+            `
             SELECT token, serverId, createdTimestamp FROM Loans
             ORDER BY createdTimestamp ASC;
-        `).iterate();
+        `,
+        ).iterate();
 
-        let oldestViewed: number = -1;
+        let oldestViewed = -1;
         const tokens: ILoanData["tokens"] = [];
         for (const { token, serverId, createdTimestamp } of loanRows) {
             if (oldestViewed === -1) {
@@ -94,11 +99,13 @@ export class Sqlite3Storage implements IStorage {
         const viewedInformation: IViewedInformation[] = [];
 
         if (oldestViewed !== -1) {
-            const viewedRows = this.prepare(`
+            const viewedRows = this.prepare(
+                `
                 SELECT * FROM ViewedInformation
                 WHERE lastViewedTimestamp >= :oldestViewed
                 ORDER BY lastViewedTimestamp ASC
-            `).iterate({
+            `,
+            ).iterate({
                 oldestViewed,
             });
 
@@ -120,23 +127,23 @@ export class Sqlite3Storage implements IStorage {
         if (!tokens.length && !viewedInformation.length) {
             debug("Nothing provided; skipping returnBorrowed");
             return;
-        } else if (!tokens.length) {
+        }
+        if (!tokens.length) {
             throw new Error("No tokens provided");
         }
 
         this.db.transaction(() => {
-
             for (const info of viewedInformation) {
                 this.save(info);
             }
 
             this.markBorrowReturnedBlocking(tokens);
-
         })();
     }
 
     public async save(info: IViewedInformation): Promise<void> {
-        this.prepare(`
+        this.prepare(
+            `
             INSERT OR REPLACE INTO ViewedInformation (
                 id,
                 seriesId,
@@ -150,29 +157,34 @@ export class Sqlite3Storage implements IStorage {
                 :resumeTimeSeconds,
                 :videoDurationSeconds
             )
-        `).run({
+        `,
+        ).run({
             seriesId: undefined,
             ...info,
         });
     }
 
     public async loadById(id: string): Promise<IViewedInformation | null> {
-        const result = this.prepare(`
+        const result = this.prepare(
+            `
             SELECT * FROM ViewedInformation
             WHERE id = ?
-        `).get(id);
+        `,
+        ).get(id);
 
         return unpackInfo(result);
     }
 
     public async *queryRecent() {
-        const results = this.prepare(`
+        const results = this.prepare(
+            `
             SELECT *
             FROM ViewedInformation
             GROUP BY COALESCE(seriesId, id)
             ORDER BY MAX(lastViewedTimestamp) DESC
             LIMIT 20
-        `).all();
+        `,
+        ).all();
 
         for (const result of results) {
             const unpacked = unpackInfo(result);
@@ -183,10 +195,12 @@ export class Sqlite3Storage implements IStorage {
     }
 
     public async deletePrefsForSeries(seriesId: string) {
-        this.prepare(`
+        this.prepare(
+            `
             DELETE FROM SeriesPrefs
             WHERE seriesId = :seriesId
-        `).run({ seriesId });
+        `,
+        ).run({ seriesId });
     }
 
     public async loadPrefsForSeries(seriesId: string) {
@@ -204,12 +218,14 @@ export class Sqlite3Storage implements IStorage {
                 ...prefs,
             };
 
-            this.prepare(`
+            this.prepare(
+                `
                 INSERT OR REPLACE INTO SeriesPrefs (
                     seriesId,
                     prefs
                 ) VALUES (:seriesId, :prefs)
-            `).run({
+            `,
+            ).run({
                 seriesId,
                 prefs: JSON.stringify(updated),
             });
@@ -219,10 +235,14 @@ export class Sqlite3Storage implements IStorage {
     }
 
     private loadPrefsForSeriesBlocking(seriesId: string): IMediaPrefs | null {
-        const result = this.prepare(`
+        const result = this.prepare(
+            `
             SELECT prefs FROM SeriesPrefs
             WHERE seriesId = ?
-        `).pluck().get(seriesId);
+        `,
+        )
+            .pluck()
+            .get(seriesId);
 
         if (!result) {
             return null;
@@ -240,15 +260,17 @@ export class Sqlite3Storage implements IStorage {
             return;
         }
 
-        const params = tokens.map(it => "?").join(", ");
+        const params = tokens.map(() => "?").join(", ");
         this.db.transaction(() => {
-            const result = this.prepare(`
+            const result = this.prepare(
+                `
                 DELETE FROM Loans
                 WHERE token IN (${params})
-            `).run(...tokens);
+            `,
+            ).run(...tokens);
 
             if (result.changes !== tokens.length) {
-                throw new Error(`Invalid tokens provided`);
+                throw new Error("Invalid tokens provided");
             }
         })();
     }
@@ -271,29 +293,29 @@ export class Sqlite3Storage implements IStorage {
         debug("opened db version", version);
 
         switch (version) {
-        case 0:
-            debug("create initial DB");
-            this.createInitialDb();
-            break;
+            case 0:
+                debug("create initial DB");
+                this.createInitialDb();
+                break;
 
-        case 1:
-            debug(`migrate from ${version} to 2`);
-            this.createLoansTable();
-
-            // fall through:
-
-        case 2:
-            debug(`migrate from ${version} to ${SchemaVersion}`);
-            this.createSeriesPrefsTable();
+            case 1:
+                debug(`migrate from ${version} to 2`);
+                this.createLoansTable();
 
             // fall through:
 
-        case SchemaVersion:
-            // up to date!
-            return;
+            case 2:
+                debug(`migrate from ${version} to ${SchemaVersion}`);
+                this.createSeriesPrefsTable();
 
-        default:
-            throw new Error("");
+            // fall through:
+
+            case SchemaVersion:
+                // up to date!
+                return;
+
+            default:
+                throw new Error("");
         }
 
         debug(`set version to ${SchemaVersion}`);
@@ -353,5 +375,4 @@ export class Sqlite3Storage implements IStorage {
             simple: true,
         });
     }
-
 }

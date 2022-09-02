@@ -1,14 +1,15 @@
 import _debug from "debug";
-const debug = _debug("shougun:chromecast:tracker");
 
 import { BaseApp, IMediaStatus, PlaybackTracker } from "babbling";
 
-import { GenericMediaReceiverApp, ILoadParams } from "./generic";
+import type { ILoadParams } from "./generic";
 
 import { IMedia } from "../../../model";
+import { isCloseable } from "./model";
+
+const debug = _debug("shougun:chromecast:tracker");
 
 export class ShougunPlaybackTracker extends PlaybackTracker {
-
     private currentMedia: IMedia;
 
     constructor(
@@ -26,7 +27,7 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
 
     protected async handleClose() {
         await super.handleClose();
-        if (this.appInstance instanceof GenericMediaReceiverApp) {
+        if (isCloseable(this.appInstance)) {
             this.appInstance.close();
         }
         if (this.params.onPlayerStop) {
@@ -39,14 +40,18 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
 
         debug("mediaStatus=", status);
         switch (status.playerState) {
-        case "PLAYING":
-            this.handlePlaying(status);
-            break;
+            case "PLAYING":
+                this.handlePlaying(status);
+                break;
 
-        case "IDLE":
-            if ((status as any).idleReason === "CANCELLED") {
-                this.handleClose();
-            }
+            case "IDLE":
+                if ((status as any).idleReason === "CANCELLED") {
+                    this.handleClose();
+                }
+                break;
+
+            default:
+            // ignore
         }
     }
 
@@ -58,7 +63,10 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
         const newId: string = media.contentId;
         if (this.params.media.id === newId) {
             // easy case
-            this.updateCurrentMedia(this.params.media.source, status.currentTime);
+            this.updateCurrentMedia(
+                this.params.media.source,
+                status.currentTime,
+            );
             return;
         }
 
@@ -93,7 +101,12 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
 
     private async handlePlayerPaused(currentTimeSeconds: number) {
         if (this.params.onPlayerPaused) {
-            debug("dispatch paused:", this.currentMedia.title, "@", currentTimeSeconds);
+            debug(
+                "dispatch paused:",
+                this.currentMedia.title,
+                "@",
+                currentTimeSeconds,
+            );
             this.params.onPlayerPaused(this.currentMedia, currentTimeSeconds);
         }
     }

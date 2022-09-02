@@ -5,9 +5,5 @@ export interface IMatcher {
         keyFn: (item: T) => string,
     ): T | undefined;
 
-    sort<T>(
-        input: string,
-        items: T[],
-        keyFn: (item: T) => string,
-    ): T[];
+    sort<T>(input: string, items: T[], keyFn: (item: T) => string): T[];
 }

@@ -6,8 +6,37 @@ import { Sqlite3Storage } from "../../src/track/storage/sqlite3";
 
 chai.should();
 
-describe("PersistentTracker", () => {
+const episodeFor = (seriesId: string, index: number) => ({
+    id: `episode-${index}`,
+    seriesId,
 
+    discovery: "discovered",
+    title: `Episode ${index}`,
+    type: MediaType.Episode,
+});
+
+const seriesWithId = (id: string) =>
+    ({
+        id,
+
+        discovery: "discovered",
+        title: "title",
+        type: MediaType.Series,
+
+        seasons: [
+            {
+                id: `${id}:s1`,
+
+                episodes: [
+                    episodeFor(id, 0),
+                    episodeFor(id, 1),
+                    episodeFor(id, 2),
+                ],
+            },
+        ],
+    } as ISeries);
+
+describe("PersistentTracker", () => {
     let storage: IStorage;
 
     // just use sqlite3 for now...
@@ -67,33 +96,4 @@ describe("PersistentTracker", () => {
             track.should.have.property("resumeTimeSeconds").that.equals(100);
         });
     });
-});
-
-const seriesWithId = (id: string) => ({
-    id,
-
-    discovery: "discovered",
-    title: "title",
-    type: MediaType.Series,
-
-    seasons: [
-        {
-            id: `${id}:s1`,
-
-            episodes: [
-                episodeFor(id, 0),
-                episodeFor(id, 1),
-                episodeFor(id, 2),
-            ],
-        },
-    ],
-} as ISeries);
-
-const episodeFor = (seriesId: string, index: number) => ({
-    id: `episode-${index}`,
-    seriesId,
-
-    discovery: "discovered",
-    title: `Episode ${index}`,
-    type: MediaType.Episode,
 });

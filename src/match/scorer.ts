@@ -3,21 +3,21 @@ export enum ScoreMode {
     Lowest,
 }
 
-type Comparable = number | object | undefined;
+type Comparable = number | Record<string, unknown> | undefined;
 
 function compareHighest(
     [, scoreA]: [any, Comparable],
     [, scoreB]: [any, Comparable],
 ) {
     if (!scoreA) return 1;
-    else if (!scoreB) return -1;
-    else if (typeof scoreA !== "number") {
+    if (!scoreB) return -1;
+    if (typeof scoreA !== "number") {
         return -1;
-    } else if (typeof scoreB !== "number") {
-        return 1;
-    } else {
-        return scoreB - scoreA;
     }
+    if (typeof scoreB !== "number") {
+        return 1;
+    }
+    return scoreB - scoreA;
 }
 
 function compareLowest(
@@ -25,14 +25,14 @@ function compareLowest(
     [, scoreB]: [any, Comparable],
 ) {
     if (!scoreA) return -1;
-    else if (!scoreB) return 1;
-    else if (typeof scoreA !== "number") {
+    if (!scoreB) return 1;
+    if (typeof scoreA !== "number") {
         return 1;
-    } else if (typeof scoreB !== "number") {
-        return -1;
-    } else {
-        return scoreA - scoreB;
     }
+    if (typeof scoreB !== "number") {
+        return -1;
+    }
+    return scoreA - scoreB;
 }
 
 export class Scorer<T> {
@@ -41,26 +41,22 @@ export class Scorer<T> {
         private mode = ScoreMode.Highest,
     ) {}
 
-    public sort(
-        items: T[],
-    ) {
-        const withScore = items.map(item =>
-            [item, this.computeScore(item)] as [T, Comparable],
+    public sort(items: T[]) {
+        const withScore = items.map(
+            (item) => [item, this.computeScore(item)] as [T, Comparable],
         );
-        const sorted = withScore.sort(this.mode === ScoreMode.Highest
-            ? compareHighest
-            : compareLowest,
+        const sorted = withScore.sort(
+            this.mode === ScoreMode.Highest ? compareHighest : compareLowest,
         );
         return sorted.map(([item]) => item);
     }
 
-    public findBest(
-        items: Iterable<T>,
-    ) {
+    public findBest(items: Iterable<T>) {
         let best: T | undefined;
-        let bestScore = this.mode === ScoreMode.Highest
-            ? Number.MIN_VALUE
-            : Number.MAX_VALUE;
+        let bestScore =
+            this.mode === ScoreMode.Highest
+                ? Number.MIN_VALUE
+                : Number.MAX_VALUE;
 
         for (const item of items) {
             const score = this.computeScore(item);
@@ -73,8 +69,8 @@ export class Scorer<T> {
             }
 
             if (
-                (this.mode === ScoreMode.Highest && score > bestScore)
-                    || (this.mode === ScoreMode.Lowest && score < bestScore)
+                (this.mode === ScoreMode.Highest && score > bestScore) ||
+                (this.mode === ScoreMode.Lowest && score < bestScore)
             ) {
                 bestScore = score;
                 best = item;

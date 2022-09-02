@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:phonetic");
 
 import slug from "speakingurl";
 import jaroWinkler from "talisman/metrics/jaro-winkler";
@@ -7,6 +6,8 @@ import metaphone from "talisman/phonetics/double-metaphone";
 
 import { ScoreBasedMatcher } from "./base";
 import { Scorer } from "./scorer";
+
+const debug = _debug("shougun:phonetic");
 
 function process(text: string) {
     // NOTE: Metaphone seemed to give the most useful
@@ -16,8 +17,9 @@ function process(text: string) {
     // We use the double metaphone algorithm, picking the
     // primary encoding and replacing X with S to be a bit
     // more forgiving of weird mic issues.
-    return text.split(" ")
-        .map(word => metaphone(word)[0])
+    return text
+        .split(" ")
+        .map((word) => metaphone(word)[0])
         .join("")
         .replace(/X/g, "S");
 }
@@ -37,13 +39,10 @@ const winklerParams = {
  * try to find the closest *sounding* match.
  */
 export class PhoneticMatcher extends ScoreBasedMatcher {
-    protected scorer<T>(
-        input: string,
-        keyFn: (item: T) => string,
-    ) {
+    protected scorer<T>(input: string, keyFn: (item: T) => string) {
         const inputSlug = slug(input);
         const target = process(input);
-        return new Scorer<T>(item => {
+        return new Scorer<T>((item) => {
             const itemKey = keyFn(item);
             const processed = process(itemKey);
 
@@ -51,9 +50,7 @@ export class PhoneticMatcher extends ScoreBasedMatcher {
             // of Levenshtein because in some tests on local data
             // it experimentally provided better, more consistent
             // results.
-            let score = jaroWinkler.custom(
-                winklerParams, target, processed,
-            );
+            let score = jaroWinkler.custom(winklerParams, target, processed);
 
             // NOTE: boost the score of exact slug matches. As an example,
             // for the query "brave," both the Disney movie "Brave" and the
@@ -70,5 +67,4 @@ export class PhoneticMatcher extends ScoreBasedMatcher {
             return score;
         });
     }
-
 }

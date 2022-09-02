@@ -3,16 +3,18 @@ import { ILoanCreate, ILoanData, ITrack, ITracker } from "./base";
 import { IViewedInformation } from "./persistent";
 
 export class TracklessTracker implements ITracker {
+    private prefs: { [key: string]: IMediaPrefs } = {};
 
-    private prefs: {[key: string]: IMediaPrefs} = {};
-
-    public markBorrowReturned(tokens: string[]): Promise<void> {
+    public markBorrowReturned(_tokens: string[]): Promise<void> {
         throw new Error("Loans not supported");
     }
-    public returnBorrowed(tokens: string[], viewedInformation: IViewedInformation[]): Promise<void> {
+    public returnBorrowed(
+        _tokens: string[],
+        _viewedInformation: IViewedInformation[],
+    ): Promise<void> {
         throw new Error("Loans not supported");
     }
-    public createLoan(track: ILoanCreate): Promise<void> {
+    public createLoan(_track: ILoanCreate): Promise<void> {
         throw new Error("Loans not supported");
     }
     public retrieveBorrowed(): Promise<ILoanData> {
@@ -32,9 +34,9 @@ export class TracklessTracker implements ITracker {
     }
 
     public async saveTrack(
-        media: IMedia,
-        resumeTimeSeconds: number,
-        videoDurationSeconds: number,
+        _media: IMedia,
+        _resumeTimeSeconds: number,
+        _videoDurationSeconds: number,
     ): Promise<void> {
         // nop
     }
@@ -59,5 +61,4 @@ export class TracklessTracker implements ITracker {
         this.prefs[seriesId] = updated;
         return updated;
     }
-
 }

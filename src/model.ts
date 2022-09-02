@@ -1,9 +1,9 @@
 import { IEpisodeQuery } from "babbling/dist/app";
 
-import { Context } from "./context";
-import { DiscoveryId } from "./discover/base";
-import { IVideoAnalysis } from "./media/analyze";
-import { IPlaybackOptions } from "./playback/player";
+import type { Context } from "./context";
+import type { DiscoveryId } from "./discover/base";
+import type { IVideoAnalysis } from "./media/analyze";
+import type { IPlaybackOptions } from "./playback/player";
 
 export interface ILocalMedia {
     id: string;
@@ -63,7 +63,9 @@ export interface IPlayableWithClients extends IPlayable {
 }
 
 /** Check if the given IPlayable supports having clients */
-export function supportsClients(playable: IPlayable): playable is IPlayableWithClients {
+export function supportsClients(
+    playable: IPlayable,
+): playable is IPlayableWithClients {
     return (playable as any).addActiveClient;
 }
 
@@ -138,13 +140,18 @@ export interface IQueryable {
 
 export interface IPlayableMedia extends IMedia {
     play(opts: IPlaybackOptions): Promise<void>;
-    findEpisode?(context: Context, query: IEpisodeQuery): Promise<IMedia | undefined>;
+    findEpisode?(
+        context: Context,
+        query: IEpisodeQuery,
+    ): Promise<IMedia | undefined>;
 }
 
 export function isPlayable(media: IMedia): media is IPlayableMedia {
     if (media.type !== MediaType.ExternalPlayable) return false;
     if (typeof (media as any).play !== "function") {
-        throw new Error(`Media is ExternalPlayable but does not implement IPlayableMedia: ${media}`);
+        throw new Error(
+            `Media is ExternalPlayable but does not implement IPlayableMedia: ${media}`,
+        );
     }
     return true;
 }

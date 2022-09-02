@@ -4,11 +4,12 @@ import path from "path";
 import slug from "speakingurl";
 import { IEpisode, ISeason } from "../model";
 
-let toLaxTitleCase: (s: string) => string;
-
-// tslint:disable no-var-requires
+// NOTE: This is a bit hacky because titlecase doesn't have typings...
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const titlecase = require("titlecase");
-toLaxTitleCase = titlecase.toLaxTitleCase;
+
+// eslint-disable-next-line prefer-destructuring
+const toLaxTitleCase: (s: string) => string = titlecase.toLaxTitleCase;
 
 export function nestId(parentId: string, childId: string) {
     return `${parentId}:${childId}`;
@@ -16,21 +17,42 @@ export function nestId(parentId: string, childId: string) {
 
 export const titleToId = slug;
 
-export function fileNameToId(name: string) {
-    return titleToId(fileNameToTitle(name));
+export function fileType(fileName: string) {
+    const type = mime.getType(fileName);
+    if (!type) return "other";
+    if (type.startsWith("image")) {
+        return "image";
+    }
+    if (type.startsWith("video")) {
+        return "video";
+    }
+    return "other";
 }
 
-export function fileNameToTitle(name: string) {
+export function isImage(fileName: string) {
+    return fileType(fileName) === "image";
+}
+
+export function isVideo(fileName: string) {
+    return fileType(fileName) === "video";
+}
+
+export function fileNameToTitle(fileName: string) {
+    let name = fileName;
     if (isVideo(name)) {
         // strip extension
         name = name.substring(0, name.lastIndexOf("."));
     }
 
-    const fixed = name.replace(/[_.]/g, " ")
+    const fixed = name
+        .replace(/[_.]/g, " ")
 
         // strip format/codec info
         // tslint:disable-next-line max-line-length
-        .replace(/((720|1080)p|[0-9]{3,4}x[0-9]{3,4}|(x|h)[ ]?264|ogg|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?)(.(?!\b[sep]+\d))*/gi, "")
+        .replace(
+            /((720|1080)p|[0-9]{3,4}x[0-9]{3,4}|(x|h)[ ]?264|ogg|aac|mpeg|divx[0-9]*|hevc|[0-9]+bit|xvid(hd)?)(.(?!\b[sep]+\d))*/gi,
+            "",
+        )
         .replace(/\b(web|hdtv|tv|br|bd|bluray)\b[-]?(rip|dl)?/gi, "")
 
         // this strips parenthesis with irrelevent stuff inside
@@ -40,7 +62,7 @@ export function fileNameToTitle(name: string) {
         .replace(/\[.*?\]/g, "")
 
         // trailing garbage
-        .replace(/[(\[{]$/, "")
+        .replace(/[([{]$/, "")
         .replace(/-[A-Z][A-Z0-9]*$/, "")
         .replace(/[^a-zA-Z0-9()]+$/, "")
 
@@ -54,37 +76,15 @@ export function fileNameToTitle(name: string) {
     return toLaxTitleCase(fixed);
 }
 
-export function fileType(fileName: string) {
-    const type = mime.getType(fileName);
-    if (!type) return "other";
-    if (type.startsWith("image")) {
-        return "image";
-    } else if (type.startsWith("video")) {
-        return "video";
-    } else {
-        return "other";
-    }
-}
-
-export function isImage(fileName: string) {
-    return fileType(fileName) === "image";
-}
-
-export function isVideo(fileName: string) {
-    return fileType(fileName) === "video";
-}
-
 export function resolvePath(original: string) {
-    return path.resolve(
-        original.replace("~", os.homedir()),
-    );
+    return path.resolve(original.replace("~", os.homedir()));
 }
 
 export function sortKey(title: string) {
     const regex = /(\d+)/g;
     const key = [];
 
-    while (true) {
+    for (;;) {
         const matches = regex.exec(title);
         if (!matches) break;
 
@@ -94,10 +94,7 @@ export function sortKey(title: string) {
     return key;
 }
 
-export function compareSortKeys(
-    a: number[],
-    b: number[],
-) {
+export function compareSortKeys(a: number[], b: number[]) {
     const end = Math.min(a.length, b.length);
     for (let i = 0; i < end; ++i) {
         const fromA = a[i];
@@ -125,4 +122,8 @@ export function sortSeasons(seasons: ISeason[]) {
         const bKey = sortKey(b.title || "");
         return compareSortKeys(aKey, bKey);
     });
+}
+
+export function fileNameToId(name: string) {
+    return titleToId(fileNameToTitle(name));
 }

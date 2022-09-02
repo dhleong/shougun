@@ -10,7 +10,10 @@ export abstract class BasePlayable implements IPlayable {
     public abstract durationSeconds: number;
     public abstract media: IMedia;
 
-    public abstract getUrl(context: Context, opts?: IPlaybackOptions | undefined): Promise<string>;
+    public abstract getUrl(
+        context: Context,
+        opts?: IPlaybackOptions | undefined,
+    ): Promise<string>;
 
     public async loadQueueAround(context: Context): Promise<IMedia[]> {
         if (!isEpisode(this.media)) return [];
@@ -25,9 +28,11 @@ export abstract class BasePlayable implements IPlayable {
             return result;
         }, [] as IEpisode[]);
 
-        const idx = episodes.findIndex(ep => ep.id === this.media.id);
+        const idx = episodes.findIndex((ep) => ep.id === this.media.id);
         if (idx === -1) {
-            throw new Error(`Couldn't find last-watched episode ${this.media.title}`);
+            throw new Error(
+                `Couldn't find last-watched episode ${this.media.title}`,
+            );
         }
 
         // merge in prefs
@@ -43,5 +48,4 @@ export abstract class BasePlayable implements IPlayable {
 
         return episodes.slice(start, end);
     }
-
 }

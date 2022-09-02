@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:rpc:announce");
 
 import os from "os";
 import pathlib from "path";
@@ -10,6 +9,8 @@ import { Server } from "node-ssdp";
 import { BorrowMode } from "../borrow/model";
 import { generateMachineUuid } from "./id";
 
+const debug = _debug("shougun:rpc:announce");
+
 export const LOCAL_ANNOUNCE_PATH = pathlib.join(
     os.homedir(),
     ".config/shougun/announce.port",
@@ -19,9 +20,9 @@ export class RpcAnnouncer {
     private server: Server | undefined;
 
     public async start(config: {
-        serverPort: number,
-        borrowing?: BorrowMode,
-        version: number,
+        serverPort: number;
+        borrowing?: BorrowMode;
+        version: number;
     }) {
         if (this.server) {
             throw new Error("Already started");
@@ -40,7 +41,7 @@ export class RpcAnnouncer {
             },
             ssdpSig: `node/${node} shougun:rpc:${version}`,
             suppressRootDeviceAdvertisements: false,
-            udn: "uuid:" + uuid,
+            udn: `uuid:${uuid}`,
 
             headers: {
                 BORROWING: config.borrowing,
@@ -50,9 +51,13 @@ export class RpcAnnouncer {
 
         server.addUSN(`urn:schemas:service:ShougunServer:${config.version}`);
         if (config.borrowing === BorrowMode.LENDER) {
-            server.addUSN(`urn:schemas:service:ShougunLibrary:${config.version}`);
+            server.addUSN(
+                `urn:schemas:service:ShougunLibrary:${config.version}`,
+            );
         } else if (config.borrowing === BorrowMode.BORROWER) {
-            server.addUSN(`urn:schemas:service:ShougunBorrower:${config.version}`);
+            server.addUSN(
+                `urn:schemas:service:ShougunBorrower:${config.version}`,
+            );
         }
 
         try {
@@ -67,7 +72,7 @@ export class RpcAnnouncer {
 
         debug("No sockets available; announcing local-only");
         await fsextra.mkdirs(pathlib.dirname(LOCAL_ANNOUNCE_PATH));
-        await fsextra.writeFile(LOCAL_ANNOUNCE_PATH, "" + serverPort);
+        await fsextra.writeFile(LOCAL_ANNOUNCE_PATH, `${serverPort}`);
 
         process.once("exit", () => {
             debug("Clean up local announce");

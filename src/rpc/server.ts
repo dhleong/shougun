@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:rpc:server");
 
 import { createServer } from "msgpack-rpc-lite";
 import net from "net";
@@ -12,19 +11,24 @@ import { RpcHandler } from "./handler";
 import { loadLoans } from "../borrow/loader";
 import { BorrowMode } from "../borrow/model";
 
+const debug = _debug("shougun:rpc:server");
+
 function on(
     server: net.Server,
     event: string,
-    handler: (... params: any[]) => Promise<any>,
+    handler: (...params: any[]) => Promise<any>,
 ) {
     server.on(event, ([params]: any[], callback: any) => {
         debug("received:", event, "with", params);
         try {
-            handler(...params).then(result => {
-                callback(null, result);
-            }, error => {
-                callback(error);
-            });
+            handler(...params).then(
+                (result) => {
+                    callback(null, result);
+                },
+                (error) => {
+                    callback(error);
+                },
+            );
         } catch (e) {
             // NOTE: This is a sanity check to make sure that errors in a handler
             // don't crash the RPC server
@@ -33,10 +37,7 @@ function on(
     });
 }
 
-function registerRpcHandler(
-    server: net.Server,
-    handler: any,
-) {
+function registerRpcHandler(server: net.Server, handler: any) {
     const prototype = Object.getPrototypeOf(handler);
     for (const eventName of Object.getOwnPropertyNames(prototype)) {
         if (eventName === "constructor") continue;
@@ -84,16 +85,18 @@ export class RpcServer {
         registerRpcHandler(server, this.handler);
 
         debug("start listening on", this.config.port);
-        const address = await new Promise<string | net.AddressInfo | null>(resolve => {
-            server.listen(this.config.port, () => {
-                const addr = server.address();
-                debug("listening on", addr);
+        const address = await new Promise<string | net.AddressInfo | null>(
+            (resolve) => {
+                server.listen(this.config.port, () => {
+                    const addr = server.address();
+                    debug("listening on", addr);
 
-                resolve(addr);
-            });
-        });
+                    resolve(addr);
+                });
+            },
+        );
 
-        let port: number = 0;
+        let port = 0;
         if (typeof address === "string") {
             const raw = address.split(/:/);
             port = parseInt(raw[raw.length - 1], 10);
@@ -112,18 +115,18 @@ export class RpcServer {
             throw e;
         }
 
-        server.on("error", error => {
+        server.on("error", (error) => {
             debug("Unexpected error:", error);
         });
 
         // Track active connections so we can keep the server alive if they want to
         // fetch local cover art
-        server.on("connection", socket => {
+        server.on("connection", (socket) => {
             const id = JSON.stringify(socket.address());
             this.shougun.context.server.addActiveClient(id);
             debug("new client:", id);
 
-            socket.on("error", error => {
+            socket.on("error", (error) => {
                 debug("Error from client", id, error);
             });
 
@@ -143,5 +146,4 @@ export class RpcServer {
 
         this.announcer.stop();
     }
-
 }

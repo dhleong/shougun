@@ -7,7 +7,7 @@ const { expect } = chai;
 
 describe("formatError", () => {
     it("should handle simple errors", () => {
-        const error = new Error(`Your mouth is talkin', Jayne`);
+        const error = new Error("Your mouth is talkin', Jayne");
         const formatted = formatError(error);
         formatted.message.should.match(/Your mouth is talkin', Jayne$/);
         expect(formatted.stack).to.not.be.undefined;
@@ -16,7 +16,7 @@ describe("formatError", () => {
     });
 
     it("should handle 'Caused by'", () => {
-        const error = new Error(`This is an error\nCaused by:\nstack`);
+        const error = new Error("This is an error\nCaused by:\nstack");
         const formatted = formatError(error);
         formatted.message.should.match(/This is an error$/);
         formatted.message.should.not.include("Caused by");
@@ -25,9 +25,8 @@ describe("formatError", () => {
         formatted.stack!.should.have.length.at.least(2);
 
         expect(formatted.stack!.slice(0, 2)).to.deep.equal([
-            `Caused by:`,
-            `stack`,
+            "Caused by:",
+            "stack",
         ]);
     });
-
 });

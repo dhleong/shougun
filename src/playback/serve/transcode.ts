@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:transcode");
 
 import fastify from "fastify";
 import ffmpeg from "fluent-ffmpeg";
@@ -9,17 +8,19 @@ import { IVideoAnalysis } from "../../media/analyze";
 import { IPlayerCapabilities } from "../player";
 import { ffmpegAsPromise, IFfmpegOpts } from "./ffmpeg";
 
+const debug = _debug("shougun:transcode");
+
 function transcodeWithOptions(
     pipe: stream.PassThrough,
     localPath: string,
     startTimeSeconds: number | undefined,
     opts: IFfmpegOpts,
-    ...ffmpegOptions: string[]  // tslint:disable-line
+    ...ffmpegOptions: string[] // tslint:disable-line
 ) {
     const command = ffmpeg(localPath)
         .outputFormat("mp4")
 
-        .withOptions(ffmpegOptions)
+        .withOptions(ffmpegOptions);
     if (startTimeSeconds) {
         command.setStartTime(startTimeSeconds);
     }
@@ -36,7 +37,7 @@ export async function transcodeForAnalysis(
     const pipe = new stream.PassThrough();
 
     return transcodeWithOptions(pipe, localPath, startTimeSeconds, {
-        config: command => {
+        config: (command) => {
             debug("configure transcoder with:", analysis);
 
             // TODO: future work might downsample if the player doesn't
@@ -52,18 +53,16 @@ export async function transcodeForAnalysis(
                 // supports, check that and transform in necessary
                 const { pixelFormat } = analysis.video;
                 if (
-                    pixelFormat
-                    && capabilities.supportsPixelFormat
-                    && !capabilities.supportsPixelFormat(pixelFormat)
+                    pixelFormat &&
+                    capabilities.supportsPixelFormat &&
+                    !capabilities.supportsPixelFormat(pixelFormat)
                 ) {
                     // NOTE: in theory, chromecast ultra supports HDR/10bit,
                     // so on such devices we should be able to preserve that
                     // (eg: yuv420p10le) but in practice it causes tearing,
                     // so we keep it simple:
                     debug("tranform unsupported pixel format to yuv420p");
-                    command.addOptions([
-                        "-pix_fmt yuv420p",
-                    ]);
+                    command.addOptions(["-pix_fmt yuv420p"]);
                 }
             }
 
@@ -78,8 +77,8 @@ export async function transcodeForAnalysis(
 
             if (!analysis.audio.isDefault) {
                 debug("select non-default audio track");
-                command.addOptions("-map", "0:" + analysis.video.index);
-                command.addOptions("-map", "0:" + analysis.audio.index);
+                command.addOptions("-map", `0:${analysis.video.index}`);
+                command.addOptions("-map", `0:${analysis.audio.index}`);
             }
 
             // it seems we may always need this, even when both audio and
@@ -104,7 +103,9 @@ export async function serveTranscodedForAnalysis(
 ): Promise<NodeJS.ReadableStream> {
     reply.status(200);
     return transcodeForAnalysis(
-        analysis, capabilities,
-        localPath, startTimeSeconds,
+        analysis,
+        capabilities,
+        localPath,
+        startTimeSeconds,
     );
 }

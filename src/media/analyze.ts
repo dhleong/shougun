@@ -1,5 +1,4 @@
 import _debug from "debug";
-const debug = _debug("shougun:analyze");
 
 import {
     ffprobe as ffprobeCallback,
@@ -8,12 +7,15 @@ import {
 } from "fluent-ffmpeg";
 import { languageCodeMatches } from "../util/language";
 
-const ffprobe = (localPath: string) => new Promise<FfprobeData>((resolve, reject) => {
-    ffprobeCallback(localPath, (err, data) => {
-        if (err) reject(err);
-        else resolve(data);
+const debug = _debug("shougun:analyze");
+
+const ffprobe = (localPath: string) =>
+    new Promise<FfprobeData>((resolve, reject) => {
+        ffprobeCallback(localPath, (err, data) => {
+            if (err) reject(err);
+            else resolve(data);
+        });
     });
-});
 
 export interface IAudioTrack {
     id?: string;
@@ -68,11 +70,90 @@ export interface IVideoAnalysis {
     duration: number;
 }
 
+function requireNotNull<T>(v: T): NonNullable<T> {
+    if (v == null) {
+        throw new Error("Object was unexpectedly nil");
+    }
+    return v as unknown as any;
+}
+
+function requireNotNullProp<T, K extends keyof T>(
+    v: T,
+    key: K,
+): NonNullable<T[K]> {
+    if (v[key] == null) {
+        throw new Error(`Property ${key} of object was unexpectedly nil`);
+    }
+    return v[key] as unknown as any;
+}
+
+function parseAudioTrack(s: FfprobeStream): IAudioTrack {
+    return {
+        id: s.id,
+        index: s.index,
+        channels: s.channels,
+        codec: requireNotNullProp(s, "codec_name"),
+        language: s.tags?.language,
+        profile: s.profile as unknown as string,
+        isDefault: (s.disposition?.default ?? 0) > 0,
+    };
+}
+
+function parseVideoTrack(s: FfprobeStream): IVideoTrack {
+    const [fpsNum, fpsDen] = (s.avg_frame_rate || "0/1").split("/");
+    const base: IVideoTrack = {
+        index: s.index,
+
+        codec: requireNotNullProp(s, "codec_name"),
+        colorSpace: s.color_space,
+        fps: parseInt(fpsNum, 10) / parseInt(fpsDen, 10),
+        pixelFormat: s.pix_fmt,
+
+        // I think these types got flipped:
+        level: s.level as unknown as number,
+        profile: s.profile as unknown as string,
+
+        height: requireNotNullProp(s, "height"),
+        width: requireNotNullProp(s, "width"),
+    };
+
+    if (base.level) {
+        switch (base.codec) {
+            case "h264":
+                base.levelNormalized = base.level;
+                break;
+
+            case "hevc":
+                // general_level_idc: level is actually `level * 30` for hevc
+                // we divide by 3 to get eg 51 for simpler comparisons
+                base.levelNormalized = base.level / 3;
+                break;
+        }
+    }
+
+    return base;
+}
+
+function parseTextTrack(s: FfprobeStream): ITextTrack | undefined {
+    const language = s.tags?.language;
+    if (!language) return;
+
+    debug("parse text track", s);
+    return {
+        index: s.index,
+        language,
+        codec: s.codec_name ?? "<unknown>",
+        isDefault: !!s.disposition?.default,
+        isForced: !!s.disposition?.forced,
+        isHearingImpared: !!s.disposition?.hearing_impaired,
+    };
+}
+
 export async function analyzeFile(
     localPath: string,
     opts?: {
-        preferredAudioLanguage?: string,
-    }
+        preferredAudioLanguage?: string;
+    },
 ) {
     const data = await ffprobe(localPath);
 
@@ -95,10 +176,10 @@ export async function analyzeFile(
 
             // is this "the one"?
             if (
-                !opts?.preferredAudioLanguage
-                || languageCodeMatches(
+                !opts?.preferredAudioLanguage ||
+                languageCodeMatches(
                     parsed.language ?? "",
-                    opts.preferredAudioLanguage
+                    opts.preferredAudioLanguage,
                 )
             ) {
                 audioTrack = parsed;
@@ -118,73 +199,11 @@ export async function analyzeFile(
     if (!audioTrack) audioTrack = defaultAudioTrack;
 
     return {
-        audio: audioTrack!,
-        video: videoTrack!,
+        audio: requireNotNull(audioTrack),
+        video: requireNotNull(videoTrack),
         subtitles,
 
-        container: data.format.format_name!.split(","),
+        container: requireNotNullProp(data.format, "format_name").split(","),
         duration: data.format.duration,
     } as IVideoAnalysis;
-}
-
-function parseAudioTrack(s: FfprobeStream): IAudioTrack {
-    return {
-        id: s.id,
-        index: s.index,
-        channels: s.channels,
-        codec: s.codec_name!,
-        language: s.tags?.language,
-        profile: s.profile as unknown as string,
-        isDefault: (s.disposition?.default ?? 0) > 0,
-    };
-}
-
-function parseVideoTrack(s: FfprobeStream): IVideoTrack {
-    const [ fpsNum, fpsDen ] = (s.avg_frame_rate || "0/1").split("/");
-    const base: IVideoTrack = {
-        index: s.index,
-
-        codec: s.codec_name!,
-        colorSpace: s.color_space,
-        fps: parseInt(fpsNum, 10) / parseInt(fpsDen, 10),
-        pixelFormat: s.pix_fmt,
-
-        // I think these types got flipped:
-        level: s.level as unknown as number,
-        profile: s.profile as unknown as string,
-
-        height: s.height!,
-        width: s.width!,
-    };
-
-    if (base.level) {
-        switch (base.codec) {
-        case "h264":
-            base.levelNormalized = base.level;
-            break;
-
-        case "hevc":
-            // general_level_idc: level is actually `level * 30` for hevc
-            // we divide by 3 to get eg 51 for simpler comparisons
-            base.levelNormalized = base.level / 3;
-            break;
-        }
-    }
-
-    return base;
-}
-
-function parseTextTrack(s: FfprobeStream): ITextTrack | undefined {
-    const language = s.tags?.language;
-    if (!language) return;
-
-    debug("parse text track", s);
-    return {
-        index: s.index,
-        language,
-        codec: s.codec_name ?? '<unknown>',
-        isDefault: !!s.disposition?.default,
-        isForced: !!s.disposition?.forced,
-        isHearingImpared: !!s.disposition?.hearing_impaired,
-    };
 }

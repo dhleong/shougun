@@ -9,7 +9,7 @@ import { IMedia, IMediaPrefs } from "../model";
 import { Shougun } from "../shougun";
 import { IViewedInformation } from "../track/persistent";
 import { generateMachineUuid } from "./id";
-import { IRemoteConfig } from "./server";
+import type { IRemoteConfig } from "./server";
 import { IPlaybackOptions } from "../playback/player";
 import { isLocalDiscoveryId } from "../discover/local";
 
@@ -22,26 +22,30 @@ interface IQueryOpts {
 }
 
 function formatMediaResults(shougun: Shougun, results: IMedia[]) {
-    return Promise.all(results.map(async media => {
-        if (isLocalDiscoveryId(media.discovery)) {
-            debug("Preparing cover art for", media.id);
-            try {
-                const playable = await shougun.getPlayable(media);
-                const cover = await playable?.getCoverUrl?.(shougun.context);
-                if (cover != null) {
-                    debug("Got cover:", cover);
-                    return {
-                        ...media,
-                        cover,
-                    };
+    return Promise.all(
+        results.map(async (media) => {
+            if (isLocalDiscoveryId(media.discovery)) {
+                debug("Preparing cover art for", media.id);
+                try {
+                    const playable = await shougun.getPlayable(media);
+                    const cover = await playable?.getCoverUrl?.(
+                        shougun.context,
+                    );
+                    if (cover != null) {
+                        debug("Got cover:", cover);
+                        return {
+                            ...media,
+                            cover,
+                        };
+                    }
+                } catch (e) {
+                    debug("Failed to load cover art for ", media.id, e);
                 }
-            } catch (e) {
-                debug("Failed to load cover art for ", media.id, e);
             }
-        }
 
-        return media;
-    }));
+            return media;
+        }),
+    );
 }
 
 async function queryVia(
@@ -81,9 +85,7 @@ export class RpcHandler {
         return generateMachineUuid();
     }
 
-    public async borrow(
-        requests: IBorrowRequest[],
-    ) {
+    public async borrow(requests: IBorrowRequest[]) {
         if (this.config.borrowing !== BorrowMode.LENDER) {
             throw new Error("Lender requests are not enabled");
         }
@@ -103,25 +105,33 @@ export class RpcHandler {
         await loadLoans(this.shougun);
     }
 
-    public async markBorrowReturned(
-        tokens: string[],
-    ) {
+    public async markBorrowReturned(tokens: string[]) {
         const { tracker } = this.shougun.context;
-        return tracker.markBorrowReturned(
-            tokens,
+        return tracker.markBorrowReturned(tokens);
+    }
+
+    public async queryRecent(
+        options: {
+            onlyLocal?: boolean;
+        } & Partial<IQueryOpts>,
+    ) {
+        return queryVia(
+            this.shougun,
+            options,
+            this.shougun.queryRecent(options),
         );
     }
 
-    public async queryRecent(options: {
-        onlyLocal?: boolean,
-    } & Partial<IQueryOpts>) {
-        return queryVia(this.shougun, options, this.shougun.queryRecent(options));
-    }
-
-    public async queryRecommended(options: {
-        onlyLocal?: boolean,
-    } & Partial<IQueryOpts>) {
-        return queryVia(this.shougun, options, this.shougun.queryRecommended(options));
+    public async queryRecommended(
+        options: {
+            onlyLocal?: boolean;
+        } & Partial<IQueryOpts>,
+    ) {
+        return queryVia(
+            this.shougun,
+            options,
+            this.shougun.queryRecommended(options),
+        );
     }
 
     public async retrieveBorrowed() {
@@ -142,10 +152,7 @@ export class RpcHandler {
         }
 
         const { tracker } = this.shougun.context;
-        return tracker.returnBorrowed(
-            tokens,
-            viewedInformation,
-        );
+        return tracker.returnBorrowed(tokens, viewedInformation);
     }
 
     public async search(query: string) {
@@ -154,7 +161,7 @@ export class RpcHandler {
         const sorted = this.shougun.context.matcher.sort(
             query,
             media,
-            item => item.title,
+            (item) => item.title,
         );
 
         // return a subset; results after this point are
@@ -176,7 +183,9 @@ export class RpcHandler {
             }
         }
 
-        throw new Error(`No media with title ${media.title} and ID ${media.id}`);
+        throw new Error(
+            `No media with title ${media.title} and ID ${media.id}`,
+        );
     }
 
     public async startByPath(path: string, options: IPlaybackOptions = {}) {
@@ -193,12 +202,19 @@ export class RpcHandler {
         return this.shougun.play(media, options);
     }
 
-    public async startEpisodeByTitle(title: string, query: IEpisodeQuery, options: IPlaybackOptions = {}) {
+    public async startEpisodeByTitle(
+        title: string,
+        query: IEpisodeQuery,
+        options: IPlaybackOptions = {},
+    ) {
         const media = await this.shougun.findMedia(title);
         if (!media) throw new Error(`No result for ${title}`);
 
         const episode = await this.shougun.findEpisodeFor(media, query);
-        if (!episode) throw new Error(`Unable to resolve matching episode for ${media.title}`);
+        if (!episode)
+            throw new Error(
+                `Unable to resolve matching episode for ${media.title}`,
+            );
 
         return this.shougun.play(episode, options);
     }
@@ -214,5 +230,4 @@ export class RpcHandler {
     public async updatePrefsForSeries(seriesId: string, prefs: IMediaPrefs) {
         return this.shougun.prefs.updatePrefsForSeries(seriesId, prefs);
     }
-
 }

@@ -1,11 +1,10 @@
 import _debug from "debug";
-const debug = _debug("shougun:duration");
 
 import { analyzeFile } from "./analyze";
 
-export async function extractDuration(
-    localPath: string,
-): Promise<number> {
+const debug = _debug("shougun:duration");
+
+export async function extractDuration(localPath: string): Promise<number> {
     const data = await analyzeFile(localPath);
     if (!data.duration) {
         debug("full analysis=", data);
