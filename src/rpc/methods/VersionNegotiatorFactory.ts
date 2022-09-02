@@ -1,16 +1,19 @@
-import { RpcHandler } from "../handler";
 import type { IRemoteConfig } from "../server";
 import type { Shougun } from "../../shougun";
 import type { Connection } from "../msgpack";
 
+import { RpcMethodsV1 } from "./v1";
+import { RpcMethodsV2 } from "./v2";
+
 export const DEFAULT_VERSION_FACTORIES: {
-    [version: number]: (
+    [version: number]: new (
         connection: Connection,
         shougun: Shougun,
         config: IRemoteConfig,
     ) => unknown;
 } = {
-    1: (_, shougun, config) => new RpcHandler(shougun, config),
+    1: RpcMethodsV1,
+    2: RpcMethodsV2,
 };
 
 class VersionNegotiator {
@@ -35,7 +38,7 @@ class VersionNegotiator {
             );
         }
 
-        this.currentDelegate = factory(
+        this.currentDelegate = new factory(
             this.connection,
             this.shougun,
             this.config,

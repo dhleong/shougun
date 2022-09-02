@@ -12,6 +12,7 @@ import {
     createPublishedMethodsHandler,
     EventHandler,
 } from "../../../src/rpc/msgpack";
+import { MethodsConstructor } from "../../../src/rpc/methods/types";
 
 chai.use(chaiAsPromised);
 chai.should();
@@ -40,7 +41,9 @@ describe("VersionNegotiatorFactory", () => {
             {},
             {
                 ...DEFAULT_VERSION_FACTORIES,
-                [TEST_VERSION]: () => testVersionHandler,
+                [TEST_VERSION]: function () {
+                    return testVersionHandler;
+                } as unknown as MethodsConstructor,
             },
         );
 
