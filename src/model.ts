@@ -126,7 +126,7 @@ export function isSeries(media: IMedia): media is ISeries {
 }
 
 export interface IMediaResultsMap {
-    [source: string]: AsyncIterable<IMedia>;
+    [source: string]: AsyncIterable<IMedia> | Error;
 }
 
 /*
@@ -135,7 +135,11 @@ export interface IMediaResultsMap {
 export interface IQueryable {
     queryRecent(context: Context): Promise<IMediaResultsMap>;
     queryRecommended(context: Context): Promise<IMediaResultsMap>;
-    findMedia(context: Context, query: string): AsyncIterable<IMedia>;
+    findMedia(
+        context: Context,
+        query: string,
+        onError?: (source: string, error: Error) => void,
+    ): AsyncIterable<IMedia>;
 }
 
 export interface IPlayableMedia extends IMedia {

@@ -16,7 +16,8 @@ import { Connection } from "../msgpack";
 
 const debug = _debug("shougun:rpc");
 
-const MAX_RESULTS = 50; // don't try to send more than this over the wire
+export const MAX_RESULTS = 50; // don't try to send more than this over the wire
+export const DEFAULT_RESULTS = 20;
 
 export interface IQueryOpts {
     maxResults: number;
@@ -57,7 +58,7 @@ export async function queryVia(
     const selectedResults = [];
 
     const opts = {
-        maxResults: 20,
+        maxResults: DEFAULT_RESULTS,
 
         ...options,
     };

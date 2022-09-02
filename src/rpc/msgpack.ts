@@ -139,7 +139,12 @@ export function createPublishedMethodsHandler(
         const receiver = receiverFactory(connection);
 
         const invoke = (method: string, params: unknown[]) =>
-            (async () => (receiver as any)[method](...params))();
+            (async () => {
+                if (method.startsWith("_")) {
+                    throw new Error(`Invalid method name: ${method}`);
+                }
+                return (receiver as any)[method](...params);
+            })();
 
         return {
             onNotify(method: string, params: unknown[]) {

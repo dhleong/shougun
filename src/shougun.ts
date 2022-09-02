@@ -27,6 +27,17 @@ const debug = _debug("shougun:core");
 
 export interface IQueryOpts {
     onlyLocal?: boolean;
+
+    /**
+     * If provided, will be called at most once per connected Provider with an
+     * Error describing why that provider could not service the query. If not
+     * provided, any such errors will simply be logged
+     */
+    onProviderError?: (provider: string, error: Error) => void;
+}
+
+function defaultProviderErrorHandler(provider: string, error: Error) {
+    debug(`error querying provider '${provider}'`, error);
 }
 
 export class Shougun {
@@ -318,18 +329,32 @@ export class Shougun {
         options: IQueryOpts,
         map: Promise<IMediaResultsMap>,
     ) {
+        const onError = options.onProviderError ?? defaultProviderErrorHandler;
         if (options.onlyLocal === true) {
             const local = this.context.queryables.find(
                 (it) => it instanceof ContextQueryable,
             );
             if (!local) return;
             const recommended = await map;
+            if (recommended.Shougun instanceof Error) {
+                onError("Shougun", recommended.Shougun);
+                return;
+            }
             yield* recommended.Shougun;
             return;
         }
 
         const resultsBySource = await map;
-        yield* interleaveAsyncIterables(Object.values(resultsBySource));
+        const iterables = [];
+        for (const provider of Object.keys(resultsBySource)) {
+            const results = resultsBySource[provider];
+            if (results instanceof Error) {
+                onError(provider, results);
+            } else {
+                iterables.push(results);
+            }
+        }
+        yield* interleaveAsyncIterables(iterables);
     }
 
     private async withErrorsDisplayed<R>(block: () => Promise<R>): Promise<R> {
