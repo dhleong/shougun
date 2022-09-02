@@ -14,7 +14,7 @@
         "lint:prettier": "prettier --check .",
         "lint": "npm run lint:prettier && npm run lint:es",
         "prepublishOnly": "npm run check",
-        "test": "mocha -r ts-node/register test/**/*-test.ts"
+        "test": "mocha -r ts-node/register 'test/**/*-test.ts'"
     },
     "repository": {
         "type": "git",

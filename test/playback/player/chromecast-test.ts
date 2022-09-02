@@ -31,7 +31,7 @@ describe("ChromecastPlayer", () => {
 
         deviceMock = mock(ChromecastDevice);
         device = instance(deviceMock);
-        when(deviceMock.openApp(DefaultMediaReceiverApp)).thenResolve(app);
+        when(deviceMock.openApp(anything())).thenResolve(app);
 
         contextMock = mock(Context);
         context = instance(contextMock);
