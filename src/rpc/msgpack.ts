@@ -25,8 +25,11 @@ type ResponseMessage = [
 type NotifyMessage = [type: 2, method: string, params: unknown[]];
 type Message = RequestMessage | ResponseMessage | NotifyMessage;
 
+// Message IDs are 32-bit unsigned integers
+const MAX_MESSAGE_ID = 2 ** 32 - 1;
+
 class SocketConnection extends EventEmitter implements Connection {
-    private nextMessageId = 0;
+    private lastMessageId = 0;
 
     public responseHandlers: {
         [id: number]: (error: string | null, response: unknown) => void;
@@ -44,7 +47,10 @@ class SocketConnection extends EventEmitter implements Connection {
     }
 
     public async request<R>(method: string, ...params: unknown[]): Promise<R> {
-        const id = this.nextMessageId++;
+        const id =
+            this.lastMessageId < MAX_MESSAGE_ID ? this.lastMessageId + 1 : 0;
+        this.lastMessageId = id;
+
         await this.write([0, id, method, params]);
         return new Promise<R>((resolve, reject) => {
             this.responseHandlers[id] = (error, response) => {
