@@ -5,11 +5,10 @@ import net from "net";
 import { Shougun } from "../shougun";
 
 import { RpcAnnouncer } from "./announce";
-import { RpcHandler } from "./handler";
-
 import { loadLoans } from "../borrow/loader";
 import { BorrowMode } from "../borrow/model";
 import { createPublishedMethodsConnectionHandler } from "./msgpack";
+import VersionNegotiatorFactory from "./methods/VersionNegotiatorFactory";
 
 const debug = _debug("shougun:rpc:server");
 
@@ -26,13 +25,21 @@ export interface IRemoteConfig {
 export class RpcServer {
     private server: net.Server | undefined;
     private readonly announcer = new RpcAnnouncer();
-    private readonly handler: RpcHandler;
+
+    private readonly versionNegotiatorFactory: VersionNegotiatorFactory;
+    private readonly handleSocket: (socket: net.Socket) => void;
 
     constructor(
         private readonly shougun: Shougun,
         private readonly config: IRemoteConfig,
     ) {
-        this.handler = new RpcHandler(shougun, config);
+        this.versionNegotiatorFactory = new VersionNegotiatorFactory(
+            shougun,
+            config,
+        );
+        this.handleSocket = createPublishedMethodsConnectionHandler(
+            (connection) => this.versionNegotiatorFactory.create(connection),
+        );
     }
 
     public async start() {
@@ -66,7 +73,7 @@ export class RpcServer {
             await this.announcer.start({
                 borrowing: this.config.borrowing,
                 serverPort: port,
-                version: this.handler.VERSION,
+                versionRange: this.versionNegotiatorFactory.versionRange,
             });
         } catch (e) {
             server.close();
@@ -77,12 +84,8 @@ export class RpcServer {
             debug("Unexpected error:", error);
         });
 
-        const handleSocket = createPublishedMethodsConnectionHandler(
-            () => this.handler,
-        );
-
         server.on("connection", (socket) => {
-            handleSocket(socket);
+            this.handleSocket(socket);
 
             // Track active connections so we can keep the server alive if they want to
             // fetch local cover art
