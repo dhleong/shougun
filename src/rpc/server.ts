@@ -1,57 +1,16 @@
 import _debug from "debug";
 
-import { createServer } from "msgpack-rpc-lite";
 import net from "net";
 
 import { Shougun } from "../shougun";
 
 import { RpcAnnouncer } from "./announce";
-import { RpcHandler } from "./handler";
-
 import { loadLoans } from "../borrow/loader";
 import { BorrowMode } from "../borrow/model";
+import { createPublishedMethodsConnectionHandler } from "./msgpack";
+import VersionNegotiatorFactory from "./methods/VersionNegotiatorFactory";
 
 const debug = _debug("shougun:rpc:server");
-
-function on(
-    server: net.Server,
-    event: string,
-    handler: (...params: any[]) => Promise<any>,
-) {
-    server.on(event, ([params]: any[], callback: any) => {
-        debug("received:", event, "with", params);
-        try {
-            handler(...params).then(
-                (result) => {
-                    callback(null, result);
-                },
-                (error) => {
-                    callback(error);
-                },
-            );
-        } catch (e) {
-            // NOTE: This is a sanity check to make sure that errors in a handler
-            // don't crash the RPC server
-            callback(e);
-        }
-    });
-}
-
-function registerRpcHandler(server: net.Server, handler: any) {
-    const prototype = Object.getPrototypeOf(handler);
-    for (const eventName of Object.getOwnPropertyNames(prototype)) {
-        if (eventName === "constructor") continue;
-
-        const fn = prototype[eventName] as () => Promise<any>;
-        if (typeof fn !== "function") {
-            continue;
-        }
-
-        const m = fn.bind(handler);
-        on(server, eventName, m);
-        debug("registered event:", eventName);
-    }
-}
 
 export interface IRemoteConfig {
     port?: number;
@@ -66,23 +25,29 @@ export interface IRemoteConfig {
 export class RpcServer {
     private server: net.Server | undefined;
     private readonly announcer = new RpcAnnouncer();
-    private readonly handler: RpcHandler;
+
+    private readonly versionNegotiatorFactory: VersionNegotiatorFactory;
+    private readonly handleSocket: (socket: net.Socket) => void;
 
     constructor(
         private readonly shougun: Shougun,
         private readonly config: IRemoteConfig,
     ) {
-        this.handler = new RpcHandler(shougun, config);
+        this.versionNegotiatorFactory = new VersionNegotiatorFactory(
+            shougun,
+            config,
+        );
+        this.handleSocket = createPublishedMethodsConnectionHandler(
+            (connection) => this.versionNegotiatorFactory.create(connection),
+        );
     }
 
     public async start() {
-        const server = createServer();
+        const server = net.createServer();
 
         if (this.config.borrowing === BorrowMode.BORROWER) {
             await loadLoans(this.shougun);
         }
-
-        registerRpcHandler(server, this.handler);
 
         debug("start listening on", this.config.port);
         const address = await new Promise<string | net.AddressInfo | null>(
@@ -108,7 +73,7 @@ export class RpcServer {
             await this.announcer.start({
                 borrowing: this.config.borrowing,
                 serverPort: port,
-                version: this.handler.VERSION,
+                versionRange: this.versionNegotiatorFactory.versionRange,
             });
         } catch (e) {
             server.close();
@@ -119,9 +84,11 @@ export class RpcServer {
             debug("Unexpected error:", error);
         });
 
-        // Track active connections so we can keep the server alive if they want to
-        // fetch local cover art
         server.on("connection", (socket) => {
+            this.handleSocket(socket);
+
+            // Track active connections so we can keep the server alive if they want to
+            // fetch local cover art
             const id = JSON.stringify(socket.address());
             this.shougun.context.server.addActiveClient(id);
             debug("new client:", id);

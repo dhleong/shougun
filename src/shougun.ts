@@ -17,6 +17,7 @@ import {
     isPlayable,
     isSeries,
     MediaType,
+    ProviderErrorHandler,
 } from "./model";
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
@@ -27,6 +28,13 @@ const debug = _debug("shougun:core");
 
 export interface IQueryOpts {
     onlyLocal?: boolean;
+
+    /**
+     * If provided, will be called at most once per connected Provider with an
+     * Error describing why that provider could not service the query. If not
+     * provided, any such errors will simply be logged
+     */
+    onProviderError?: (provider: string, error: Error) => void;
 }
 
 export class Shougun {
@@ -72,11 +80,12 @@ export class Shougun {
         return this.context.refreshKnownMedia();
     }
 
-    public async search(query: string) {
+    public async search(query: string, options?: IQueryOpts) {
+        // TODO: onlyLocal?
         return toArray(
             mergeAsyncIterables(
                 this.context.queryables.map((q) =>
-                    q.findMedia(this.context, query),
+                    q.findMedia(this.context, query, options?.onProviderError),
                 ),
             ),
         );
@@ -99,16 +108,20 @@ export class Shougun {
      * Get a map whose keys are a discovery type and whose values
      * are AsyncIterables of recently watched media
      */
-    public async getRecentsMap() {
-        return this.getQueryableMap((q) => q.queryRecent(this.context));
+    public async getRecentsMap(onProviderError?: ProviderErrorHandler) {
+        return this.getQueryableMap((q) =>
+            q.queryRecent(this.context, onProviderError),
+        );
     }
 
     /**
      * Get a map whose keys are a discovery type and whose values
      * are AsyncIterables of recommended media
      */
-    public async getRecommendationsMap() {
-        return this.getQueryableMap((q) => q.queryRecommended(this.context));
+    public async getRecommendationsMap(onProviderError?: ProviderErrorHandler) {
+        return this.getQueryableMap((q) =>
+            q.queryRecommended(this.context, onProviderError),
+        );
     }
 
     /**
@@ -116,7 +129,10 @@ export class Shougun {
      * each discovery type
      */
     public async *queryRecent(options: IQueryOpts = {}) {
-        yield* this.queryFromMap(options, this.getRecentsMap());
+        yield* this.queryFromMap(
+            options,
+            this.getRecentsMap(options.onProviderError),
+        );
     }
 
     /**
@@ -124,7 +140,10 @@ export class Shougun {
      * each discovery type
      */
     public async *queryRecommended(options: IQueryOpts = {}) {
-        yield* this.queryFromMap(options, this.getRecommendationsMap());
+        yield* this.queryFromMap(
+            options,
+            this.getRecommendationsMap(options.onProviderError),
+        );
     }
 
     /**
@@ -170,9 +189,9 @@ export class Shougun {
     /**
      * Find a Series or Movie by title
      */
-    public async findMedia(query: string) {
+    public async findMedia(query: string, options?: IQueryOpts) {
         return this.withErrorsDisplayed(async () => {
-            const titles = await this.search(query);
+            const titles = await this.search(query, options);
 
             return this.context.matcher.findBest(
                 query,

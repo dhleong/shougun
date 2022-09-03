@@ -64,31 +64,39 @@ export class BabblingQueryable implements IQueryable {
     public async *findMedia(
         context: Context,
         query: string,
+        onError?: (app: string, error: Error) => void,
     ): AsyncIterable<IMedia> {
         const player = await this.getPlayer();
-        const iterable = player.queryByTitle(query, queryErrorHandler);
+        const iterable = player.queryByTitle(
+            query,
+            onError ?? queryErrorHandler,
+        );
 
         yield* transformQueryResultsToPlayableMedia(player, iterable);
     }
 
-    public async queryRecent(_context: Context): Promise<IMediaResultsMap> {
+    public async queryRecent(
+        _context: Context,
+        onError?: (app: string, error: Error) => void,
+    ): Promise<IMediaResultsMap> {
         // NOTE: babbling doesn't technically support recents yet, but actually
         // all the implementations return that, so just do it for now
         // TODO: whenever babbling adds getRecentsMap, use that
-        return this.getMediaMapBy((p) =>
-            p.getRecommendationsMap(queryErrorHandler),
-        );
+        return this.getMediaMapBy((p) => p.getRecommendationsMap(onError));
     }
 
     public async queryRecommended(
         _context: Context,
+        onError?: (app: string, error: Error) => void,
     ): Promise<IMediaResultsMap> {
-        return this.getMediaMapBy((p) =>
-            p.getRecommendationsMap(queryErrorHandler),
-        );
+        return this.getMediaMapBy((p) => p.getRecommendationsMap(onError));
     }
 
-    private async getMediaMapBy(predicate: (player: Player) => any) {
+    private async getMediaMapBy(
+        predicate: (player: Player) => {
+            [key: string]: AsyncIterable<IQueryResult>;
+        },
+    ) {
         const player = await this.getPlayer();
         const map = predicate(player);
         return Object.keys(map).reduce((m, k) => {

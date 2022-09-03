@@ -2,26 +2,28 @@ import _debug from "debug";
 
 import { IEpisodeQuery } from "babbling/dist/app";
 
-import { borrow } from "../borrow/borrow";
-import { loadLoans } from "../borrow/loader";
-import { BorrowMode, IBorrowRequest } from "../borrow/model";
-import { IMedia, IMediaPrefs } from "../model";
-import { Shougun } from "../shougun";
-import { IViewedInformation } from "../track/persistent";
-import { generateMachineUuid } from "./id";
-import type { IRemoteConfig } from "./server";
-import { IPlaybackOptions } from "../playback/player";
-import { isLocalDiscoveryId } from "../discover/local";
+import { borrow } from "../../borrow/borrow";
+import { loadLoans } from "../../borrow/loader";
+import { BorrowMode, IBorrowRequest } from "../../borrow/model";
+import { IMedia, IMediaPrefs } from "../../model";
+import { Shougun } from "../../shougun";
+import { IViewedInformation } from "../../track/persistent";
+import { generateMachineUuid } from "../id";
+import type { IRemoteConfig } from "../server";
+import { IPlaybackOptions } from "../../playback/player";
+import { isLocalDiscoveryId } from "../../discover/local";
+import { Connection } from "../msgpack";
 
 const debug = _debug("shougun:rpc");
 
-const MAX_RESULTS = 50; // don't try to send more than this over the wire
+export const MAX_RESULTS = 50; // don't try to send more than this over the wire
+export const DEFAULT_RESULTS = 20;
 
-interface IQueryOpts {
+export interface IQueryOpts {
     maxResults: number;
 }
 
-function formatMediaResults(shougun: Shougun, results: IMedia[]) {
+export function formatMediaResults(shougun: Shougun, results: IMedia[]) {
     return Promise.all(
         results.map(async (media) => {
             if (isLocalDiscoveryId(media.discovery)) {
@@ -48,7 +50,7 @@ function formatMediaResults(shougun: Shougun, results: IMedia[]) {
     );
 }
 
-async function queryVia(
+export async function queryVia(
     shougun: Shougun,
     options: Partial<IQueryOpts>,
     iterableResults: AsyncIterable<IMedia>,
@@ -56,7 +58,7 @@ async function queryVia(
     const selectedResults = [];
 
     const opts = {
-        maxResults: 20,
+        maxResults: DEFAULT_RESULTS,
 
         ...options,
     };
@@ -73,12 +75,13 @@ async function queryVia(
     return formatMediaResults(shougun, selectedResults);
 }
 
-export class RpcHandler {
+export class RpcMethodsV1 {
     public readonly VERSION = 1;
 
     constructor(
-        private readonly shougun: Shougun,
-        private readonly config: IRemoteConfig,
+        connection: Connection,
+        protected readonly shougun: Shougun,
+        protected readonly config: IRemoteConfig,
     ) {}
 
     public async getId() {

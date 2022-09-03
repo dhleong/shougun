@@ -27,6 +27,7 @@
     },
     "homepage": "https://github.com/dhleong/shougun#readme",
     "dependencies": {
+        "@types/msgpack-lite": "^0.1.8",
         "babbling": "^3.4.1",
         "better-sqlite3": "^7.5.0",
         "chai-as-promised": "^7.1.1",
@@ -40,7 +41,7 @@
         "internal-ip": "^6.2.0",
         "leven": "^3.1.0",
         "mime": "^2.6.0",
-        "msgpack-rpc-lite": "^1.0.2",
+        "msgpack-lite": "^0.1.26",
         "node-machine-id": "^1.1.12",
         "node-ssdp": "^4.0.1",
         "range-parser": "^1.2.1",
