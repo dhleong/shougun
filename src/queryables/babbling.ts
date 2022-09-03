@@ -98,7 +98,6 @@ export class BabblingQueryable implements IQueryable {
         },
     ) {
         const player = await this.getPlayer();
-        const results: IMediaResultsMap = {};
         const map = predicate(player);
         return Object.keys(map).reduce((m, k) => {
             /* eslint-disable no-param-reassign */
@@ -106,7 +105,7 @@ export class BabblingQueryable implements IQueryable {
             m[k] = transformQueryResultsToPlayableMedia(player, results);
             /* eslint-enable no-param-reassign */
             return m;
-        }, results);
+        }, {} as IMediaResultsMap);
     }
 
     private async getPlayer() {

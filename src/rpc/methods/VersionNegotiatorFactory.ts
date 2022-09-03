@@ -31,14 +31,14 @@ class VersionNegotiator {
     }
 
     public version(requestedVersion: number) {
-        const factory = this.versionFactories[requestedVersion];
-        if (factory == null) {
+        const Factory = this.versionFactories[requestedVersion];
+        if (Factory == null) {
             throw new Error(
                 `Requested unsupported version: ${requestedVersion}`,
             );
         }
 
-        this.currentDelegate = new factory(
+        this.currentDelegate = new Factory(
             this.connection,
             this.shougun,
             this.config,

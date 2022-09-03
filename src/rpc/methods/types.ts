@@ -9,17 +9,17 @@ export type MethodsConstructor<T = unknown> = new (
 ) => T;
 
 export function composeMethods(
-    baseType: MethodsConstructor,
-    replacementsType: MethodsConstructor,
+    BaseType: MethodsConstructor,
+    ReplacementsType: MethodsConstructor,
+    // eslint-disable-next-line @typescript-eslint/ban-types
 ): MethodsConstructor<object> {
-    // @ts-expect-error
-    return function (
+    function ComposedMethods(
         connection: Connection,
         shougun: Shougun,
         config: IRemoteConfig,
     ) {
-        const base = new baseType(connection, shougun, config);
-        const replacements = new replacementsType(connection, shougun, config);
+        const base = new BaseType(connection, shougun, config);
+        const replacements = new ReplacementsType(connection, shougun, config);
         return new Proxy(replacements as any, {
             get(target, prop) {
                 if (prop in target) {
@@ -29,5 +29,9 @@ export function composeMethods(
                 return (base as any)[prop];
             },
         });
-    };
+    }
+
+    // Trust me:
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    return ComposedMethods as unknown as MethodsConstructor<object>;
 }
