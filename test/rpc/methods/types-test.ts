@@ -18,11 +18,11 @@ chai.should();
 const TEST_RESULT = 42;
 
 class TestMethods {
-    performTest() {
+    public performTest() {
         return TEST_RESULT;
     }
 
-    start() {
+    public start() {
         throw new Error("Overriden");
     }
 }

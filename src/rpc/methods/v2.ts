@@ -32,6 +32,8 @@ async function takeFromCursor(count: number, cursor: AsyncIterator<IMedia>) {
     return items;
 }
 
+/* eslint-disable no-underscore-dangle */
+
 export class RpcMethodsV2 {
     private cursors: { [cursor: string]: AsyncIterator<IMedia> } = {};
 
@@ -46,7 +48,7 @@ export class RpcMethodsV2 {
         options: ShougunQueryOpts & Partial<IQueryOpts> = {},
     ) {
         const { shougun } = this;
-        return this._queryVia(options, async function* (opts) {
+        return this._queryVia(options, async function* SearchResults(opts) {
             const results = await shougun.search(query, opts);
 
             yield* shougun.context.matcher.sort(
@@ -89,7 +91,6 @@ export class RpcMethodsV2 {
         // Record errors:
         const errors: { [provider: string]: string } = {};
         const onProviderError = (provider: string, error: Error) => {
-            console.log("ERROR");
             errors[provider] = error.message;
         };
 

@@ -41,7 +41,7 @@ describe("VersionNegotiatorFactory", () => {
             {},
             {
                 ...DEFAULT_VERSION_FACTORIES,
-                [TEST_VERSION]: function () {
+                [TEST_VERSION]: function TestVersionFactory() {
                     return testVersionHandler;
                 } as unknown as MethodsConstructor,
             },
