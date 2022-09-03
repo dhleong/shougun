@@ -82,14 +82,18 @@ export class BabblingQueryable implements IQueryable {
         // NOTE: babbling doesn't technically support recents yet, but actually
         // all the implementations return that, so just do it for now
         // TODO: whenever babbling adds getRecentsMap, use that
-        return this.getMediaMapBy((p) => p.getRecommendationsMap(onError));
+        return this.getMediaMapBy((p) =>
+            p.getRecommendationsMap(onError ?? queryErrorHandler),
+        );
     }
 
     public async queryRecommended(
         _context: Context,
         onError?: (app: string, error: Error) => void,
     ): Promise<IMediaResultsMap> {
-        return this.getMediaMapBy((p) => p.getRecommendationsMap(onError));
+        return this.getMediaMapBy((p) =>
+            p.getRecommendationsMap(onError ?? queryErrorHandler),
+        );
     }
 
     private async getMediaMapBy(
