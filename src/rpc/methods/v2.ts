@@ -41,15 +41,25 @@ export class RpcMethodsV2 {
         protected readonly config: IRemoteConfig,
     ) {}
 
-    public async queryRecent(options: ShougunQueryOpts & Partial<IQueryOpts>) {
-        return this._queryVia(options, this.shougun.queryRecent);
+    // TODO findMedia
+
+    public async queryRecent(
+        options: ShougunQueryOpts & Partial<IQueryOpts> = {},
+    ) {
+        return this._queryVia(options, (opts) =>
+            this.shougun.queryRecent(opts),
+        );
     }
 
     public async queryRecommended(
-        options: ShougunQueryOpts & Partial<IQueryOpts>,
+        options: ShougunQueryOpts & Partial<IQueryOpts> = {},
     ) {
-        return this._queryVia(options, this.shougun.queryRecommended);
+        return this._queryVia(options, (opts) =>
+            this.shougun.queryRecommended(opts),
+        );
     }
+
+    /* NOTE: methods prefixed by _ are not exposed to RPC clients */
 
     private async _queryVia(
         options: ShougunQueryOpts & Partial<IQueryOpts>,
@@ -65,6 +75,7 @@ export class RpcMethodsV2 {
         // Record errors:
         const errors: { [provider: string]: string } = {};
         const onProviderError = (provider: string, error: Error) => {
+            console.log("ERROR");
             errors[provider] = error.message;
         };
 

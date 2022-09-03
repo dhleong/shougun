@@ -3,7 +3,6 @@ import _debug from "debug";
 import { ChromecastDevice, PlayerBuilder } from "babbling";
 import { IQueryResult } from "babbling/dist/app";
 
-import { AppSpecificErrorHandler } from "babbling/dist/player";
 import { Context } from "../context";
 import {
     IMedia,
@@ -76,34 +75,31 @@ export class BabblingQueryable implements IQueryable {
         yield* transformQueryResultsToPlayableMedia(player, iterable);
     }
 
-    public async queryRecent(_context: Context): Promise<IMediaResultsMap> {
+    public async queryRecent(
+        _context: Context,
+        onError?: (app: string, error: Error) => void,
+    ): Promise<IMediaResultsMap> {
         // NOTE: babbling doesn't technically support recents yet, but actually
         // all the implementations return that, so just do it for now
         // TODO: whenever babbling adds getRecentsMap, use that
-        return this.getMediaMapBy((p, onError) =>
-            p.getRecommendationsMap(onError),
-        );
+        return this.getMediaMapBy((p) => p.getRecommendationsMap(onError));
     }
 
     public async queryRecommended(
         _context: Context,
+        onError?: (app: string, error: Error) => void,
     ): Promise<IMediaResultsMap> {
-        return this.getMediaMapBy((p, onError) =>
-            p.getRecommendationsMap(onError),
-        );
+        return this.getMediaMapBy((p) => p.getRecommendationsMap(onError));
     }
 
     private async getMediaMapBy(
-        predicate: (
-            player: Player,
-            onError: AppSpecificErrorHandler,
-        ) => { [key: string]: AsyncIterable<IQueryResult> },
+        predicate: (player: Player) => {
+            [key: string]: AsyncIterable<IQueryResult>;
+        },
     ) {
         const player = await this.getPlayer();
         const results: IMediaResultsMap = {};
-        const map = predicate(player, (app, error) => {
-            results[app] = error;
-        });
+        const map = predicate(player);
         return Object.keys(map).reduce((m, k) => {
             /* eslint-disable no-param-reassign */
             const results = map[k];

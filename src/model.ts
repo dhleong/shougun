@@ -126,19 +126,27 @@ export function isSeries(media: IMedia): media is ISeries {
 }
 
 export interface IMediaResultsMap {
-    [source: string]: AsyncIterable<IMedia> | Error;
+    [source: string]: AsyncIterable<IMedia>;
 }
+
+export type ProviderErrorHandler = (provider: string, error: Error) => void;
 
 /*
  * Queryable abstraction
  */
 export interface IQueryable {
-    queryRecent(context: Context): Promise<IMediaResultsMap>;
-    queryRecommended(context: Context): Promise<IMediaResultsMap>;
+    queryRecent(
+        context: Context,
+        onError?: ProviderErrorHandler,
+    ): Promise<IMediaResultsMap>;
+    queryRecommended(
+        context: Context,
+        onError?: ProviderErrorHandler,
+    ): Promise<IMediaResultsMap>;
     findMedia(
         context: Context,
         query: string,
-        onError?: (source: string, error: Error) => void,
+        onError?: ProviderErrorHandler,
     ): AsyncIterable<IMedia>;
 }
 
