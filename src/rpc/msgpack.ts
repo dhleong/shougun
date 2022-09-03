@@ -147,7 +147,7 @@ export function createPublishedMethodsHandler(
                 if (method.startsWith("_")) {
                     throw new Error(`Invalid method name: ${method}`);
                 }
-                debug("invoke", method, params);
+                debug("invoke", method);
                 return (receiver as any)[method](...params);
             })();
 
