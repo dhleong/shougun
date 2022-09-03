@@ -10,6 +10,7 @@ import type { IRemoteConfig } from "../server";
 import { composeMethods } from "./types";
 import {
     DEFAULT_RESULTS,
+    formatMediaResults,
     IQueryOpts as IQueryOptsV1,
     MAX_RESULTS,
     RpcMethodsV1,
@@ -122,7 +123,7 @@ export class RpcMethodsV2 {
 
         // Tada!
         return {
-            items,
+            items: await formatMediaResults(this.shougun, items),
             cursor: newCursor,
             errors: Object.keys(errors).length === 0 ? undefined : errors,
         };
