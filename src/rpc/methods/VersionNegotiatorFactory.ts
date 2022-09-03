@@ -17,17 +17,18 @@ export const DEFAULT_VERSION_FACTORIES: {
 };
 
 class VersionNegotiator {
-    /** The range of supported versions [lowest, highest] */
     public currentDelegate: unknown;
+    public currentVersion: number;
 
     constructor(
         private readonly versionFactories: typeof DEFAULT_VERSION_FACTORIES,
         private readonly shougun: Shougun,
         private readonly config: IRemoteConfig,
         private readonly connection: Connection,
-        private readonly defaultVersion: number,
+        defaultVersion: number,
     ) {
-        this.version(this.defaultVersion);
+        this.currentVersion = defaultVersion;
+        this.version(defaultVersion);
     }
 
     public version(requestedVersion: number) {
@@ -38,6 +39,7 @@ class VersionNegotiator {
             );
         }
 
+        this.currentVersion = requestedVersion;
         this.currentDelegate = new Factory(
             this.connection,
             this.shougun,
@@ -79,7 +81,27 @@ export default class VersionNegotiatorFactory {
                     return (target as any)[prop];
                 }
 
-                return (target.currentDelegate as any)[prop];
+                const handler = (target.currentDelegate as any)[prop];
+
+                // Compatibility layer to handler bug in shougun/cli targeting
+                // version 1: the client API provides varargs for params and we were
+                // not spreading the input args array into that. Bummer.
+                if (
+                    typeof handler === "function" &&
+                    target.currentVersion === 1
+                ) {
+                    return (...params: unknown[]) => {
+                        if (params.length === 1 && Array.isArray(params[0])) {
+                            return handler.apply(
+                                target.currentDelegate,
+                                params[0],
+                            );
+                        }
+                        return handler.apply(target.currentDelegate, params);
+                    };
+                }
+
+                return handler;
             },
         });
     }

@@ -1,7 +1,7 @@
 import * as chai from "chai";
 
 import chaiAsPromised from "chai-as-promised";
-import { anyString, instance, mock, when } from "ts-mockito";
+import { anyString, capture, instance, mock, when } from "ts-mockito";
 
 import VersionNegotiatorFactory, {
     DEFAULT_VERSION_FACTORIES,
@@ -60,6 +60,19 @@ describe("VersionNegotiatorFactory", () => {
         ]);
 
         return promise.should.eventually.be.rejectedWith(/No result for/);
+    });
+
+    it("provides compat layer for broken v1 clients", async () => {
+        when(shougunMock.findMedia(anyString())).thenResolve(undefined);
+
+        const promise = eventHandler.onRequest("startByTitle", [
+            ["The Good Place"],
+        ]);
+
+        await promise.should.eventually.be.rejectedWith(/No result for/);
+
+        const params = capture(shougunMock.findMedia).last();
+        params.should.deep.equal(["The Good Place"]);
     });
 
     it("requires version negotiation to call versioned methods", async () => {

@@ -3,7 +3,7 @@ import EventEmitter from "events";
 import msgpack from "msgpack-lite";
 import type { Socket } from "net";
 
-const debug = _debug("shougun:msgpack");
+const debug = _debug("shougun:rpc:msgpack");
 
 export interface Connection {
     notify(method: string, ...params: unknown[]): Promise<void>;
@@ -107,6 +107,10 @@ export function createConnectionHandler(handlerFactory: EventHandlerFactory) {
                                 connection.respond(message[1], null, response),
                             )
                             .catch((e) => {
+                                debug(
+                                    `Encountered error handling request to ${message[2]}`,
+                                    e,
+                                );
                                 return connection.respond(message[1], `${e}`);
                             });
                         break;
@@ -143,6 +147,7 @@ export function createPublishedMethodsHandler(
                 if (method.startsWith("_")) {
                     throw new Error(`Invalid method name: ${method}`);
                 }
+                debug("invoke", method, params);
                 return (receiver as any)[method](...params);
             })();
 
