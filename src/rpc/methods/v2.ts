@@ -41,7 +41,21 @@ export class RpcMethodsV2 {
         protected readonly config: IRemoteConfig,
     ) {}
 
-    // TODO findMedia
+    public async search(
+        query: string,
+        options: ShougunQueryOpts & Partial<IQueryOpts> = {},
+    ) {
+        const { shougun } = this;
+        return this._queryVia(options, async function* (opts) {
+            const results = await shougun.search(query, opts);
+
+            yield* shougun.context.matcher.sort(
+                query,
+                results,
+                (item) => item.title,
+            );
+        });
+    }
 
     public async queryRecent(
         options: ShougunQueryOpts & Partial<IQueryOpts> = {},

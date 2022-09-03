@@ -80,11 +80,12 @@ export class Shougun {
         return this.context.refreshKnownMedia();
     }
 
-    public async search(query: string) {
+    public async search(query: string, options?: IQueryOpts) {
+        // TODO: onlyLocal?
         return toArray(
             mergeAsyncIterables(
                 this.context.queryables.map((q) =>
-                    q.findMedia(this.context, query),
+                    q.findMedia(this.context, query, options?.onProviderError),
                 ),
             ),
         );
@@ -188,9 +189,9 @@ export class Shougun {
     /**
      * Find a Series or Movie by title
      */
-    public async findMedia(query: string) {
+    public async findMedia(query: string, options?: IQueryOpts) {
         return this.withErrorsDisplayed(async () => {
-            const titles = await this.search(query);
+            const titles = await this.search(query, options);
 
             return this.context.matcher.findBest(
                 query,
