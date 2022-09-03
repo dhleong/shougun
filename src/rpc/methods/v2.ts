@@ -1,6 +1,9 @@
+import { DEFAULT_CONFIG_PATH } from "babbling/dist/cli/config";
+import fs from "fs/promises";
 import { v4 as uuid } from "uuid";
 
 import { IMedia } from "../../model";
+import { BabblingQueryable } from "../../queryables/babbling";
 import type { Shougun, IQueryOpts as ShougunQueryOpts } from "../../shougun";
 import type { Connection } from "../msgpack";
 import type { IRemoteConfig } from "../server";
@@ -123,6 +126,27 @@ export class RpcMethodsV2 {
             cursor: newCursor,
             errors: Object.keys(errors).length === 0 ? undefined : errors,
         };
+    }
+
+    public async setBabblingCredentials(
+        provider: string,
+        creds: Record<string, unknown>,
+    ) {
+        const queryable = this.shougun.context.queryables.find(
+            (candidate) => candidate instanceof BabblingQueryable,
+        );
+        if (queryable == null) {
+            throw new Error("Not configured to use babbling");
+        }
+
+        const babbling = queryable as BabblingQueryable;
+        const configPath = babbling.configPath ?? DEFAULT_CONFIG_PATH;
+
+        const currentConfig = JSON.parse(
+            (await fs.readFile(configPath)).toString(),
+        );
+        currentConfig[provider] = creds;
+        await fs.writeFile(configPath, JSON.stringify(currentConfig, null, 2));
     }
 }
 

@@ -57,7 +57,7 @@ async function* transformQueryResultsToPlayableMedia(
 
 export class BabblingQueryable implements IQueryable {
     constructor(
-        private readonly configPath?: string,
+        public readonly configPath?: string,
         private readonly chromecastDeviceName?: string,
     ) {}
 
