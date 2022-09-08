@@ -3,6 +3,7 @@ import _debug from "debug";
 import { DEFAULT_CONFIG_PATH } from "babbling/dist/cli/config";
 import fs from "fs/promises";
 import { v4 as uuid } from "uuid";
+import { AbortController } from "node-abort-controller";
 
 import { IMedia } from "../../model";
 import { BabblingQueryable } from "../../queryables/babbling";
