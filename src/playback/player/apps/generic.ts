@@ -1,7 +1,7 @@
 import _debug from "debug";
 
 import { awaitMessageOfType, BaseApp, PlaybackTracker } from "babbling";
-import type { ChromecastDevice, StratoChannel } from "stratocaster";
+import { ChromecastDevice, MEDIA_NS, StratoChannel } from "stratocaster";
 
 import { IMedia, IMediaMetadata } from "../../../model";
 import { ShougunPlaybackTracker } from "./tracker";
@@ -216,7 +216,7 @@ export class GenericMediaReceiverApp extends BaseApp implements ICloseableApp {
     constructor(device: ChromecastDevice, opts: { appId: string }) {
         super(device, {
             appId: opts.appId,
-            sessionNs: "urn:x-cast:com.google.cast.media",
+            sessionNs: MEDIA_NS,
         });
     }
 

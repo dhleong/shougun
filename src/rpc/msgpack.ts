@@ -8,6 +8,8 @@ const debug = _debug("shougun:rpc:msgpack");
 export interface Connection {
     notify(method: string, ...params: unknown[]): Promise<void>;
     request<R>(method: string, ...params: unknown[]): Promise<R>;
+
+    once(event: "close", onClose: () => void): void;
 }
 
 export interface EventHandler {

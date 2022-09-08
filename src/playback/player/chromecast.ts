@@ -1,6 +1,10 @@
 import _debug from "debug";
 
 import { ChromecastDevice } from "babbling";
+import {
+    ChromecastDevice as StratoDevice,
+    IMediaInformation,
+} from "stratocaster";
 
 import { Context } from "../../context";
 import {
@@ -14,12 +18,14 @@ import { IMedia, IPlayable, MediaType, supportsClients } from "../../model";
 import { withQuery } from "../../util/url";
 import {
     canPlayNatively,
+    IMediaEvent,
     IPlaybackOptions,
     IPlayer,
     IPlayerCapabilities,
+    MediaStatus,
 } from "../player";
 import { DefaultMediaReceiverApp } from "./apps/default";
-import { ICastInfo, ICastTrack, ICustomCastData } from "./apps/generic";
+import type { ICastInfo, ICastTrack, ICustomCastData } from "./apps/generic";
 import { IRecommendation, ShougunPlayerApp } from "./apps/shougun-player";
 
 const debug = _debug("shougun:player:chromecast");
@@ -259,6 +265,25 @@ function tracksFrom(
     }
 }
 
+function parseChromecastMedia(media: IMediaInformation | undefined) {
+    if (media == null) return undefined;
+
+    // TODO: Pick the biggest image?
+    const cover =
+        (media.metadata?.images as any[])?.[0]?.url ??
+        media.metadata?.posterUrl;
+
+    const data = {
+        contentId: media.contentId,
+        cover,
+        duration: media.duration,
+        title: media.metadata?.title as string,
+        subtitle: media.metadata?.subtitle as string,
+    };
+
+    return data;
+}
+
 export class ChromecastPlayer implements IPlayer {
     public static forNamedDevice(deviceName: string) {
         return new ChromecastPlayer(new ChromecastDevice(deviceName));
@@ -296,6 +321,24 @@ export class ChromecastPlayer implements IPlayer {
                     `unknown model "${info.model}"; using gen1/2 capabilities`,
                 );
                 return gen1And2Capabilities;
+        }
+    }
+
+    public async *observeMediaEvents(opts: { signal?: AbortSignal } = {}) {
+        // Minor hacks:
+        const stratoDevice: StratoDevice = (this.device as any).castorDevice;
+        debug("observe...");
+
+        for await (const status of stratoDevice.receiveMediaStatus(opts)) {
+            debug("received", status);
+            const event: IMediaEvent = {
+                currentTime: status.currentTime,
+                playbackRate: status.playbackRate,
+                media: parseChromecastMedia(status.media),
+                // Not sure why typescript is mad here; the values should overlap...
+                status: status.playerState as unknown as MediaStatus,
+            };
+            yield event;
         }
     }
 

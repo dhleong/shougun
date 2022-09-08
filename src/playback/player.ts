@@ -33,6 +33,27 @@ export interface IPlayerCapabilities {
     supportsPixelFormat?(format: string): boolean;
 }
 
+export enum MediaStatus {
+    BUFFERING = "BUFFERING",
+    IDLE = "IDLE",
+    PAUSED = "PAUSED",
+    PLAYING = "PLAYING",
+}
+
+export interface IMediaEvent {
+    currentTime?: number;
+    media?: {
+        /** A player-unique content ID; not necessarily the same as Media.id */
+        contentId: string;
+        duration?: number;
+        title?: string;
+        subtitle?: string;
+        cover?: string;
+    };
+    playbackRate?: number;
+    status: MediaStatus;
+}
+
 export interface IPlayer {
     getCapabilities(): Promise<IPlayerCapabilities>;
 
@@ -41,6 +62,10 @@ export interface IPlayer {
         playable: IPlayable,
         options?: IPlaybackOptions,
     ): Promise<void>;
+
+    observeMediaEvents?(opts?: {
+        signal?: AbortSignal;
+    }): AsyncIterable<IMediaEvent>;
 
     showError?(error: Error, details?: string): Promise<void>;
 

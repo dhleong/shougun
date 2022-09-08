@@ -1,3 +1,5 @@
+import _debug from "debug";
+
 import { DEFAULT_CONFIG_PATH } from "babbling/dist/cli/config";
 import fs from "fs/promises";
 import { v4 as uuid } from "uuid";
@@ -14,6 +16,8 @@ import RpcMethodsV1, {
     IQueryOpts as IQueryOptsV1,
     MAX_RESULTS,
 } from "./v1";
+
+const debug = _debug("shougun:rpc:v2");
 
 export interface IQueryOpts extends IQueryOptsV1 {
     cursor?: string;
@@ -147,6 +151,30 @@ export class RpcMethodsV2Only {
         );
         currentConfig[provider] = creds;
         await fs.writeFile(configPath, JSON.stringify(currentConfig, null, 2));
+    }
+
+    public subscribeToMediaEvents() {
+        const controller = new AbortController();
+        const events = this.shougun.context.player.observeMediaEvents?.({
+            signal: controller.signal,
+        });
+        if (events == null) {
+            return false;
+        }
+
+        (async () => {
+            debug("subscribed");
+            for await (const event of events) {
+                debug("on event");
+                this.connection.notify("onMediaEvent", event);
+            }
+            debug("unsubscribed I guess");
+        })();
+
+        this.connection.once("close", () => {
+            debug("Unsubscribe from media on disconnect");
+            controller.abort();
+        });
     }
 }
 

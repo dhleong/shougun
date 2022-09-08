@@ -8,11 +8,16 @@ export type MethodsConstructor<T = unknown> = new (
     config: IRemoteConfig,
 ) => T;
 
-export function composeMethods(
-    BaseType: MethodsConstructor,
-    ReplacementsType: MethodsConstructor,
-    // eslint-disable-next-line @typescript-eslint/ban-types
-): MethodsConstructor<object> {
+/**
+ * When composing methods, if any method name in B collides with a method in A,
+ * the signature in B is the one that will be used
+ */
+export type ComposedMethods<A, B> = { [K in keyof Omit<A, keyof B>]: A[K] } & B;
+
+export function composeMethods<A, B>(
+    BaseType: MethodsConstructor<A>,
+    ReplacementsType: MethodsConstructor<B>,
+): MethodsConstructor<ComposedMethods<A, B>> {
     function ComposedMethods(
         connection: Connection,
         shougun: Shougun,
@@ -32,6 +37,5 @@ export function composeMethods(
     }
 
     // Trust me:
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    return ComposedMethods as unknown as MethodsConstructor<object>;
+    return ComposedMethods as unknown as any;
 }
