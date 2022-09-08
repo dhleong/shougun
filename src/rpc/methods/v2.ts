@@ -8,12 +8,11 @@ import type { Shougun, IQueryOpts as ShougunQueryOpts } from "../../shougun";
 import type { Connection } from "../msgpack";
 import type { IRemoteConfig } from "../server";
 import { composeMethods } from "./types";
-import {
+import RpcMethodsV1, {
     DEFAULT_RESULTS,
     formatMediaResults,
     IQueryOpts as IQueryOptsV1,
     MAX_RESULTS,
-    RpcMethodsV1,
 } from "./v1";
 
 export interface IQueryOpts extends IQueryOptsV1 {
@@ -38,7 +37,7 @@ async function takeFromCursor(count: number, cursor: AsyncIterator<IMedia>) {
 
 /* eslint-disable no-underscore-dangle */
 
-export class RpcMethodsV2 {
+export class RpcMethodsV2Only {
     private cursors: { [cursor: string]: AsyncIterator<IMedia> } = {};
 
     constructor(
@@ -151,4 +150,4 @@ export class RpcMethodsV2 {
     }
 }
 
-export default composeMethods(RpcMethodsV1, RpcMethodsV2);
+export default composeMethods(RpcMethodsV1, RpcMethodsV2Only);

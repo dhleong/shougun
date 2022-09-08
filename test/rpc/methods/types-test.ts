@@ -10,7 +10,7 @@ import {
 } from "../../../src/rpc/msgpack";
 import { Shougun } from "../../../src/shougun";
 import { composeMethods } from "../../../src/rpc/methods/types";
-import { RpcMethodsV1 } from "../../../src/rpc/methods/v1";
+import RpcMethodsV1 from "../../../src/rpc/methods/v1";
 
 chai.use(chaiAsPromised);
 chai.should();
