@@ -75,7 +75,7 @@ export async function queryVia(
     return formatMediaResults(shougun, selectedResults);
 }
 
-export class RpcMethodsV1 {
+export default class RpcMethodsV1 {
     public readonly VERSION = 1;
 
     constructor(

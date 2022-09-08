@@ -2,8 +2,8 @@ import type { IRemoteConfig } from "../server";
 import type { Shougun } from "../../shougun";
 import type { Connection } from "../msgpack";
 
-import { RpcMethodsV1 } from "./v1";
-import { RpcMethodsV2 } from "./v2";
+import RpcMethodsV1 from "./v1";
+import RpcMethodsV2 from "./v2";
 
 export const DEFAULT_VERSION_FACTORIES: {
     [version: number]: new (
