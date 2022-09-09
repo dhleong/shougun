@@ -44,12 +44,19 @@ async function takeFromCursor(count: number, cursor: AsyncIterator<IMedia>) {
 
 export class RpcMethodsV2Only {
     private cursors: { [cursor: string]: AsyncIterator<IMedia> } = {};
+    private subscriptions: Partial<Record<string, AbortController>> = {};
 
     constructor(
         protected readonly connection: Connection,
         protected readonly shougun: Shougun,
         protected readonly config: IRemoteConfig,
-    ) {}
+    ) {
+        connection.once("close", () => {
+            for (const sub of Object.values(this.subscriptions)) {
+                sub?.abort();
+            }
+        });
+    }
 
     public async search(
         query: string,
@@ -163,19 +170,41 @@ export class RpcMethodsV2Only {
             return false;
         }
 
-        (async () => {
-            debug("subscribed");
+        this._launchTask("subscribeToMediaEvents", controller, async () => {
+            debug("subscribed to media");
             for await (const event of events) {
                 debug("on event");
                 this.connection.notify("onMediaEvent", event);
             }
-            debug("unsubscribed I guess");
-        })();
-
-        this.connection.once("close", () => {
-            debug("Unsubscribe from media on disconnect");
-            controller.abort();
+            debug("unsubscribed from media");
         });
+    }
+
+    public unsubscribeToMediaEvents() {
+        const controller = this.subscriptions.subscribeToMediaEvents;
+        delete this.subscriptions.subscribeToMediaEvents;
+        controller?.abort();
+    }
+
+    /**
+     * Launch an async task that wil be aborted on disconnect. Only one
+     * instance of a task per label may be active at any given time; attempting to
+     * spawn another with the same label will abort any active task
+     */
+    protected _launchTask(
+        label: string,
+        controller: AbortController,
+        task: () => Promise<void>,
+    ) {
+        this.subscriptions[label]?.abort();
+        this.subscriptions[label] = controller;
+        task()
+            .catch((e) => debug(`Error in '${label}'`, e))
+            .finally(() => {
+                if (this.subscriptions[label] === controller) {
+                    delete this.subscriptions[label];
+                }
+            });
     }
 }
 
