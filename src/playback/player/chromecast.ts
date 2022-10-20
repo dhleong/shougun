@@ -259,6 +259,64 @@ function tracksFrom(
     }
 }
 
+async function loadMediaDuration(context: Context, media: IMedia) {
+    try {
+        const { durationSeconds } = await context.discovery.createPlayable(
+            context,
+            media,
+        );
+        return durationSeconds;
+    } catch {
+        return undefined;
+    }
+}
+
+function inflateQueueAround(
+    context: Context,
+    media: ICastInfo,
+    sharedCustomData: ICustomCastData,
+    mediaAround: IMedia[],
+): Promise<ICastInfo[]> {
+    const indexOfMediaInQueue = mediaAround.findIndex(
+        (m) => m.id === media.source.id,
+    );
+    return Promise.all(
+        mediaAround.map(async (m, index) => {
+            // NOTE: copy base metadata; if there *is* a seriesTitle, for
+            // example, that one should have it
+            const myMetadata = {
+                ...media.metadata,
+                title: m.title,
+            };
+
+            const myUrl =
+                indexOfMediaInQueue === index
+                    ? media.url
+                    : withQuery(media.url, { queueIndex: index });
+
+            // analyze the media to get its duration
+            // This is a little too hacky...
+            const durationSeconds = await loadMediaDuration(context, m);
+
+            // TODO Subtitle tracks
+            return {
+                contentType: media.contentType, // guess?
+                customData: {
+                    ...sharedCustomData,
+                    durationSeconds,
+                    queueIndex: index,
+                },
+                id: m.id,
+                metadata: myMetadata,
+                source: m,
+                tracks:
+                    indexOfMediaInQueue === index ? media.tracks : undefined,
+                url: myUrl,
+            } as ICastInfo;
+        }),
+    );
+}
+
 export class ChromecastPlayer implements IPlayer {
     public static forNamedDevice(deviceName: string) {
         return new ChromecastPlayer(new ChromecastDevice(deviceName));
@@ -366,37 +424,12 @@ export class ChromecastPlayer implements IPlayer {
             url,
         };
 
-        const indexOfMediaInQueue = mediaAround.findIndex(
-            (m) => m.id === playable.media.id,
+        const queueAround = await inflateQueueAround(
+            context,
+            media,
+            sharedCustomData,
+            mediaAround,
         );
-        const queueAround: ICastInfo[] = mediaAround.map((m, index) => {
-            // NOTE: copy base metadata; if there *is* a seriesTitle, for
-            // example, that one should have it
-            const myMetadata = {
-                ...metadata,
-                title: m.title,
-            };
-
-            const myUrl =
-                indexOfMediaInQueue === index
-                    ? url
-                    : withQuery(url, { queueIndex: index });
-
-            // TODO Subtitle tracks
-            return {
-                contentType: media.contentType, // guess?
-                customData: {
-                    ...sharedCustomData,
-                    queueIndex: index,
-                },
-                id: m.id,
-                metadata: myMetadata,
-                source: m,
-                tracks:
-                    indexOfMediaInQueue === index ? media.tracks : undefined,
-                url: myUrl,
-            } as ICastInfo;
-        });
 
         let client: string | undefined;
         if (queueAround.length && supportsClients(playable)) {
