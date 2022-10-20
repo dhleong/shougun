@@ -41,7 +41,7 @@ export async function serveForPlayer(
     debug("analysis of", localPath, ":", analysis);
     const canStreamRanges = canPlayNatively(capabilities, analysis);
 
-    if (!isVideo(localPath) || canStreamRanges) {
+    if (canStreamRanges) {
         debug(`serve ranges for ${contentType}: ${localPath}`);
         return serveRanged(req, reply, contentType, localPath);
     }
@@ -58,12 +58,9 @@ export async function serveForPlayer(
         )
     ) {
         // cannot transcode to mp4 either!
+        const analysisJson = JSON.stringify(analysis);
         throw new Error(
-            `Player ${
-                player.constructor.name
-            } supports neither ${JSON.stringify(
-                analysis,
-            )} nor media transcoded to mp4`,
+            `Player ${player.constructor.name} supports neither ${analysisJson} nor media transcoded to mp4`,
         );
     }
 
