@@ -177,12 +177,26 @@ export default class RpcMethodsV1 {
     }
 
     public async start(media: IMedia) {
-        const candidates = await this.shougun.search(media.title);
-        if (!candidates) throw new Error(`No results for ${media.title}`);
+        const inflated = await this.shougun.inflateQueriedMedia(media);
+        try {
+            await this.shougun.play(inflated);
+        } catch (e) {
+            debug(
+                "Failed to play inflated media:",
+                inflated,
+                "; original=",
+                media,
+                ";\nCause:",
+                e,
+            );
 
-        for (const c of candidates) {
-            if (c.discovery === media.discovery && c.id === media.id) {
-                return this.shougun.play(c);
+            const candidates = await this.shougun.search(media.title);
+            if (!candidates) throw new Error(`No results for ${media.title}`);
+
+            for (const c of candidates) {
+                if (c.discovery === media.discovery && c.id === media.id) {
+                    return this.shougun.play(c);
+                }
             }
         }
 

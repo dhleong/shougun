@@ -1,7 +1,7 @@
 import _debug from "debug";
 
 import { ChromecastDevice, PlayerBuilder } from "babbling";
-import { IQueryResult } from "babbling/dist/app";
+import { IPlayableOptions, IQueryResult } from "babbling/dist/app";
 
 import { Context } from "../context";
 import {
@@ -11,8 +11,11 @@ import {
     IQueryable,
     MediaType,
 } from "../model";
+import { IPlaybackOptions } from "../playback/player";
 
 const debug = _debug("shougun:queryable:babbling");
+
+const DISCOVERY_PREFIX = "babbling:";
 
 type PromiseType<T> = T extends Promise<infer P> ? P : never;
 type Player = PromiseType<ReturnType<BabblingQueryable["getPlayer"]>>;
@@ -21,20 +24,26 @@ function queryErrorHandler(app: string, error: unknown) {
     debug("error querying", app, error);
 }
 
+function shougunOptsToBabblingOpts(
+    _opts: IPlaybackOptions,
+): IPlayableOptions | undefined {
+    // NOTE: There's probably not actually anything we can do here...
+    return undefined;
+}
+
 function resultToMedia(
     player: Player,
     result: IQueryResult,
 ): IPlayableMedia & { cover?: string } {
     return {
         cover: (result as any).cover,
-        discovery: `babbling:${result.appName}`,
+        discovery: `${DISCOVERY_PREFIX}${result.appName}`,
         id: result.url || `${result.appName}:${result.title}`,
         title: result.title,
         type: MediaType.ExternalPlayable,
 
-        async play(_opts) {
-            // TODO: Can we interop the opts?
-            await player.play(result);
+        async play(opts) {
+            await player.play(result, shougunOptsToBabblingOpts(opts));
         },
 
         async findEpisode(context, query) {
@@ -60,6 +69,41 @@ export class BabblingQueryable implements IQueryable {
         public readonly configPath?: string,
         private readonly chromecastDeviceName?: string,
     ) {}
+
+    public async inflateQueriedMedia(media: IMedia) {
+        const playable: IPlayableMedia = {
+            ...media,
+
+            play: async (opts) => {
+                const player = await this.getPlayer();
+                await player.playUrl(media.id, shougunOptsToBabblingOpts(opts));
+            },
+
+            findEpisode: async (context, query) => {
+                const player = await this.getPlayer();
+                const episode = await player.findEpisodeFor(
+                    {
+                        appName: media.discovery.substring(
+                            DISCOVERY_PREFIX.length,
+                        ),
+                        title: media.title,
+                    },
+                    query,
+                );
+                if (episode) {
+                    return resultToMedia(player, episode);
+                }
+            },
+        };
+        return playable;
+    }
+
+    public isProviderFor(media: IMedia): boolean {
+        return (
+            media.type === MediaType.ExternalPlayable &&
+            media.discovery.startsWith(DISCOVERY_PREFIX)
+        );
+    }
 
     public async *findMedia(
         context: Context,
