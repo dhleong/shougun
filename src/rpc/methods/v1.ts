@@ -177,8 +177,10 @@ export default class RpcMethodsV1 {
     }
 
     public async start(media: IMedia) {
+        debug("inflating...", media.id);
         const inflated = await this.shougun.inflateQueriedMedia(media);
         try {
+            debug("inflated:", inflated);
             await this.shougun.play(inflated);
         } catch (e) {
             debug(
@@ -198,11 +200,11 @@ export default class RpcMethodsV1 {
                     return this.shougun.play(c);
                 }
             }
-        }
 
-        throw new Error(
-            `No media with title ${media.title} and ID ${media.id}`,
-        );
+            throw new Error(
+                `No media with title ${media.title} and ID ${media.id}`,
+            );
+        }
     }
 
     public async startByPath(path: string, options: IPlaybackOptions = {}) {
