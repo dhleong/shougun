@@ -1,5 +1,5 @@
 import { Context } from "../context";
-import { IMedia, IQueryable } from "../model";
+import { IMedia, IQueryable, MediaType } from "../model";
 
 /**
  * The ContextQueryable is a core component that provides query results from
@@ -7,6 +7,10 @@ import { IMedia, IQueryable } from "../model";
  * will not get any results from local Discovery.
  */
 export class ContextQueryable implements IQueryable {
+    public isProviderFor(media: IMedia): boolean {
+        return media.type !== MediaType.ExternalPlayable;
+    }
+
     public async *findMedia(
         context: Context,
         query: string,

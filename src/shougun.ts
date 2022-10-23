@@ -105,6 +105,14 @@ export class Shougun {
     }
 
     /**
+     *
+     */
+    public async inflateQueriedMedia(media: IMedia) {
+        const source = this.queryableFor(media);
+        return source.inflateQueriedMedia?.(media) ?? media;
+    }
+
+    /**
      * Get a map whose keys are a discovery type and whose values
      * are AsyncIterables of recently watched media
      */
@@ -331,6 +339,19 @@ export class Shougun {
         }
 
         return resultsBySource;
+    }
+
+    private queryableFor(media: IMedia) {
+        for (const queryable of this.context.queryables) {
+            if (queryable.isProviderFor(media)) {
+                return queryable;
+            }
+        }
+        throw new Error(
+            `No registered Queryable claimed ownership of ${JSON.stringify(
+                media,
+            )}`,
+        );
     }
 
     private async *queryFromMap(

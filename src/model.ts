@@ -135,6 +135,8 @@ export type ProviderErrorHandler = (provider: string, error: Error) => void;
  * Queryable abstraction
  */
 export interface IQueryable {
+    inflateQueriedMedia?(media: IMedia): Promise<IMedia>;
+    isProviderFor(media: IMedia): boolean;
     queryRecent(
         context: Context,
         onError?: ProviderErrorHandler,
