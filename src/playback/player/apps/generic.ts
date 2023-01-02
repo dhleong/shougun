@@ -96,6 +96,7 @@ export interface ILoadParams {
     onPlayerPaused?: (
         media: IMedia,
         currentTimeSeconds: number,
+        durationSeconds: number | undefined,
     ) => Promise<void>;
 
     /**

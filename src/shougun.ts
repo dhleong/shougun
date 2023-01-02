@@ -252,14 +252,15 @@ export class Shougun {
             onPlayerPaused: async (
                 pausedMedia: IMedia,
                 currentTimeSeconds: number,
+                durationSeconds: number | undefined,
             ) => {
                 debug(
-                    `record playerPaused of ${pausedMedia.id} @ ${currentTimeSeconds}`,
+                    `record playerPaused of ${pausedMedia.id} @ ${currentTimeSeconds} / ${durationSeconds}`,
                 );
                 return this.context.tracker.saveTrack(
                     pausedMedia,
                     currentTimeSeconds,
-                    playable.durationSeconds,
+                    durationSeconds ?? playable.durationSeconds,
                 );
             },
             ...options,

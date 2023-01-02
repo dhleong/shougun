@@ -39,7 +39,11 @@ export class VlcPlayer implements IPlayer {
         let lastTimestamp = -1;
         function tryReportProgress() {
             if (options.onPlayerPaused && lastTimestamp >= 0) {
-                options.onPlayerPaused(playable.media, lastTimestamp);
+                options.onPlayerPaused(
+                    playable.media,
+                    lastTimestamp,
+                    playable.durationSeconds,
+                );
             }
         }
 
