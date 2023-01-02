@@ -46,10 +46,10 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
     protected async handleMediaStatus(status: IMediaStatus) {
         super.handleMediaStatus(status);
 
-        debug("mediaStatus=", status);
+        debug("mediaStatus=", JSON.stringify(status, null, 2));
         switch (status.playerState) {
             case "PLAYING":
-                this.handlePlaying(status);
+                await this.handlePlaying(status);
                 break;
 
             case "IDLE":
@@ -63,7 +63,7 @@ export class ShougunPlaybackTracker extends PlaybackTracker {
         }
     }
 
-    private handlePlaying(status: IMediaStatus) {
+    private async handlePlaying(status: IMediaStatus) {
         const { media } = status as any;
         if (!media) return;
 
