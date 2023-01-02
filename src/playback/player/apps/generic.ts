@@ -96,6 +96,7 @@ export interface ILoadParams {
     onPlayerPaused?: (
         media: IMedia,
         currentTimeSeconds: number,
+        durationSeconds: number | undefined,
     ) => Promise<void>;
 
     /**
@@ -222,7 +223,7 @@ export class GenericMediaReceiverApp extends BaseApp implements ICloseableApp {
 
     public async load(params: ILoadParams) {
         if (params.onPlayerPaused) {
-            if (this.tracker) this.tracker.stop();
+            this.tracker?.stop();
 
             const tracker = new ShougunPlaybackTracker(this, params);
             this.tracker = tracker;
@@ -247,6 +248,8 @@ export class GenericMediaReceiverApp extends BaseApp implements ICloseableApp {
     }
 
     public close() {
+        this.tracker?.stop();
+        this.tracker = undefined;
         this.device.close();
     }
 

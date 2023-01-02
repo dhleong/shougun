@@ -14,12 +14,13 @@ export interface IPlaybackOptions {
     prefs?: IMediaPrefs;
 
     /**
-     * Callback to be notified of the User's playback time,
-     * in seconds.
+     * Callback to be notified of the User's playback time, in seconds. If
+     * available, the media's duration (also in seconds) will also be provided
      */
     onPlayerPaused?: (
         media: IMedia,
         currentTimeSeconds: number,
+        durationSeconds: number | undefined,
     ) => Promise<void>;
 }
 
