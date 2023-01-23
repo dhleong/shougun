@@ -14,16 +14,15 @@ import { performMigrations } from "./sqlite3-schema";
 const debug = _debug("shougun:sqlite");
 
 function unpackInfo(info: any): IViewedInformation | null {
-    if (info === undefined) return null;
+    if (info == null) return null;
 
-    let result = info;
-
-    if (result.seriesId === null) {
-        result = { ...result };
+    if (info.seriesId == null) {
+        const result = { ...info };
         delete result.seriesId;
+        return result;
     }
 
-    return result;
+    return info;
 }
 
 export class Sqlite3Storage implements IStorage {
