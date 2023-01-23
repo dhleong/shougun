@@ -5,10 +5,9 @@ import Sqlite from "better-sqlite3";
 import { ILoanCreate, ILoanData } from "../base";
 import { IStorage, IViewedInformation } from "../persistent";
 import { IMediaPrefs } from "../../model";
+import { performMigrations } from "./sqlite3-schema";
 
 const debug = _debug("shougun:sqlite");
-
-const SchemaVersion = 3;
 
 function unpackInfo(info: any): IViewedInformation | null {
     if (info === undefined) return null;
@@ -289,90 +288,7 @@ export class Sqlite3Storage implements IStorage {
     private ensureInitialized() {
         if (this.hasPrepared) return;
 
-        const version = this.getVersion();
-        debug("opened db version", version);
-
-        switch (version) {
-            case 0:
-                debug("create initial DB");
-                this.createInitialDb();
-                break;
-
-            case 1:
-                debug(`migrate from ${version} to 2`);
-                this.createLoansTable();
-
-            // fall through:
-
-            case 2:
-                debug(`migrate from ${version} to ${SchemaVersion}`);
-                this.createSeriesPrefsTable();
-
-            // fall through:
-
-            case SchemaVersion:
-                // up to date!
-                return;
-
-            default:
-                throw new Error("");
-        }
-
-        debug(`set version to ${SchemaVersion}`);
-        this.setVersion(SchemaVersion);
-    }
-
-    private createInitialDb() {
-        this.db.exec(`
-            CREATE TABLE IF NOT EXISTS ViewedInformation (
-                id STRING PRIMARY KEY NOT NULL,
-                seriesId STRING,
-                title STRING NOT NULL,
-                lastViewedTimestamp INTEGER,
-                resumeTimeSeconds REAL,
-                videoDurationSeconds REAL
-            );
-
-            CREATE INDEX IF NOT EXISTS ViewedInformation_bySeriesId
-            ON ViewedInformation (
-                seriesId
-            );
-        `);
-        this.createLoansTable();
-        this.createSeriesPrefsTable();
-    }
-
-    private createLoansTable() {
-        this.db.exec(`
-            CREATE TABLE IF NOT EXISTS Loans (
-                token STRING PRIMARY KEY NOT NULL,
-                serverId STRING,
-                createdTimestamp INTEGER NOT NULL
-            );
-
-            CREATE INDEX IF NOT EXISTS Loans_byCreatedTimestamp
-            ON Loans (
-                createdTimestamp
-            );
-        `);
-    }
-
-    private createSeriesPrefsTable() {
-        this.db.exec(`
-            CREATE TABLE IF NOT EXISTS SeriesPrefs (
-                seriesId STRING PRIMARY KEY NOT NULL,
-                prefs STRING
-            );
-        `);
-    }
-
-    private getVersion() {
-        return this.db.pragma("user_version", { simple: true }) as number;
-    }
-
-    private setVersion(newVersion: number) {
-        this.db.pragma(`user_version = ${newVersion}`, {
-            simple: true,
-        });
+        performMigrations(this.db);
+        this.hasPrepared = true;
     }
 }
