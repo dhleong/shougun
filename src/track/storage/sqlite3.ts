@@ -3,7 +3,11 @@ import _debug from "debug";
 import Sqlite from "better-sqlite3";
 
 import { ILoanCreate, ILoanData } from "../base";
-import { IStorage, IViewedInformation } from "../persistent";
+import {
+    DEFAULT_RECENTS_LIMIT,
+    IStorage,
+    IViewedInformation,
+} from "../persistent";
 import { IMediaPrefs } from "../../model";
 import { performMigrations } from "./sqlite3-schema";
 
@@ -174,16 +178,18 @@ export class Sqlite3Storage implements IStorage {
         return unpackInfo(result);
     }
 
-    public async *queryRecent() {
+    public async *queryRecent({
+        limit = DEFAULT_RECENTS_LIMIT,
+    }: { limit?: number } = {}) {
         const results = this.prepare(
             `
             SELECT *
             FROM ViewedInformation
             GROUP BY COALESCE(seriesId, id)
             ORDER BY MAX(lastViewedTimestamp) DESC
-            LIMIT 20
+            LIMIT :limit
         `,
-        ).all();
+        ).all({ limit });
 
         for (const result of results) {
             const unpacked = unpackInfo(result);

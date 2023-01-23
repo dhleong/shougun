@@ -28,13 +28,15 @@ export interface IViewedInformation {
     videoDurationSeconds: number;
 }
 
+export const DEFAULT_RECENTS_LIMIT = 20;
+
 export interface IStorage extends ILoanTracker, IPrefsTracker {
     close(): void;
     loadById(id: string): Promise<IViewedInformation | null>;
     loadLastViewedForSeries(
         seriesId: string,
     ): Promise<IViewedInformation | null>;
-    queryRecent(): AsyncIterable<IViewedInformation>;
+    queryRecent(opts?: { limit?: number }): AsyncIterable<IViewedInformation>;
     save(info: IViewedInformation): Promise<void>;
 }
 
@@ -121,7 +123,7 @@ export class PersistentTracker implements ITracker {
         const seriesId = isEpisode(media) ? media.seriesId : undefined;
         const { title } = media;
 
-        await this.storage.save({
+        const info: IViewedInformation = {
             id: media.id,
             seriesId,
             title,
@@ -129,7 +131,9 @@ export class PersistentTracker implements ITracker {
             lastViewedTimestamp: Date.now(),
             resumeTimeSeconds,
             videoDurationSeconds,
-        } as IViewedInformation);
+        };
+
+        await this.storage.save(info);
     }
 
     public async loadPrefsForSeries(seriesId: string) {
