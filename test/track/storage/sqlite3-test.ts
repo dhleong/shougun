@@ -1,6 +1,7 @@
 import * as chai from "chai";
 import chaiAsPromised from "chai-as-promised";
 import chaiSubset from "chai-subset";
+import { MediaType } from "../../../src/model";
 
 import { ILoanCreate } from "../../../src/track/base";
 import { IViewedInformation } from "../../../src/track/persistent";
@@ -20,6 +21,7 @@ function episodeWith(extra: Partial<IViewedInformation> = {}) {
         id: "id",
         seriesId,
         title: "Mighty fine Shindig",
+        mediaType: MediaType.Episode,
 
         lastViewedTimestamp: 9001,
         resumeTimeSeconds: 0,
@@ -44,6 +46,7 @@ describe("Sqlite3Storage", () => {
         const original = {
             id: "my-id",
             title: "My Title",
+            mediaType: MediaType.Series,
 
             lastViewedTimestamp: 0,
             resumeTimeSeconds: 0,
@@ -63,6 +66,7 @@ describe("Sqlite3Storage", () => {
         const original = {
             id: "my-id",
             title: "My Title",
+            mediaType: MediaType.Series,
 
             lastViewedTimestamp: 0,
             resumeTimeSeconds: 0,
@@ -181,6 +185,7 @@ describe("Sqlite3Storage", () => {
                     id: "after-borrow",
                     seriesId: "good-place",
                     title: "After Borrow",
+                    mediaType: MediaType.Episode,
 
                     lastViewedTimestamp: 500,
                     resumeTimeSeconds: 0,
@@ -217,6 +222,7 @@ describe("Sqlite3Storage", () => {
                         id: "after-borrow",
                         seriesId: "good-place",
                         title: "After Borrow",
+                        mediaType: MediaType.Episode,
 
                         lastViewedTimestamp: 500,
                         resumeTimeSeconds: 0,
