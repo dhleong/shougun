@@ -1,5 +1,5 @@
 import { IMedia, IMediaPrefs } from "../model";
-import type { IViewedInformation } from "./persistent";
+import type { IQueryRecentOpts, IViewedInformation } from "./persistent";
 
 export interface ITrack {
     media: IMedia;
@@ -10,6 +10,7 @@ export interface IRecentMedia {
     id: string;
     seriesId?: string;
     title: string;
+    lastViewedTimestamp: number;
 }
 
 export interface ILoanData {
@@ -84,5 +85,5 @@ export interface ITracker extends ILoanTracker, IPrefsTracker {
     /**
      * Load recently watched media
      */
-    queryRecent(): AsyncIterable<IRecentMedia>;
+    queryRecent(opts?: IQueryRecentOpts): AsyncIterable<IRecentMedia>;
 }

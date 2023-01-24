@@ -5,10 +5,11 @@ import Sqlite from "better-sqlite3";
 import { ILoanCreate, ILoanData } from "../base";
 import {
     DEFAULT_RECENTS_LIMIT,
+    IQueryRecentOpts,
     IStorage,
     IViewedInformation,
 } from "../persistent";
-import { IMediaPrefs } from "../../model";
+import { IMediaPrefs, MediaType } from "../../model";
 import { performMigrations } from "./sqlite3-schema";
 
 const debug = _debug("shougun:sqlite");
@@ -23,6 +24,18 @@ function unpackInfo(info: any): IViewedInformation | null {
     }
 
     return info;
+}
+
+function buildExternalMediaWhereClause(value: IQueryRecentOpts["external"]) {
+    switch (value) {
+        case "include":
+            return "";
+        case "only":
+            return `mediaType == ${MediaType.ExternalPlayable}`;
+        default:
+        case "exclude":
+            return `mediaType != ${MediaType.ExternalPlayable}`;
+    }
 }
 
 export class Sqlite3Storage implements IStorage {
@@ -179,13 +192,20 @@ export class Sqlite3Storage implements IStorage {
 
     public async *queryRecent({
         limit = DEFAULT_RECENTS_LIMIT,
-    }: { limit?: number } = {}) {
+        external = "exclude",
+    }: IQueryRecentOpts = {}) {
+        const externalMediaClause = buildExternalMediaWhereClause(external);
         const results = this.prepare(
             `
             SELECT *
             FROM ViewedInformation
             GROUP BY COALESCE(seriesId, id)
             ORDER BY MAX(lastViewedTimestamp) DESC
+            ${
+                externalMediaClause.length === 0
+                    ? externalMediaClause
+                    : `WHERE ${externalMediaClause}`
+            }
             LIMIT :limit
         `,
         ).all({ limit });

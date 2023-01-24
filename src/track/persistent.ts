@@ -30,6 +30,11 @@ export interface IViewedInformation {
 
 export const DEFAULT_RECENTS_LIMIT = 20;
 
+export interface IQueryRecentOpts {
+    external?: "include" | "exclude" | "only";
+    limit?: number;
+}
+
 export interface IStorage extends ILoanTracker, IPrefsTracker {
     close(): void;
     loadById(id: string): Promise<IViewedInformation | null>;
@@ -111,8 +116,8 @@ export class PersistentTracker implements ITracker {
         }
     }
 
-    public async *queryRecent() {
-        yield* this.storage.queryRecent();
+    public async *queryRecent(opts: IQueryRecentOpts = {}) {
+        yield* this.storage.queryRecent(opts);
     }
 
     public async saveTrack(
