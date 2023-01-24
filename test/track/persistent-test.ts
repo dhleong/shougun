@@ -63,6 +63,7 @@ describe("PersistentTracker", () => {
                 id: "episode-0",
                 seriesId: "series",
                 title: "title",
+                mediaType: MediaType.Episode,
 
                 lastViewedTimestamp: 0,
                 resumeTimeSeconds: 4,
@@ -82,6 +83,7 @@ describe("PersistentTracker", () => {
                 id: "episode-0",
                 seriesId: "series",
                 title: "title",
+                mediaType: MediaType.Episode,
 
                 lastViewedTimestamp: 0,
                 resumeTimeSeconds: 100,
