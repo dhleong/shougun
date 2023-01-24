@@ -201,13 +201,13 @@ export class Sqlite3Storage implements IStorage {
             `
             SELECT *
             FROM ViewedInformation
-            GROUP BY COALESCE(seriesId, id)
-            ORDER BY MAX(lastViewedTimestamp) DESC
             ${
                 externalMediaClause.length === 0
                     ? externalMediaClause
                     : `WHERE ${externalMediaClause}`
             }
+            GROUP BY COALESCE(seriesId, id)
+            ORDER BY MAX(lastViewedTimestamp) DESC
             LIMIT :limit
         `,
         ).all({ limit });
@@ -307,9 +307,15 @@ export class Sqlite3Storage implements IStorage {
         const existing = this.statementsCache[statement];
         if (existing) return existing;
 
-        const compiled = this.db.prepare(statement);
-        this.statementsCache[statement] = compiled;
-        return compiled;
+        try {
+            const compiled = this.db.prepare(statement);
+            this.statementsCache[statement] = compiled;
+            return compiled;
+        } catch (e) {
+            throw new Error(
+                `Failed to prepare statement:\n\n${statement}\n\n${e}`,
+            );
+        }
     }
 
     private ensureInitialized() {
