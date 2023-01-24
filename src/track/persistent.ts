@@ -5,6 +5,7 @@ import {
     ISeries,
     isSeries,
     IMediaPrefs,
+    MediaType,
 } from "../model";
 import {
     ILoanCreate,
@@ -21,6 +22,7 @@ export interface IViewedInformation {
 
     seriesId?: string;
     title: string;
+    mediaType: MediaType;
 
     /** Unix time in millis */
     lastViewedTimestamp: number;
@@ -126,12 +128,13 @@ export class PersistentTracker implements ITracker {
         videoDurationSeconds: number,
     ): Promise<void> {
         const seriesId = isEpisode(media) ? media.seriesId : undefined;
-        const { title } = media;
+        const { title, type: mediaType } = media;
 
         const info: IViewedInformation = {
             id: media.id,
             seriesId,
             title,
+            mediaType,
 
             lastViewedTimestamp: Date.now(),
             resumeTimeSeconds,

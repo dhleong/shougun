@@ -163,11 +163,13 @@ export class Sqlite3Storage implements IStorage {
                 id,
                 seriesId,
                 title,
+                mediaType,
                 lastViewedTimestamp,
                 resumeTimeSeconds,
                 videoDurationSeconds
             ) VALUES (
                 :id, :seriesId, :title,
+                :mediaType,
                 :lastViewedTimestamp,
                 :resumeTimeSeconds,
                 :videoDurationSeconds

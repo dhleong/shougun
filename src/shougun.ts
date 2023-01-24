@@ -283,6 +283,7 @@ export class Shougun {
         if (playable == null) {
             // media itself must be a PlayableMedia
             await resolvedMedia.play(options);
+            await this.context.tracker.saveTrack(pausedMedia, 0, 0);
             return resolvedMedia;
         }
 
