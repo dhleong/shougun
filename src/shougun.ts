@@ -22,7 +22,9 @@ import {
 import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
 import { ContextQueryable } from "./queryables/context";
-import { ITracker, IPrefsTracker, IRecentMedia } from "./track/base";
+import { ITracker, IPrefsTracker } from "./track/base";
+import { assocByAsync } from "./util/collection";
+import { createCompareByRecencyData } from "./media/sorting";
 
 const debug = _debug("shougun:core");
 
@@ -145,43 +147,20 @@ export class Shougun {
             return iterableRecents;
         }
 
-        const [media, recents] = await Promise.all([
+        const [media, tracksById] = await Promise.all([
             toArray(iterableRecents),
 
-            (async () => {
-                const externalTracks = await toArray(
-                    this.context.tracker.queryRecent({
-                        limit: 100,
-                        external: "only",
-                    }),
-                );
-
-                return externalTracks.reduce((m, tracked) => {
-                    // eslint-disable-next-line no-param-reassign
-                    m[tracked.seriesId ?? tracked.id] = tracked;
-                    return m;
-                }, {} as Partial<Record<string, IRecentMedia>>);
-            })(),
+            assocByAsync(
+                this.context.tracker.queryRecent({
+                    limit: 100,
+                    external: "only",
+                }),
+                (track) => track.seriesId ?? track.id,
+            ),
         ]);
 
-        media.sort((a, b) => {
-            const aViewedAt = recents[a.id]?.lastViewedTimestamp;
-            const bViewedAt = recents[b.id]?.lastViewedTimestamp;
-
-            if (aViewedAt == null && bViewedAt == null) {
-                return 0;
-            }
-            if (aViewedAt == null) {
-                // only b has been viewed; it should get priority
-                return 1;
-            }
-            if (bViewedAt == null) {
-                // only a has been viewed; it should get priority
-                return -1;
-            }
-
-            return bViewedAt - aViewedAt;
-        });
+        const comparator = createCompareByRecencyData(tracksById);
+        media.sort(comparator);
 
         yield* media;
     }
