@@ -30,10 +30,10 @@ function buildExternalMediaWhereClause(value: IQueryRecentOpts["external"]) {
         case "include":
             return "";
         case "only":
-            return `mediaType == ${MediaType.ExternalPlayable}`;
+            return `mediaType IS ${MediaType.ExternalPlayable}`;
         default:
         case "exclude":
-            return `mediaType != ${MediaType.ExternalPlayable}`;
+            return `mediaType IS NOT ${MediaType.ExternalPlayable}`;
     }
 }
 

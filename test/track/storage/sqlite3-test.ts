@@ -31,6 +31,14 @@ function episodeWith(extra: Partial<IViewedInformation> = {}) {
     };
 }
 
+async function expectArray<T>(iterable: AsyncIterable<T>): Promise<T[]> {
+    const result = await toArray(iterable);
+    if (result == null) {
+        throw new Error(`Expected array but was ${result}`);
+    }
+    return result;
+}
+
 describe("Sqlite3Storage", () => {
     let storage: Sqlite3Storage;
 
@@ -126,10 +134,7 @@ describe("Sqlite3Storage", () => {
         storage.save(otherSeries);
         storage.save(latest);
 
-        const result = await toArray(storage.queryRecent());
-        if (result == null) {
-            throw new Error("Should not be null");
-        }
+        const result = await expectArray(storage.queryRecent());
         result[0].should.deep.equal(latest);
     });
 
@@ -280,6 +285,78 @@ describe("Sqlite3Storage", () => {
                 preferredAudioLanguage: "en",
                 someOtherValue: "serenity",
             });
+        });
+    });
+
+    describe("queryRecent", () => {
+        it("handles null mediaType", async () => {
+            const latest = episodeWith({
+                id: "first",
+                lastViewedTimestamp: 9001,
+            });
+            (latest as any).mediaType = undefined;
+            storage.save(latest);
+
+            const result = await expectArray(storage.queryRecent());
+            result.should.have.lengthOf(1);
+        });
+
+        it("handles excluding external", async () => {
+            const external = episodeWith({
+                id: "first",
+                seriesId: undefined,
+                lastViewedTimestamp: 9001,
+            });
+            external.mediaType = MediaType.ExternalPlayable;
+            storage.save(external);
+
+            const result = await expectArray(storage.queryRecent());
+            result.should.be.empty;
+        });
+
+        it("handles only external", async () => {
+            storage.save(
+                episodeWith({
+                    id: "0",
+                    lastViewedTimestamp: 9001,
+                }),
+            );
+
+            const external = episodeWith({
+                id: "external",
+                seriesId: undefined,
+                lastViewedTimestamp: 9001,
+            });
+            external.mediaType = MediaType.ExternalPlayable;
+            storage.save(external);
+
+            const result = await expectArray(
+                storage.queryRecent({ external: "only" }),
+            );
+            result.should.have.lengthOf(1);
+            result[0].id.should.equal("external");
+        });
+
+        it("handles including external", async () => {
+            storage.save(
+                episodeWith({
+                    id: "episode",
+                    lastViewedTimestamp: 9001,
+                }),
+            );
+
+            const external = episodeWith({
+                id: "external",
+                seriesId: undefined,
+                lastViewedTimestamp: 9001,
+            });
+            external.mediaType = MediaType.ExternalPlayable;
+            storage.save(external);
+
+            const result = await expectArray(
+                storage.queryRecent({ external: "include" }),
+            );
+            result.should.have.lengthOf(2);
         });
     });
 });
