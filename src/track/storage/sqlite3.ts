@@ -2,10 +2,9 @@ import _debug from "debug";
 
 import Sqlite from "better-sqlite3";
 
-import { ILoanCreate, ILoanData } from "../base";
+import type { ILoanCreate, ILoanData, IQueryRecentOpts } from "../base";
 import {
     DEFAULT_RECENTS_LIMIT,
-    IQueryRecentOpts,
     IStorage,
     IViewedInformation,
 } from "../persistent";
