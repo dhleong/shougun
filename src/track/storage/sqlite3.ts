@@ -2,13 +2,13 @@ import _debug from "debug";
 
 import Sqlite from "better-sqlite3";
 
-import { ILoanCreate, ILoanData } from "../base";
+import type { ILoanCreate, ILoanData, IQueryRecentOpts } from "../base";
 import {
     DEFAULT_RECENTS_LIMIT,
     IStorage,
     IViewedInformation,
 } from "../persistent";
-import { IMediaPrefs } from "../../model";
+import { IMediaPrefs, MediaType } from "../../model";
 import { performMigrations } from "./sqlite3-schema";
 
 const debug = _debug("shougun:sqlite");
@@ -23,6 +23,18 @@ function unpackInfo(info: any): IViewedInformation | null {
     }
 
     return info;
+}
+
+function buildExternalMediaWhereClause(value: IQueryRecentOpts["external"]) {
+    switch (value) {
+        case "include":
+            return "";
+        case "only":
+            return `mediaType == ${MediaType.ExternalPlayable}`;
+        default:
+        case "exclude":
+            return `mediaType != ${MediaType.ExternalPlayable}`;
+    }
 }
 
 export class Sqlite3Storage implements IStorage {
@@ -150,11 +162,13 @@ export class Sqlite3Storage implements IStorage {
                 id,
                 seriesId,
                 title,
+                mediaType,
                 lastViewedTimestamp,
                 resumeTimeSeconds,
                 videoDurationSeconds
             ) VALUES (
                 :id, :seriesId, :title,
+                :mediaType,
                 :lastViewedTimestamp,
                 :resumeTimeSeconds,
                 :videoDurationSeconds
@@ -179,11 +193,18 @@ export class Sqlite3Storage implements IStorage {
 
     public async *queryRecent({
         limit = DEFAULT_RECENTS_LIMIT,
-    }: { limit?: number } = {}) {
+        external = "exclude",
+    }: IQueryRecentOpts = {}) {
+        const externalMediaClause = buildExternalMediaWhereClause(external);
         const results = this.prepare(
             `
             SELECT *
             FROM ViewedInformation
+            ${
+                externalMediaClause.length === 0
+                    ? externalMediaClause
+                    : `WHERE ${externalMediaClause}`
+            }
             GROUP BY COALESCE(seriesId, id)
             ORDER BY MAX(lastViewedTimestamp) DESC
             LIMIT :limit
@@ -285,9 +306,15 @@ export class Sqlite3Storage implements IStorage {
         const existing = this.statementsCache[statement];
         if (existing) return existing;
 
-        const compiled = this.db.prepare(statement);
-        this.statementsCache[statement] = compiled;
-        return compiled;
+        try {
+            const compiled = this.db.prepare(statement);
+            this.statementsCache[statement] = compiled;
+            return compiled;
+        } catch (e) {
+            throw new Error(
+                `Failed to prepare statement:\n\n${statement}\n\n${e}`,
+            );
+        }
     }
 
     private ensureInitialized() {

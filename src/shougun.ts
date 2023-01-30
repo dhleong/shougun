@@ -23,6 +23,8 @@ import { IPlaybackOptions, IPlayer } from "./playback/player";
 import { Server } from "./playback/serve";
 import { ContextQueryable } from "./queryables/context";
 import { ITracker, IPrefsTracker } from "./track/base";
+import { assocByAsync } from "./util/collection";
+import { createCompareByRecencyData } from "./media/sorting";
 
 const debug = _debug("shougun:core");
 
@@ -137,10 +139,38 @@ export class Shougun {
      * each discovery type
      */
     public async *queryRecent(options: IQueryOpts = {}) {
-        yield* this.queryFromMap(
+        const iterableRecents = this.queryFromMap(
             options,
             this.getRecentsMap(options.onProviderError),
         );
+        if (options.onlyLocal === true) {
+            // In this simple case, we know that results will already be sorted
+            // by recency, so we can properly maintain the async iterator by returning
+            // it directly.
+            return iterableRecents;
+        }
+
+        // In order to provide a more intuitive view of "recent" media across providers
+        // (most of which do *not* provide last-viewed timestamps for us!) we fetch our
+        // locally-tracked timestamps for recent series and sort the iterable based on that.
+        // This does mean we're not really providing a "true" AsyncIterable but that's
+        // probably okay...
+        const [media, tracksById] = await Promise.all([
+            toArray(iterableRecents),
+
+            assocByAsync(
+                this.context.tracker.queryRecent({
+                    limit: 100,
+                    external: "only",
+                }),
+                (track) => track.seriesId ?? track.id,
+            ),
+        ]);
+
+        const comparator = createCompareByRecencyData(tracksById);
+        media.sort(comparator);
+
+        yield* media;
     }
 
     /**
@@ -240,6 +270,7 @@ export class Shougun {
         if (playable == null) {
             // media itself must be a PlayableMedia
             await resolvedMedia.play(options);
+            await this.context.tracker.saveTrack(media, 0, 0);
             return resolvedMedia;
         }
 

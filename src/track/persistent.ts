@@ -5,14 +5,16 @@ import {
     ISeries,
     isSeries,
     IMediaPrefs,
+    MediaType,
 } from "../model";
-import {
+import type {
     ILoanCreate,
     ILoanData,
     ILoanTracker,
     ITrack,
     ITracker,
     IPrefsTracker,
+    IQueryRecentOpts,
 } from "./base";
 import { computeWatchState, WatchState } from "./util";
 
@@ -21,6 +23,7 @@ export interface IViewedInformation {
 
     seriesId?: string;
     title: string;
+    mediaType: MediaType;
 
     /** Unix time in millis */
     lastViewedTimestamp: number;
@@ -111,8 +114,8 @@ export class PersistentTracker implements ITracker {
         }
     }
 
-    public async *queryRecent() {
-        yield* this.storage.queryRecent();
+    public async *queryRecent(opts: IQueryRecentOpts = {}) {
+        yield* this.storage.queryRecent(opts);
     }
 
     public async saveTrack(
@@ -121,12 +124,13 @@ export class PersistentTracker implements ITracker {
         videoDurationSeconds: number,
     ): Promise<void> {
         const seriesId = isEpisode(media) ? media.seriesId : undefined;
-        const { title } = media;
+        const { title, type: mediaType } = media;
 
         const info: IViewedInformation = {
             id: media.id,
             seriesId,
             title,
+            mediaType,
 
             lastViewedTimestamp: Date.now(),
             resumeTimeSeconds,

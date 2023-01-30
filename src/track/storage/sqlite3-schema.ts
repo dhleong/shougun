@@ -4,7 +4,7 @@ import type Sqlite from "better-sqlite3";
 
 const debug = createDebug("shougun:sqlite:schema");
 
-const SchemaVersion = 3;
+const SchemaVersion = 4;
 
 interface IMigration {
     description: string;
@@ -59,6 +59,16 @@ const migrations: { [key: number]: IMigration } = {
                     seriesId STRING PRIMARY KEY NOT NULL,
                     prefs STRING
                 );
+            `);
+        },
+    },
+
+    3: {
+        description: "Support tracking external media",
+        perform(db) {
+            db.exec(`
+                ALTER TABLE ViewedInformation
+                ADD COLUMN mediaType INTEGER;
             `);
         },
     },

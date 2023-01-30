@@ -10,6 +10,7 @@ export interface IRecentMedia {
     id: string;
     seriesId?: string;
     title: string;
+    lastViewedTimestamp: number;
 }
 
 export interface ILoanData {
@@ -50,6 +51,11 @@ export interface IPrefsTracker {
     ): Promise<IMediaPrefs>;
 }
 
+export interface IQueryRecentOpts {
+    external?: "include" | "exclude" | "only";
+    limit?: number;
+}
+
 export interface ITracker extends ILoanTracker, IPrefsTracker {
     /**
      * Figure out what to actually play when the User requests the
@@ -84,5 +90,5 @@ export interface ITracker extends ILoanTracker, IPrefsTracker {
     /**
      * Load recently watched media
      */
-    queryRecent(): AsyncIterable<IRecentMedia>;
+    queryRecent(opts?: IQueryRecentOpts): AsyncIterable<IRecentMedia>;
 }
