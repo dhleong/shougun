@@ -144,9 +144,17 @@ export class Shougun {
             this.getRecentsMap(options.onProviderError),
         );
         if (options.onlyLocal === true) {
+            // In this simple case, we know that results will already be sorted
+            // by recency, so we can properly maintain the async iterator by returning
+            // it directly.
             return iterableRecents;
         }
 
+        // In order to provide a more intuitive view of "recent" media across providers
+        // (most of which do *not* provide last-viewed timestamps for us!) we fetch our
+        // locally-tracked timestamps for recent series and sort the iterable based on that.
+        // This does mean we're not really providing a "true" AsyncIterable but that's
+        // probably okay...
         const [media, tracksById] = await Promise.all([
             toArray(iterableRecents),
 
