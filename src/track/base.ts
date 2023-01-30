@@ -1,5 +1,5 @@
 import { IMedia, IMediaPrefs } from "../model";
-import type { IQueryRecentOpts, IViewedInformation } from "./persistent";
+import type { IViewedInformation } from "./persistent";
 
 export interface ITrack {
     media: IMedia;
@@ -49,6 +49,11 @@ export interface IPrefsTracker {
         seriesId: string,
         prefs: IMediaPrefs,
     ): Promise<IMediaPrefs>;
+}
+
+export interface IQueryRecentOpts {
+    external?: "include" | "exclude" | "only";
+    limit?: number;
 }
 
 export interface ITracker extends ILoanTracker, IPrefsTracker {

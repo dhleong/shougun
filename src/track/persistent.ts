@@ -7,13 +7,14 @@ import {
     IMediaPrefs,
     MediaType,
 } from "../model";
-import {
+import type {
     ILoanCreate,
     ILoanData,
     ILoanTracker,
     ITrack,
     ITracker,
     IPrefsTracker,
+    IQueryRecentOpts,
 } from "./base";
 import { computeWatchState, WatchState } from "./util";
 
@@ -31,11 +32,6 @@ export interface IViewedInformation {
 }
 
 export const DEFAULT_RECENTS_LIMIT = 20;
-
-export interface IQueryRecentOpts {
-    external?: "include" | "exclude" | "only";
-    limit?: number;
-}
 
 export interface IStorage extends ILoanTracker, IPrefsTracker {
     close(): void;
