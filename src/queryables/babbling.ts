@@ -1,7 +1,11 @@
 import _debug from "debug";
 
 import { ChromecastDevice, PlayerBuilder } from "babbling";
-import { IPlayableOptions, IQueryResult } from "babbling/dist/app";
+import {
+    IPlayableOptions,
+    IQueryResult,
+    RecommendationType,
+} from "babbling/dist/app";
 
 import { Context } from "../context";
 import {
@@ -22,6 +26,10 @@ type Player = PromiseType<ReturnType<BabblingQueryable["getPlayer"]>>;
 
 function queryErrorHandler(app: string, error: unknown) {
     debug("error querying", app, error);
+}
+
+function packQueryOpts(onError?: (app: string, error: Error) => void) {
+    return { onError: onError ?? queryErrorHandler };
 }
 
 function shougunOptsToBabblingOpts(
@@ -125,9 +133,8 @@ export class BabblingQueryable implements IQueryable {
     ): Promise<IMediaResultsMap> {
         // NOTE: babbling doesn't technically support recents yet, but actually
         // all the implementations return that, so just do it for now
-        // TODO: whenever babbling adds getRecentsMap, use that
         return this.getMediaMapBy((p) =>
-            p.getRecommendationsMap(onError ?? queryErrorHandler),
+            p.getRecentsMap(packQueryOpts(onError)),
         );
     }
 
@@ -136,7 +143,12 @@ export class BabblingQueryable implements IQueryable {
         onError?: (app: string, error: Error) => void,
     ): Promise<IMediaResultsMap> {
         return this.getMediaMapBy((p) =>
-            p.getRecommendationsMap(onError ?? queryErrorHandler),
+            p.getQueryRecommendationsMap(
+                {
+                    excludeTypes: [RecommendationType.Recent],
+                },
+                packQueryOpts(onError),
+            ),
         );
     }
 
