@@ -1,5 +1,8 @@
+import { toArray } from "babbling/dist/async";
 import { Context } from "../context";
 import { IMedia, IQueryable, MediaType } from "../model";
+
+const MAX_RECOMMENDATIONS = 50;
 
 /**
  * The ContextQueryable is a core component that provides query results from
@@ -37,8 +40,43 @@ export class ContextQueryable implements IQueryable {
 
     public async queryRecommended(context: Context) {
         // NOTE: we don't have a recommendation algorithm yet;
-        // just do recent
-        return this.queryRecent(context);
+        // just do unwatched + recent
+        const [all, recentlyWatched] = await Promise.all([
+            context.allTitles(),
+            toArray(
+                context.tracker.queryRecent({
+                    external: "exclude",
+                    limit: 100,
+                }),
+            ),
+        ]);
+
+        return {
+            Shougun: (async function* localRecents() {
+                const recentlyWatchedIds = new Set();
+                for (const recent of recentlyWatched) {
+                    recentlyWatchedIds.add(recent.id);
+                    if (recent.seriesId != null) {
+                        recentlyWatchedIds.add(recent.seriesId);
+                    }
+                }
+
+                // TODO Can we sort by how recently it was added?
+
+                const notRecentlyWatched = [];
+                for (const item of all) {
+                    if (!recentlyWatchedIds.has(item.id)) {
+                        notRecentlyWatched.push(item);
+
+                        if (notRecentlyWatched.length > MAX_RECOMMENDATIONS) {
+                            break;
+                        }
+                    }
+                }
+
+                yield* notRecentlyWatched;
+            })(),
+        };
     }
 
     private async *inflateRecent(context: Context) {
