@@ -48,7 +48,7 @@
      (flow/shell "pnpm run check"))
 
    (flow/with-step "Deploy to npm"
-     (flow/shell "pnpm publish"))
+     (flow/shell "pnpm publish --no-git-checks"))
 
    (flow/with-step "Upload to Github"
      (let [notes (file/content notes)
