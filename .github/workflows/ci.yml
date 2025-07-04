@@ -11,20 +11,18 @@ jobs:
         node_version: [12]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
 
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-
-    - name: Node dependency cache
-      uses: actions/cache@v4
-      with:
-        path: '**/node_modules'
-        key: ${{ runner.os }}-node-${{ hashFiles('pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
+        cache: pnpm
 
     - name: Install other dependencies
       run: |
@@ -32,8 +30,8 @@ jobs:
 
     - name: npm install and test
       run: |
-        npm ci
-        npm run check
+        pnpm install
+        pnpm check
       env:
         CI: true
 
