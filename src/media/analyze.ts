@@ -82,7 +82,9 @@ function requireNotNullProp<T, K extends keyof T>(
     key: K,
 ): NonNullable<T[K]> {
     if (v[key] == null) {
-        throw new Error(`Property ${key} of object was unexpectedly nil`);
+        throw new Error(
+            `Property ${String(key)} of object was unexpectedly nil`,
+        );
     }
     return v[key] as unknown as any;
 }
