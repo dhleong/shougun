@@ -5,7 +5,7 @@
    [babashka.deps :as deps]))
 
 (deps/add-deps '{:deps {com.github.dhleong/clj-hostage
-                        {:git/sha "c0b5700ad375eba3ece23c5ed622f65f61f00da9"}}})
+                        {:git/sha "9eabf056ac3ce7d1a82ad231b3e10f5197490b72"}}})
 (require '[hostage.expect :as expect]
          '[hostage.file :as file]
          '[hostage.flow :as flow]
