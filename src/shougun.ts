@@ -50,6 +50,8 @@ function unpackMaybeOpts(
     return [opts ?? {}, onProviderError];
 }
 
+export type IterableQueryResults = AsyncGenerator<IMedia, void, any>;
+
 export class Shougun {
     public static async create(
         queryables: IQueryable[],
@@ -154,16 +156,17 @@ export class Shougun {
      * Query "recently watched" titles, interleaving results from
      * each discovery type
      */
-    public async *queryRecent(options: IQueryOpts = {}) {
+    public async *queryRecent(options: IQueryOpts = {}): IterableQueryResults {
         const iterableRecents = this.queryFromMap(
             options,
-            this.getRecentsMap(options.onProviderError),
+            this.getRecentsMap(options),
         );
         if (options.onlyLocal === true) {
             // In this simple case, we know that results will already be sorted
             // by recency, so we can properly maintain the async iterator by returning
             // it directly.
-            return iterableRecents;
+            yield* iterableRecents;
+            return;
         }
 
         // In order to provide a more intuitive view of "recent" media across providers
@@ -193,7 +196,9 @@ export class Shougun {
      * Query "recommended" titles to watch, interleaving results from
      * each discovery type
      */
-    public async *queryRecommended(options: IQueryOpts = {}) {
+    public async *queryRecommended(
+        options: IQueryOpts = {},
+    ): IterableQueryResults {
         yield* this.queryFromMap(
             options,
             this.getRecommendationsMap(options.onProviderError),
@@ -417,7 +422,7 @@ export class Shougun {
     private async *queryFromMap(
         options: IQueryOpts,
         map: Promise<IMediaResultsMap>,
-    ) {
+    ): IterableQueryResults {
         const resultsBySource = await map;
         yield* interleaveAsyncIterables(Object.values(resultsBySource));
     }
