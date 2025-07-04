@@ -19,10 +19,10 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - name: Node dependency cache
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: '**/node_modules'
-        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+        key: ${{ runner.os }}-node-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
           ${{ runner.os }}-node-
 
