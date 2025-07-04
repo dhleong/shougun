@@ -39,6 +39,17 @@ export interface IQueryOpts {
     onProviderError?: (provider: string, error: Error) => void;
 }
 
+function unpackMaybeOpts(
+    optsOrHandler: IQueryOpts | ProviderErrorHandler | undefined,
+): [IQueryOpts, ProviderErrorHandler?] {
+    const opts = typeof optsOrHandler === "function" ? {} : optsOrHandler;
+    const onProviderError =
+        typeof optsOrHandler === "function"
+            ? optsOrHandler
+            : optsOrHandler?.onProviderError;
+    return [opts ?? {}, onProviderError];
+}
+
 export class Shougun {
     public static async create(
         queryables: IQueryable[],
@@ -83,10 +94,9 @@ export class Shougun {
     }
 
     public async search(query: string, options?: IQueryOpts) {
-        // TODO: onlyLocal?
         return toArray(
             mergeAsyncIterables(
-                this.context.queryables.map((q) =>
+                this.queryablesForOpts(options).map((q) =>
                     q.findMedia(this.context, query, options?.onProviderError),
                 ),
             ),
@@ -118,8 +128,11 @@ export class Shougun {
      * Get a map whose keys are a discovery type and whose values
      * are AsyncIterables of recently watched media
      */
-    public async getRecentsMap(onProviderError?: ProviderErrorHandler) {
-        return this.getQueryableMap((q) =>
+    public async getRecentsMap(
+        optsOrHandler?: ProviderErrorHandler | IQueryOpts,
+    ) {
+        const [opts, onProviderError] = unpackMaybeOpts(optsOrHandler);
+        return this.getQueryableMap(opts, (q) =>
             q.queryRecent(this.context, onProviderError),
         );
     }
@@ -128,8 +141,11 @@ export class Shougun {
      * Get a map whose keys are a discovery type and whose values
      * are AsyncIterables of recommended media
      */
-    public async getRecommendationsMap(onProviderError?: ProviderErrorHandler) {
-        return this.getQueryableMap((q) =>
+    public async getRecommendationsMap(
+        optsOrHandler?: ProviderErrorHandler | IQueryOpts,
+    ) {
+        const [opts, onProviderError] = unpackMaybeOpts(optsOrHandler);
+        return this.getQueryableMap(opts, (q) =>
             q.queryRecommended(this.context, onProviderError),
         );
     }
@@ -361,9 +377,12 @@ export class Shougun {
     }
 
     private async getQueryableMap(
+        options: IQueryOpts,
         query: (queryable: IQueryable) => Promise<IMediaResultsMap>,
     ) {
-        const allMaps = await Promise.all(this.context.queryables.map(query));
+        const allMaps = await Promise.all(
+            this.queryablesForOpts(options).map(query),
+        );
 
         let resultsBySource: IMediaResultsMap = {};
         for (const m of allMaps) {
@@ -371,6 +390,15 @@ export class Shougun {
         }
 
         return resultsBySource;
+    }
+
+    private queryablesForOpts(opts: IQueryOpts | undefined) {
+        if (opts?.onlyLocal === true) {
+            return this.context.queryables.filter(
+                (it) => it instanceof ContextQueryable,
+            );
+        }
+        return this.context.queryables;
     }
 
     private queryableFor(media: IMedia) {
@@ -390,16 +418,6 @@ export class Shougun {
         options: IQueryOpts,
         map: Promise<IMediaResultsMap>,
     ) {
-        if (options.onlyLocal === true) {
-            const local = this.context.queryables.find(
-                (it) => it instanceof ContextQueryable,
-            );
-            if (!local) return;
-            const recommended = await map;
-            yield* recommended.Shougun;
-            return;
-        }
-
         const resultsBySource = await map;
         yield* interleaveAsyncIterables(Object.values(resultsBySource));
     }
